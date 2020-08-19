@@ -21,8 +21,9 @@
 #
 
 file (GLOB SOURCE_FILES *.cpp *.h)
+find_package(lz4 CONFIG REQUIRED)
 add_executable (PackageTool ${SOURCE_FILES})
 # Minimal engine builds which this target uses do not merge third party dependencies to monolithic lib. Link to
 # dependencies explicitly.
-target_link_libraries (PackageTool Urho3D LZ4)
+target_link_libraries (PackageTool Urho3D lz4::lz4)
 install(TARGETS PackageTool RUNTIME DESTINATION ${DEST_BIN_DIR_CONFIG})

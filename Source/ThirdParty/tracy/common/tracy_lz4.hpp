@@ -1,2 +1,2 @@
-#include "LZ4/lz4.h"
+#include "lz4.h"
 

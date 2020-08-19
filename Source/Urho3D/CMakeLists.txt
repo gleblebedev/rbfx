@@ -109,7 +109,12 @@ if (MINI_URHO)
     list (REMOVE_ITEM SOURCE_FILES UI/FontFaceFreeType.cpp)
 endif ()
 
+find_package(lz4 CONFIG REQUIRED)
+
 add_library(Urho3D ${SOURCE_FILES} ${HEADER_FILES} $<$<CXX_COMPILER_ID:MSVC>:${rbfx_SOURCE_DIR}/script/rbfx.natvis>)
+
+target_link_libraries (Urho3D PUBLIC lz4::lz4)
+
 target_include_directories(Urho3D PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>        # For parent projects to find auto-generated engine headers
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>           # Misc configured headers
@@ -157,7 +162,6 @@ endif ()
 # Link dependencies
 set (THIRD_PARTY_DEPENDENCIES
     FreeType
-    LZ4
     PugiXml
     rapidjson
     SDL

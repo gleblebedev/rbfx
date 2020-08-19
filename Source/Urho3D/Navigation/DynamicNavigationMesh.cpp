@@ -41,7 +41,7 @@
 #include "../Scene/Scene.h"
 #include "../Scene/SceneEvents.h"
 
-#include <LZ4/lz4.h>
+#include <lz4.h>
 #include <Detour/DetourNavMesh.h>
 #include <Detour/DetourNavMeshBuilder.h>
 #include <DetourTileCache/DetourTileCache.h>

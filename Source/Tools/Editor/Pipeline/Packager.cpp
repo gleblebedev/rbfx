@@ -26,8 +26,8 @@
 #include <Urho3D/Core/Thread.h>
 #include <Urho3D/IO/Log.h>
 #include <Urho3D/IO/FileSystem.h>
-#include <LZ4/lz4.h>
-#include <LZ4/lz4hc.h>
+#include <lz4.h>
+#include <lz4hc.h>
 
 #include "Project.h"
 #include "Pipeline/Pipeline.h"

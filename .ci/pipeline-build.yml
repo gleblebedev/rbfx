@@ -42,6 +42,7 @@ jobs:
       - template: build.yml
 
   - job: Windows
+    timeoutInMinutes: 120
     pool:
       vmImage: 'vs2017-win2016'
 
@@ -49,18 +50,22 @@ jobs:
       matrix:
         static-msvc-d3d11:
           BUILD_SHARED_LIBS: OFF
-          MSBUILD: 1
+          MSBUILD: ON
           CMAKE_GENERATE_ARGS: "-G \"Visual Studio 15 2017 Win64\" -DURHO3D_GRAPHICS_API=D3D11"
         shared-msvc-d3d11:
           BUILD_SHARED_LIBS: ON
-          MSBUILD: 1
+          MSBUILD: ON
           CMAKE_GENERATE_ARGS: "-G \"Visual Studio 15 2017 Win64\" -DURHO3D_GRAPHICS_API=D3D11"
+        shared-msvc-d3d11-x86:
+          BUILD_SHARED_LIBS: ON
+          MSBUILD: ON
+          CMAKE_GENERATE_ARGS: "-G \"Visual Studio 15 2017\" -DURHO3D_GRAPHICS_API=D3D11"
         static-mingw-d3d9:
           BUILD_SHARED_LIBS: OFF
-          CMAKE_GENERATE_ARGS: -G "MinGW Makefiles" -DURHO3D_GRAPHICS_API=D3D9
+          CMAKE_GENERATE_ARGS: -G "MinGW Makefiles" -DURHO3D_GRAPHICS_API=D3D9 -DURHO3D_PROFILING=OFF
         shared-mingw-d3d9:
           BUILD_SHARED_LIBS: ON
-          CMAKE_GENERATE_ARGS: -G "MinGW Makefiles" -DURHO3D_GRAPHICS_API=D3D9
+          CMAKE_GENERATE_ARGS: -G "MinGW Makefiles" -DURHO3D_GRAPHICS_API=D3D9 -DURHO3D_PROFILING=OFF
           URHO3D_CSHARP: OFF
 
     steps:
@@ -94,13 +99,12 @@ jobs:
           CMAKE_GENERATE_ARGS: -DTRACY_NO_PARALLEL_ALGORITHMS=ON
           CC: clang-8
           CXX: clang++-8
-          EXTRA_PACKAGES: clang-8
         shared-clang-opengl:
           BUILD_SHARED_LIBS: ON
           CMAKE_GENERATE_ARGS: -DTRACY_NO_PARALLEL_ALGORITHMS=ON
           CC: clang-8
           CXX: clang++-8
-          EXTRA_PACKAGES: clang-8 mono-devel msbuild-libhostfxr msbuild-sdkresolver msbuild
+          EXTRA_PACKAGES: mono-devel msbuild-libhostfxr msbuild-sdkresolver msbuild
 
     steps:
       - bash: |
@@ -114,7 +118,7 @@ jobs:
         displayName: 'Add Repositories'
       - template: cmake.yml
       - bash: |
-          sudo apt-get install -y --no-install-recommends libasound2-dev libxrandr-dev libgl1-mesa-dev libglu1-mesa-dev uuid-dev ninja-build $(EXTRA_PACKAGES)
+          sudo apt-get install -y --no-install-recommends libasound2-dev libxrandr-dev libgl1-mesa-dev libglu1-mesa-dev uuid-dev libtbb-dev ninja-build $(EXTRA_PACKAGES)
           sudo update-alternatives --install /usr/bin/cc cc /usr/bin/$(CC) 100
           sudo update-alternatives --set cc /usr/bin/$(CC)
           sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/$(CXX) 100
@@ -125,6 +129,7 @@ jobs:
       - template: build.yml
 
   - job: MacOS
+    timeoutInMinutes: 120
     pool:
       vmImage: 'macOS-latest'
 

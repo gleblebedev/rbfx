@@ -18,13 +18,25 @@
     <Configurations>Debug;Release;RelWithDebInfo;MinSizeRel</Configurations>
     <HasDebugInfo Condition=" '$(Configuration)' == 'Debug' Or '$(Configuration)' == 'RelWithDebInfo'">true</HasDebugInfo>
     <BaseOutputPath>bin/</BaseOutputPath>
-    <PlatformTarget Condition=" '$(PlatformTarget)' == '' Or '$(Platform)' == 'x64' ">x64</PlatformTarget>
-    <PlatformTarget Condition=" '$(Platform)' == 'Win32' Or '$(Platform)' == 'x86' ">x86</PlatformTarget>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
   </PropertyGroup>
   <PropertyGroup>
-    <TargetFramework>$(URHO3D_NETFX)</TargetFramework>
+    <TargetFrameworks>netstandard2.0;net46;net47;netcoreapp2.1</TargetFrameworks>
     <RuntimeIdentifier>$(URHO3D_NETFX_RUNTIME_IDENTIFIER)</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net46' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net47' ">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(CMAKE_BINARY_DIR)' == '' ">
     <CMAKE_BINARY_DIR Condition=" '$(OS)' == 'Windows_NT' ">$(SolutionDir)</CMAKE_BINARY_DIR>                           <!-- Solution is in cmake binary dir -->
@@ -42,7 +54,7 @@
   <PropertyGroup>
     <BaseIntermediateOutputPath>$(CMAKE_BINARY_DIR)obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
     <BaseOutputPath>$(CMAKE_BINARY_DIR)$(BaseOutputPath)</BaseOutputPath>
-    <OutDir>$(BaseOutputPath)</OutDir>
-    <OutputPath>$(BaseOutputPath)</OutputPath>
+    <OutDir>$(BaseOutputPath)$(TargetFramework)/</OutDir>
+    <OutputPath>$(BaseOutputPath)$(TargetFramework)/</OutputPath>
   </PropertyGroup>
 </Project>

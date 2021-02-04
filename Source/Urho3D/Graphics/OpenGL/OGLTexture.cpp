@@ -32,6 +32,10 @@
 
 #include "../../DebugNew.h"
 
+#ifndef GL_DEPTH_COMPONENT24
+#define GL_DEPTH_COMPONENT24 GL_DEPTH_COMPONENT24_OES 
+#endif
+
 namespace Urho3D
 {
 
@@ -293,7 +297,7 @@ unsigned Texture::GetDataType(unsigned format)
     else
         return GL_UNSIGNED_BYTE;
 #else
-    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_COMPONENT24_OES)
+    if (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_COMPONENT24)
         return GL_UNSIGNED_INT;
     else if (format == GL_DEPTH_COMPONENT16)
         return GL_UNSIGNED_SHORT;

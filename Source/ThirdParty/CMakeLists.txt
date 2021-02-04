@@ -148,7 +148,7 @@ if (URHO3D_CSHARP AND NOT CMAKE_CROSSCOMPILING)
     add_subdirectory(swig)
 endif ()
 
-if ((WIN32 OR APPLE) AND NOT UWP)
+if ((WIN32 OR (APPLE AND NOT MOBILE)) AND NOT UWP)
     add_subdirectory (LibCpuId)
 endif ()
 

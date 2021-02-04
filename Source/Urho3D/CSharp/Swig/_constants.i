@@ -15,6 +15,7 @@
 %ignore Urho3D::EP_FORCE_GL2;
 %ignore Urho3D::EP_FRAME_LIMITER;
 %ignore Urho3D::EP_FULL_SCREEN;
+%ignore Urho3D::EP_GPU_DEBUG;
 %ignore Urho3D::EP_HEADLESS;
 %ignore Urho3D::EP_HIGH_DPI;
 %ignore Urho3D::EP_LOG_LEVEL;
@@ -297,6 +298,7 @@
   public const string EpForceGl2 = "ForceGL2";
   public const string EpFrameLimiter = "FrameLimiter";
   public const string EpFullScreen = "FullScreen";
+  public const string EpGpuDebug = "GPUDebug";
   public const string EpHeadless = "Headless";
   public const string EpHighDpi = "HighDPI";
   public const string EpLogLevel = "LogLevel";

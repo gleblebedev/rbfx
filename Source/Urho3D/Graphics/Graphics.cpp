@@ -155,7 +155,7 @@ bool Graphics::SetDefaultWindowModes(int width, int height, const ScreenModePara
 }
 
 bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, bool resizable,
-    bool highDPI, bool vsync, bool tripleBuffer, int multiSample, int monitor, int refreshRate)
+    bool highDPI, bool vsync, bool tripleBuffer, int multiSample, int monitor, int refreshRate, bool gpuDebug)
 {
     ScreenModeParams params;
     params.fullscreen_ = fullscreen;
@@ -167,6 +167,7 @@ bool Graphics::SetMode(int width, int height, bool fullscreen, bool borderless, 
     params.multiSample_ = multiSample;
     params.monitor_ = monitor;
     params.refreshRate_ = refreshRate;
+    params.gpuDebug_ = gpuDebug;
 
     return SetDefaultWindowModes(width, height, params);
 }

@@ -143,10 +143,11 @@
   public $typemap(cstype, unsigned char *) ModifiableData {
     get { return GetModifiableData(); }
   }
-  public $typemap(cstype, const eastl::vector<unsigned char> &) Buffer {
-    get { return GetBuffer(); }
-  }
 %}
+// TODO: Fix the bug
+//  public $typemap(cstype, const eastl::vector<unsigned char> &) Buffer {
+//    get { return GetBuffer(); }
+//  }
 %csmethodmodifiers Urho3D::VectorBuffer::GetData "private";
 %csmethodmodifiers Urho3D::VectorBuffer::GetModifiableData "private";
 %csmethodmodifiers Urho3D::VectorBuffer::GetBuffer "private";

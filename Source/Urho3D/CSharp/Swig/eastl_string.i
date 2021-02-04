@@ -116,6 +116,7 @@ class string_view;
 // Helpers
 %wrapper %{
     SWIGEXPORT void SWIGSTDCALL CSharp_Urho3D_String_Set(eastl::string* str, const char* val) { *str = val; }
+    SWIGEXPORT const char* SWIGSTDCALL CSharp_Urho3D_String_Get(eastl::string* str) { return str->c_str(); }
     SWIGEXPORT const char* SWIGSTDCALL CSharp_EaStl_String_Get(eastl::string* str) { return str->c_str(); }
 %}
 

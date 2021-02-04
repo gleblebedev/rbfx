@@ -34,6 +34,11 @@ namespace Urho3DNet
             return (T)GetComponent(typeof(T).Name, recursive);
         }
 
+        public T GetOrCreateComponent<T>(CreateMode mode = CreateMode.Replicated, uint id = 0) where T: Component
+        {
+            return (T)GetOrCreateComponent(typeof(T).Name, mode, id);
+        }
+
         /// <summary>
         /// Get first occurrence of a component type
         /// </summary>

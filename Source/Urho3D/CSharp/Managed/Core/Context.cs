@@ -64,7 +64,7 @@ namespace Urho3DNet
             {
                 // Exclude system libraries and UWP HiddenScope assembly.
                 var assemblyName = assembly.GetName().Name;
-                if (!assemblyName("System.") && assemblyName != "HiddenScope")
+                if (!assemblyName.StartsWith("System.") && assemblyName != "HiddenScope")
                 {
                     RegisterFactories(assembly);
                 }

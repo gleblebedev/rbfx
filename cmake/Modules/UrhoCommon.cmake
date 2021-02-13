@@ -162,6 +162,8 @@ function (csharp_bind_target)
 
     get_target_property(BIND_SOURCE_DIR ${BIND_TARGET} SOURCE_DIR)
 
+    message (WARNING "csharp_bind_target executed for BIND_TARGET=${BIND_TARGET}")
+
     # Parse bindings using same compile definitions as built target
     __TARGET_GET_PROPERTIES_RECURSIVE(INCLUDES ${BIND_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
     __TARGET_GET_PROPERTIES_RECURSIVE(DEFINES  ${BIND_TARGET} INTERFACE_COMPILE_DEFINITIONS)
@@ -221,7 +223,16 @@ function (csharp_bind_target)
     # Finalize option list
     string(REGEX REPLACE "[^;]+\\$<COMPILE_LANGUAGE:[^;]+;" "" GENERATOR_OPTIONS "${GENERATOR_OPTIONS}")    # COMPILE_LANGUAGE creates ambiguity, remove.
     string(REPLACE ";" "\n" GENERATOR_OPTIONS "${GENERATOR_OPTIONS}")
-    file(GENERATE OUTPUT "GeneratorOptions_${BIND_TARGET}_$<CONFIG>.txt" CONTENT "${GENERATOR_OPTIONS}")
+    # file(GENERATE OUTPUT "${GeneratorOptionsName}" CONTENT "${GENERATOR_OPTIONS}")
+
+    if(GENERATOR_IS_MULTI_CONFIG)
+        foreach(_config ${CMAKE_CONFIGURATION_TYPES})
+            file(GENERATE OUTPUT "GeneratorOptions_${BIND_TARGET}_${_config}.txt" CONTENT "${GENERATOR_OPTIONS}" CONDITION $<CONFIG:${_config}>)
+        endforeach()
+    else()
+        file(WRITE "GeneratorOptions_${BIND_TARGET}_${CMAKE_BUILD_TYPE}.txt" "${GENERATOR_OPTIONS}")
+    endif()
+
 
     set (SWIG_SYSTEM_INCLUDE_DIRS "${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES};${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES};${CMAKE_SYSTEM_INCLUDE_PATH};${CMAKE_EXTRA_GENERATOR_CXX_SYSTEM_INCLUDE_DIRS}")
     if (BIND_INCLUDE_DIRS)

@@ -223,15 +223,7 @@ function (csharp_bind_target)
     # Finalize option list
     string(REGEX REPLACE "[^;]+\\$<COMPILE_LANGUAGE:[^;]+;" "" GENERATOR_OPTIONS "${GENERATOR_OPTIONS}")    # COMPILE_LANGUAGE creates ambiguity, remove.
     string(REPLACE ";" "\n" GENERATOR_OPTIONS "${GENERATOR_OPTIONS}")
-    # file(GENERATE OUTPUT "${GeneratorOptionsName}" CONTENT "${GENERATOR_OPTIONS}")
-
-    if(GENERATOR_IS_MULTI_CONFIG)
-        foreach(_config ${CMAKE_CONFIGURATION_TYPES})
-            file(GENERATE OUTPUT "GeneratorOptions_${BIND_TARGET}_${_config}.txt" CONTENT "${GENERATOR_OPTIONS}" CONDITION $<CONFIG:${_config}>)
-        endforeach()
-    else()
-        file(WRITE "GeneratorOptions_${BIND_TARGET}_${CMAKE_BUILD_TYPE}.txt" "${GENERATOR_OPTIONS}")
-    endif()
+    file(GENERATE OUTPUT "GeneratorOptions_${BIND_TARGET}_$<CONFIG>.txt" CONTENT "${GENERATOR_OPTIONS}" CONDITION $<COMPILE_LANGUAGE:CXX>)
 
 
     set (SWIG_SYSTEM_INCLUDE_DIRS "${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES};${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES};${CMAKE_SYSTEM_INCLUDE_PATH};${CMAKE_EXTRA_GENERATOR_CXX_SYSTEM_INCLUDE_DIRS}")

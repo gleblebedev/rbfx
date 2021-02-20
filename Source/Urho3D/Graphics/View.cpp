@@ -1169,6 +1169,7 @@ void View::GetLightBatches()
                     volumeBatch.geometry_ = renderer_->GetLightGeometry(light);
                     volumeBatch.geometryType_ = GEOM_STATIC;
                     volumeBatch.worldTransform_ = &light->GetVolumeTransform(cullCamera_);
+                    volumeBatch.flags_ = BATCH_NONE;
                     volumeBatch.numWorldTransforms_ = 1;
                     volumeBatch.lightQueue_ = &lightQueue;
                     volumeBatch.distance_ = light->GetDistance();

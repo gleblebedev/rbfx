@@ -62,6 +62,13 @@ struct InstanceShaderParameters
 #endif
 };
 
+/// %Geometry type for vertex shader geometry variations.
+enum BatchFlags
+{
+    BATCH_NONE = 0,
+    BATCH_FLIP_FACES = 1 << 0
+};
+
 /// Queued 3D geometry draw call.
 struct Batch
 {
@@ -75,6 +82,7 @@ struct Batch
         isBase_(false),
         geometry_(rhs.geometry_),
         material_(rhs.material_.Get()),
+        flags_(BATCH_NONE),
         worldTransform_(rhs.worldTransform_),
         numWorldTransforms_(rhs.numWorldTransforms_),
         instancingData_(rhs.instancingData_),
@@ -83,6 +91,8 @@ struct Batch
         lightmapScaleOffset_(rhs.lightmapScaleOffset_),
         lightmapIndex_(rhs.lightmapIndex_)
     {
+        if (worldTransform_->Column(2).DotProduct(worldTransform_->Column(0).CrossProduct(worldTransform_->Column(1))) < 0.0f)
+            flags_ |= BATCH_FLIP_FACES;
     }
 
     /// Calculate state sorting key, which consists of base pass flag, light, pass and geometry.
@@ -106,6 +116,8 @@ struct Batch
     Geometry* geometry_{};
     /// Material.
     Material* material_{};
+    /// Flags
+    FlagSet<BatchFlags> flags_{};
     /// World transform(s). For a skinned model, these are the bone transforms.
     const Matrix3x4* worldTransform_{};
     /// Number of world transforms.
@@ -216,7 +228,8 @@ struct BatchGroupKey
         pass_(batch.pass_),
         material_(batch.material_),
         geometry_(batch.geometry_),
-        renderOrder_(batch.renderOrder_)
+        renderOrder_(batch.renderOrder_),
+        flags_(batch.flags_)
     {
     }
 
@@ -232,19 +245,21 @@ struct BatchGroupKey
     Geometry* geometry_;
     /// 8-bit render order modifier from material.
     unsigned char renderOrder_;
+    /// Flags
+    FlagSet<BatchFlags> flags_;
 
     /// Test for equality with another batch group key.
     bool operator ==(const BatchGroupKey& rhs) const
     {
         return zone_ == rhs.zone_ && lightQueue_ == rhs.lightQueue_ && pass_ == rhs.pass_ && material_ == rhs.material_ &&
-               geometry_ == rhs.geometry_ && renderOrder_ == rhs.renderOrder_;
+               geometry_ == rhs.geometry_ && renderOrder_ == rhs.renderOrder_ && flags_ == rhs.flags_;
     }
 
     /// Test for inequality with another batch group key.
     bool operator !=(const BatchGroupKey& rhs) const
     {
         return zone_ != rhs.zone_ || lightQueue_ != rhs.lightQueue_ || pass_ != rhs.pass_ || material_ != rhs.material_ ||
-               geometry_ != rhs.geometry_ || renderOrder_ != rhs.renderOrder_;
+               geometry_ != rhs.geometry_ || renderOrder_ != rhs.renderOrder_ || flags_ != rhs.flags_;
     }
 
     /// Return hash value.

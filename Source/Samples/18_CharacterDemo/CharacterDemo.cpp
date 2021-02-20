@@ -141,7 +141,11 @@ void CharacterDemo::CreateScene()
         Node* objectNode = scene_->CreateChild("Mushroom");
         objectNode->SetPosition(Vector3(Random(180.0f) - 90.0f, 0.0f, Random(180.0f) - 90.0f));
         objectNode->SetRotation(Quaternion(0.0f, Random(360.0f), 0.0f));
-        objectNode->SetScale(2.0f + Random(5.0f));
+        const float scale = 2.0f + Random(5.0f);
+        //if (Random(0.5f)<0.5f)
+            objectNode->SetScale(Vector3(-scale, scale, scale));
+        //else
+        //    objectNode->SetScale(scale);
         auto* object = objectNode->CreateComponent<StaticModel>();
         object->SetModel(cache->GetResource<Model>("Models/Mushroom.mdl"));
         object->SetMaterial(cache->GetResource<Material>("Materials/Mushroom.xml"));

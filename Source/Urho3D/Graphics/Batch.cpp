@@ -226,7 +226,23 @@ void Batch::Prepare(View* view, Camera* camera, bool setModelTransform, bool all
         CullMode effectiveCullMode = pass_->GetCullMode();
         // Get cull mode from material if pass doesn't override it
         if (effectiveCullMode == MAX_CULLMODES)
+        {
             effectiveCullMode = isShadowPass ? material_->GetShadowCullMode() : material_->GetCullMode();
+            if (BATCH_FLIP_FACES == flags_ & BATCH_FLIP_FACES)
+            {
+                switch (effectiveCullMode)
+                {
+                case CULL_NONE:
+                    break;
+                case CULL_CCW:
+                    effectiveCullMode = CULL_CW;
+                    break;
+                case CULL_CW:
+                    effectiveCullMode = CULL_CCW;
+                    break;
+                }
+            }
+        }
 
         renderer->SetCullMode(effectiveCullMode, camera);
         if (!isShadowPass)
@@ -759,7 +775,7 @@ void BatchGroup::Draw(View* view, Camera* camera, bool allowDepthWrite) const
 unsigned BatchGroupKey::ToHash() const
 {
     return (unsigned)((size_t)zone_ / sizeof(Zone) + (size_t)lightQueue_ / sizeof(LightBatchQueue) + (size_t)pass_ / sizeof(Pass) +
-                      (size_t)material_ / sizeof(Material) + (size_t)geometry_ / sizeof(Geometry)) + renderOrder_;
+                      (size_t)material_ / sizeof(Material) + (size_t)geometry_ / sizeof(Geometry)) + renderOrder_ + (size_t)flags_;
 }
 
 void BatchQueue::Clear(int maxSortedInstances)

@@ -57,6 +57,18 @@ include(UrhoOptions)
 # Include common utilitles
 include(UrhoCommon)
 
+# Override SWIG_EXECUTABLE for mobile
+if (URHO3D_CSHARP_TOOLS AND NOT DESKTOP)
+   if(CMAKE_HOST_SYSTEM MATCHES "^Linux")
+       set (SWIG_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/../tools/linux/swig")
+   elseif (CMAKE_HOST_SYSTEM MATCHES "^Windows")
+       set (SWIG_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/../tools/win/swig.exe")
+   elseif (CMAKE_HOST_SYSTEM MATCHES "^Darwin")
+       set (SWIG_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/../tools/mac/swig")
+   endif ()
+   message(STATUS "SWIG_EXECUTABLE set to ${SWIG_EXECUTABLE}")
+endif ()
+
 # Enable common build options
 if (NOT DEFINED CMAKE_CXX_STANDARD)
     set (CMAKE_CXX_STANDARD 17)
@@ -420,6 +432,7 @@ message(STATUS "  Docs            ${URHO3D_DOCS}")
 if (TARGET Profiler)
     message(STATUS "     Profiler GUI ${URHO3D_PROFILING}")
 endif ()
+
 
 # clang-tidy target
 find_program(CLANG_TIDY clang-tidy)

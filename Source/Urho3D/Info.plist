@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en-US</string>
+  <key>CFBundleExecutable</key>
+  <string>Urho3D</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.github.Urho3D</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Urho3D</string>
+  <key>CFBundlePackageType</key>
+  <string>FMWK</string>
+  <key>UIRequiredDeviceCapabilities</key>
+  <array>
+    <string>opengles-3</string>
+  </array>
+</dict>
+</plist>

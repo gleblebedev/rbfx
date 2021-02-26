@@ -53,6 +53,10 @@
 #endif
 #define glClearDepth glClearDepthf
 #endif
+#ifndef GL_DEPTH24_STENCIL8
+#define GL_DEPTH24_STENCIL8 GL_DEPTH24_STENCIL8_OES
+#endif
+
 
 #ifdef __EMSCRIPTEN__
 #include "../../Input/Input.h"
@@ -2862,9 +2866,9 @@ void Graphics::CheckFeatureSupport()
 
     // Check for best supported depth renderbuffer format for GLES2
     if (CheckExtension("GL_OES_depth24"))
-        glesDepthStencilFormat = GL_DEPTH_COMPONENT24_OES;
+        glesDepthStencilFormat = GL_DEPTH_COMPONENT24;
     if (CheckExtension("GL_OES_packed_depth_stencil"))
-        glesDepthStencilFormat = GL_DEPTH24_STENCIL8_OES;
+        glesDepthStencilFormat = GL_DEPTH24_STENCIL8;
 #ifdef __EMSCRIPTEN__
     if (!CheckExtension("WEBGL_depth_texture"))
 #else
@@ -3075,7 +3079,7 @@ void Graphics::PrepareDraw()
 #ifndef GL_ES_VERSION_2_0
             bool hasStencil = texture->GetFormat() == GL_DEPTH24_STENCIL8_EXT;
 #else
-            bool hasStencil = texture->GetFormat() == GL_DEPTH24_STENCIL8_OES;
+            bool hasStencil = texture->GetFormat() == GL_DEPTH24_STENCIL8;
 #endif
             unsigned renderBufferID = depthStencil_->GetRenderBuffer();
             if (!renderBufferID)

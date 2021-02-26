@@ -37,6 +37,14 @@
 
 #include "../../DebugNew.h"
 
+#ifndef GL_DEPTH_COMPONENT24
+#define GL_DEPTH_COMPONENT24 GL_DEPTH_COMPONENT24_OES 
+#endif
+
+#ifndef GL_DEPTH24_STENCIL8
+#define GL_DEPTH24_STENCIL8 GL_DEPTH24_STENCIL8_OES 
+#endif
+
 namespace Urho3D
 {
 
@@ -400,7 +408,7 @@ bool Texture2D::Create()
 #ifndef GL_ES_VERSION_2_0
     if (format == Graphics::GetDepthStencilFormat())
 #else
-    if (format == GL_DEPTH_COMPONENT16 || format == GL_DEPTH_COMPONENT24_OES || format == GL_DEPTH24_STENCIL8_OES ||
+    if (format == GL_DEPTH_COMPONENT16 || format == GL_DEPTH_COMPONENT24 || format == GL_DEPTH24_STENCIL8 ||
         (format == GL_DEPTH_COMPONENT && !graphics_->GetShadowMapFormat()))
 #endif
     {

@@ -89,7 +89,7 @@ using namespace Urho3D;
 // Speed boost
 %pragma(csharp) imclassclassmodifiers="[System.Security.SuppressUnmanagedCodeSecurity]\ninternal unsafe class"
 %pragma(csharp) moduleclassmodifiers="[System.Security.SuppressUnmanagedCodeSecurity]\npublic unsafe partial class"
-%typemap(csclassmodifiers) SWIGTYPE "public unsafe partial class"
+%typemap(csclassmodifiers) SWIGTYPE "[global::Urho3DNet.Preserve(AllMembers=true)]\npublic unsafe partial class"
 
 %{
 #if _WIN32
@@ -733,18 +733,19 @@ public:
 
 //// --------------------------------------- Physics ---------------------------------------
 #if defined(URHO3D_PHYSICS)
-//%ignore Urho3D::TriangleMeshData::meshInterface_;
-//%ignore Urho3D::TriangleMeshData::shape_;
-//%ignore Urho3D::TriangleMeshData::infoMap_;
-//%ignore Urho3D::GImpactMeshData::meshInterface_;
-//
-//%include "generated/Urho3D/_pre_physics.i"
-//%include "Urho3D/Physics/CollisionShape.h"
-//%include "Urho3D/Physics/Constraint.h"
-//%include "Urho3D/Physics/PhysicsWorld.h"
-//%include "Urho3D/Physics/RaycastVehicle.h"
-//%include "Urho3D/Physics/RigidBody.h"
-//
+%ignore Urho3D::TriangleMeshData::meshInterface_;
+%ignore Urho3D::TriangleMeshData::shape_;
+%ignore Urho3D::TriangleMeshData::infoMap_;
+%ignore Urho3D::GImpactMeshData::meshInterface_;
+
+%include "generated/Urho3D/_pre_physics.i"
+%include "Urho3D/Physics/CollisionShape.h"
+%include "Urho3D/Physics/Constraint.h"
+%include "Urho3D/Physics/PhysicsWorld.h"
+%include "Urho3D/Physics/RaycastVehicle.h"
+%include "Urho3D/Physics/RigidBody.h"
+%include "Urho3D/Physics/KinematicCharacterController.h"
+
 #endif
 // --------------------------------------- SystemUI ---------------------------------------
 #if defined(URHO3D_SYSTEMUI)

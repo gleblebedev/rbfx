@@ -55,6 +55,14 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Platform;
 #endif
 
+#if URHO3D_OPENXR
+// Tell OpenXR what platform code we'll be using
+#define XR_USE_PLATFORM_WIN32
+#define XR_USE_GRAPHICS_API_D3D11
+#include <openxr/openxr.h>
+#include <openxr/openxr_platform.h>
+#endif
+
 #include <SDL/SDL.h>
 #include <SDL/SDL_syswm.h>
 
@@ -2055,6 +2063,14 @@ void Graphics::AdjustWindow(int& newWidth, int& newHeight, bool& newFullscreen, 
 
 bool Graphics::CreateDevice(int width, int height)
 {
+    UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+    if (screenParams_.gpuDebug_)
+    {
+        // Enable the debug layer if requested.
+        creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    }
+
     // Device needs only to be created once
     if (!impl_->device_)
     {
@@ -2069,11 +2085,7 @@ bool Graphics::CreateDevice(int width, int height)
             nullptr,
             D3D_DRIVER_TYPE_HARDWARE,
             nullptr,
-            D3D11_CREATE_DEVICE_BGRA_SUPPORT
-#if URHO3D_DEBUG
-            | D3D11_CREATE_DEVICE_DEBUG
-#endif
-            ,
+            creationFlags,
             featureLevels,
             ARRAYSIZE(featureLevels),
             D3D11_SDK_VERSION,

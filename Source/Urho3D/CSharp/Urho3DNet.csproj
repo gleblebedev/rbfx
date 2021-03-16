@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="MSBuild.Sdk.Extras/2.0.54">
   <PropertyGroup>
     <AssemblyName>Urho3DNet</AssemblyName>
     <OutputType>Library</OutputType>
@@ -6,6 +6,36 @@
   </PropertyGroup>
   <PropertyGroup>
     <GeneratedCodePath>$(RBFX_BINARY_DIR)Source/Urho3D/</GeneratedCodePath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework></TargetFramework>
+    <TargetFrameworks>netstandard2.0;net46;net47;netcoreapp2.1;xamarin.ios10;monoandroid90</TargetFrameworks>
+    <RuntimeIdentifier>$(URHO3D_NETFX_RUNTIME_IDENTIFIER)</RuntimeIdentifier>
+    <OutDir>$(BaseOutputPath)$(TargetFramework)</OutDir>
+    <OutputPath>$(BaseOutputPath)$(TargetFramework)</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'xamarin.ios10' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'monoandroid90' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <TargetFrameworkVersion>v9.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net46' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net47' ">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.1' ">
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <BindingsSourceCodeUrho3D Include="$(GeneratedCodePath)Urho3DCSharp/*.cs" />

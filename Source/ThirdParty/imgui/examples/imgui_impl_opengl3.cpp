@@ -89,7 +89,7 @@
 #if (defined(__APPLE__) && (TARGET_OS_IOS || TARGET_OS_TV))
 #include <OpenGLES/ES2/gl.h>    // Use GL ES 2
 #else
-#include <GLES3/gl2.h>          // Use GL ES 2
+#include <GLES2/gl2.h>          // Use GL ES 2
 #endif
 #elif defined(IMGUI_IMPL_OPENGL_ES3)
 #if (defined(__APPLE__) && (TARGET_OS_IOS || TARGET_OS_TV))

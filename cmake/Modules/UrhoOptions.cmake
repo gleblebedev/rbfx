@@ -100,11 +100,13 @@ option                (URHO3D_RMLUI              "HTML subset UIs via RmlUI midd
 
 # Features
 set (URHO3D_CSHARP_TOOLS ${URHO3D_CSHARP})
+message(WARNING "URHO3D_CSHARP_TOOLS set to ${URHO3D_CSHARP}")
 cmake_dependent_option(URHO3D_CSHARP             "Enable C# support"                                     OFF                  "BUILD_SHARED_LIBS;NOT MINGW"   OFF)
 if (NOT MINI_URHO)
     # Keep C# tools in minimal build if we requested them. This is a workaround for building swig as a native tool during crosscompiling.
 	# Otherwise it would fail because we build tools with -DBUILD_SHARED_LIBS=OFF due to cryptic build errors, and C# is disabled in static builds.
     set (URHO3D_CSHARP_TOOLS ${URHO3D_CSHARP})
+    message(WARNING "if (NOT MINI_URHO) URHO3D_CSHARP_TOOLS set to ${URHO3D_CSHARP}")
 endif ()
 # Valid values at https://docs.microsoft.com/en-us/dotnet/standard/frameworks
 set(URHO3D_NETFX netstandard2.0 CACHE STRING "TargetFramework value for .NET libraries")
@@ -133,6 +135,7 @@ cmake_dependent_option(URHO3D_MERGE_STATIC_LIBS "Merge third party dependency li
 option(URHO3D_NO_EDITOR_PLAYER_EXE              "Do not build editor or player executables."            OFF)
 option(URHO3D_CONTAINER_ADAPTERS                "Enable EASTL-to-Urho container adapters for easier porting of legacy code." OFF)
 option(URHO3D_SSL                               "Enable OpenSSL support"                                OFF)
+option(URHO3D_OPENXR                            "Enable OpenXR support"                                 OFF)
 
 if (WIN32)
     set(URHO3D_GRAPHICS_API D3D11 CACHE STRING "Graphics API")
@@ -158,7 +161,7 @@ endif ()
 if (ANDROID OR WEB OR IOS)
     set (URHO3D_SSE OFF)
     if (NOT URHO3D_GLES3)
-        set (URHO3D_SYSTEMUI OFF)
+#        set (URHO3D_SYSTEMUI OFF)
     endif ()
 elseif (URHO3D_TOOLS AND NOT MINI_URHO)
     set (URHO3D_SYSTEMUI ON)

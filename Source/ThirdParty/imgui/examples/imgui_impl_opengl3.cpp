@@ -167,7 +167,7 @@ struct VertexAttribState
         glGetVertexAttribIuiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
         glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
         glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
-        glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &ptr); 
+        glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &ptr);
     }
 
     ~VertexAttribState()
@@ -179,7 +179,7 @@ struct VertexAttribState
         glEnableVertexAttribArray(index);
         glVertexAttribPointer(index,   size, type,         normalized, stride, ptr);
     }
-}
+};
 
 // Functions
 bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)

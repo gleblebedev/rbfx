@@ -149,6 +149,38 @@ static unsigned int g_VboHandle = 0, g_ElementsHandle = 0;
 static void ImGui_ImplOpenGL3_InitPlatformInterface();
 static void ImGui_ImplOpenGL3_ShutdownPlatformInterface();
 
+struct VertexAttribState
+{
+    GLuint index;
+    GLuint enabled;
+    GLint size;
+    GLenum type;
+    GLint normalized;
+    GLint stride;
+    GLvoid* ptr;
+
+    VertexAttribState(GLuint index_)
+    {
+        index = index_;
+        glGetVertexAttribIuiv(index, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
+        glGetVertexAttribIuiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+        glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &ptr); 
+    }
+
+    ~VertexAttribState()
+    {
+        if (!enabled) {
+            glDisableVertexAttribArray(index);
+            return;
+        }
+        glEnableVertexAttribArray(index);
+        glVertexAttribPointer(index,   size, type,         normalized, stride, ptr);
+    }
+}
+
 // Functions
 bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
 {
@@ -339,9 +371,9 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
     GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
     GLboolean last_enable_stencil_test = glIsEnabled(GL_STENCIL_TEST);
-    GLint last_vtx_pos_enabled; glGetVertexAttribiv(g_AttribLocationVtxPos, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &last_vtx_pos_enabled);
-    GLint last_vtx_uv_enabled; glGetVertexAttribiv(g_AttribLocationVtxUV, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &last_vtx_uv_enabled);
-    GLint last_vtx_color_enabled; glGetVertexAttribiv(g_AttribLocationVtxColor, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &last_vtx_color_enabled);
+    VertexAttribState last_vtx_pos_enabled(g_AttribLocationVtxPos);
+    VertexAttribState last_vtx_uv_enabled(g_AttribLocationVtxUV);
+    VertexAttribState last_vtx_color_enabled(g_AttribLocationVtxColor);
 
     // Setup desired GL state
     // Recreate the VAO every time (this is to easily allow multiple GL contexts to be rendered to. VAO are not shared among GL contexts)
@@ -428,10 +460,6 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
     if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
     if (last_enable_stencil_test) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
-
-    if (last_vtx_pos_enabled) glEnableVertexAttribArray(g_AttribLocationVtxPos); else glDisableVertexAttribArray(g_AttribLocationVtxPos);
-    if (last_vtx_uv_enabled) glEnableVertexAttribArray(g_AttribLocationVtxUV); else glDisableVertexAttribArray(g_AttribLocationVtxUV);
-    if (last_vtx_color_enabled) glEnableVertexAttribArray(g_AttribLocationVtxColor); else glDisableVertexAttribArray(g_AttribLocationVtxColor);
 
 #ifdef GL_POLYGON_MODE
     glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);

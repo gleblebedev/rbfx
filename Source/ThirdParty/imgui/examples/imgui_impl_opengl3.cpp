@@ -151,20 +151,20 @@ static void ImGui_ImplOpenGL3_ShutdownPlatformInterface();
 
 struct VertexAttribState
 {
-    GLuint index;
-    GLuint enabled;
+    GLint index;
+    GLint enabled;
     GLint size;
-    GLenum type;
+    GLint type;
     GLint normalized;
     GLint stride;
     GLvoid* ptr;
 
-    VertexAttribState(GLuint index_)
+    VertexAttribState(GLint index_)
     {
         index = index_;
-        glGetVertexAttribIuiv(index, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
         glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
-        glGetVertexAttribIuiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
         glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
         glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
         glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &ptr);
@@ -177,7 +177,7 @@ struct VertexAttribState
             return;
         }
         glEnableVertexAttribArray(index);
-        glVertexAttribPointer(index,   size, type,         normalized, stride, ptr);
+        glVertexAttribPointer(index,   size, type, normalized, stride, ptr);
     }
 };
 

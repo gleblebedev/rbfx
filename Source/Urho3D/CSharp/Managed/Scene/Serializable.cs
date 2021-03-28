@@ -83,7 +83,7 @@ namespace Urho3DNet
                     dest.Set((Color) _field.GetValue(ptr));
                     break;
                 case VariantType.VarString:
-                    dest.Set((string) _field.GetValue(ptr));
+                    dest.Set((string) _field.GetValue(ptr) ?? "");
                     break;
                 case VariantType.VarBuffer:
                     dest.Set((ByteVector) _field.GetValue(ptr));
@@ -507,6 +507,10 @@ namespace Urho3DNet
             foreach (PropertyInfo property in type.GetProperties(BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic))
             {
                 if (property.DeclaringType?.Assembly == serializableType.Assembly)
+                    continue;
+
+                // Properties must have both getter and setter for them to be serializable.
+                if (property.GetMethod == null || property.SetMethod == null)
                     continue;
 
                 // Private (even if partially) properties are not serialized by default.

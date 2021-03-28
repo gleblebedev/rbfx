@@ -140,6 +140,7 @@ public:
     /// Destruct.
     ~PhysicsWorld() override;
     /// Register object factory.
+    /// @nobind
     static void RegisterObject(Context* context);
 
     /// Check if an AABB is visible for debug drawing.
@@ -383,6 +384,7 @@ private:
 };
 
 /// Register Physics library objects.
+/// @nobind
 void URHO3D_API RegisterPhysicsLibrary(Context* context);
 
 }

@@ -20,24 +20,24 @@
 // THE SOFTWARE.
 
 using System;
+using System.Diagnostics;
 
 namespace Urho3DNet
 {
-    public sealed class SharedPtr<T> : IDisposable where T : RefCounted
+    /// <summary>
+    /// Container for a RefCounted instance.
+    /// To use as a field use readonly keyword for safety: "readonly SharedPtr<T> _fieldName;" and don't forget to dispose it.
+    /// </summary>
+    /// <typeparam name="T">RefCounted type</typeparam>
+    public class SharedPtr<T> : IDisposable where T : RefCounted
     {
         private T _value;
-
-        public SharedPtr(T value)
-        {
-            Value = value;
-        }
 
         ~SharedPtr()
         {
             if (_value != null && _value.IsNotExpired)
-            {
-                System.Diagnostics.Trace.WriteLine($"Object of type {typeof(T).FullName} wasn't properly disposed. Please call Dispose on all SharedPtr<{typeof(T).Name}> instances.");
-            }
+                Trace.WriteLine(
+                    $"Object of type {typeof(T).FullName} wasn't properly disposed. Please call Dispose on all SharedPtr<{typeof(T).Name}> instances.");
         }
 
         public T Value
@@ -59,14 +59,31 @@ namespace Urho3DNet
             }
         }
 
+
+        public SharedPtr(T value = null)
+        {
+            Value = value;
+        }
+
+
         public static implicit operator T(SharedPtr<T> ptr)
         {
             return ptr.Value;
         }
 
+        public static implicit operator SharedPtr<T>(T ptr)
+        {
+            return new SharedPtr<T>(ptr);
+        }
+
         public void Dispose()
         {
             Value = null;
+        }
+
+        public override string ToString()
+        {
+            return Value?.ToString();
         }
     }
 }

@@ -273,7 +273,7 @@ void* IndexBuffer::MapBuffer(unsigned start, unsigned count, bool discard)
         D3D11_MAPPED_SUBRESOURCE mappedData;
         mappedData.pData = nullptr;
 
-        HRESULT hr = graphics_->GetImpl()->GetDeviceContext()->Map((ID3D11Buffer*)object_.ptr_, 0, discard ? D3D11_MAP_WRITE_DISCARD :
+        HRESULT hr = graphics_->GetImpl()->GetDeviceContext()->Map((ID3D11Buffer*)object_.ptr_, 0, discard ? D3D11_MAP_WRITE :
             D3D11_MAP_WRITE, 0, &mappedData);
         if (FAILED(hr) || !mappedData.pData)
             URHO3D_LOGD3DERROR("Failed to map index buffer", hr);

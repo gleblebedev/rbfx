@@ -12,7 +12,7 @@ namespace Urho3DNet
         private readonly SharedPtr<Object> _subscriptionObject;
         private Queue<Action> _activeActionQueue;
         private Queue<Action> _backupActionQueue;
-        private HashSet<DelayState> delayTasks;
+        private HashSet<DelayState> _delayTasks;
 
         public MainLoopDispatcher(Context context)
         {
@@ -56,9 +56,9 @@ namespace Urho3DNet
 
             lock (staticSyncObj)
             {
-                if (delayTasks == null)
-                    delayTasks = new HashSet<DelayState>();
-                delayTasks.Add(new DelayState { Duration = seconds, Task = tcs });
+                if (_delayTasks == null)
+                    _delayTasks = new HashSet<DelayState>();
+                _delayTasks.Add(new DelayState { Duration = seconds, Task = tcs });
             }
 
             return tcs.Task.ConfigureAwait(false);
@@ -86,12 +86,12 @@ namespace Urho3DNet
                 }
             }
 
-            if (delayTasks != null)
+            if (_delayTasks != null)
             {
                 DelayState[] delayActions;
                 lock (staticSyncObj)
                 {
-                    delayActions = delayTasks.ToArray();
+                    delayActions = _delayTasks.ToArray();
                 }
 
                 for (int i = 0; i < delayActions.Length; i++)
@@ -102,7 +102,7 @@ namespace Urho3DNet
                     {
                         task.Task.TrySetResult(true);
                         lock (staticSyncObj)
-                            delayTasks.Remove(task);
+                            _delayTasks.Remove(task);
                     }
                 }
             }

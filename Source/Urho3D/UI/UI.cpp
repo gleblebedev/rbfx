@@ -549,7 +549,7 @@ SharedPtr<UIElement> UI::LoadLayout(XMLFile* file, XMLFile* styleFile)
     if (styleFile)
         root->SetDefaultStyle(styleFile);
 
-    root->LoadXML(rootElem, styleFile);
+    root->LoadXMLWithStyle(rootElem, styleFile);
     return root;
 }
 

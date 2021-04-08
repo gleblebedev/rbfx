@@ -170,10 +170,10 @@ void UIElement::ApplyAttributes()
 
 bool UIElement::LoadXML(const XMLElement& source)
 {
-    return LoadXML(source, nullptr);
+    return LoadXMLWithStyle(source, nullptr);
 }
 
-bool UIElement::LoadXML(const XMLElement& source, XMLFile* styleFile)
+bool UIElement::LoadXMLWithStyle(const XMLElement& source, XMLFile* styleFile)
 {
     // If this is a root element get style file from which style is loaded.
     ea::string defaultStyleFileName = source.GetAttribute("styleFile");
@@ -265,7 +265,7 @@ bool UIElement::LoadXML(const XMLElement& source, XMLFile* styleFile)
         {
             if (!styleFile)
                 styleFile = GetDefaultStyle();
-            if (!child->LoadXML(childElem, styleFile))
+            if (!child->LoadXMLWithStyle(childElem, styleFile))
                 return false;
         }
 
@@ -299,7 +299,7 @@ UIElement* UIElement::LoadChildXML(const XMLElement& childElem, XMLFile* styleFi
     {
         if (!styleFile)
             styleFile = GetDefaultStyle();
-        if (!child->LoadXML(childElem, styleFile))
+        if (!child->LoadXMLWithStyle(childElem, styleFile))
         {
             RemoveChild(child, index);
             return nullptr;

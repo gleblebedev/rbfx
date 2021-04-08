@@ -813,6 +813,7 @@ using ImGuiConfigFlags = unsigned;
 %include "Urho3D/SystemUI/DebugHud.h"
 %include "Urho3D/SystemUI/SystemMessageBox.h"
 %include "Urho3D/SystemUI/SystemUI.h"
+%rename(LoadXMLWithStyle) Urho3D::UIElement::LoadXML(const XMLElement& source, XMLFile* styleFile);
 #endif
 // --------------------------------------- UI ---------------------------------------
 %ignore Urho3D::UIElement::GetBatches;

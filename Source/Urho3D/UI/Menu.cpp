@@ -124,7 +124,7 @@ void Menu::OnShowPopup()
 {
 }
 
-bool Menu::LoadXMLWithStyle(const XMLElement& source, XMLFile* styleFile)
+bool Menu::LoadXML(const XMLElement& source, XMLFile* styleFile)
 {
     // Get style override if defined
     ea::string styleName = source.GetAttribute("style");
@@ -220,7 +220,7 @@ bool Menu::LoadXMLWithStyle(const XMLElement& source, XMLFile* styleFile)
             if (popupElem)
                 child->SetDefaultStyle(styleFile);
 
-            if (!child->LoadXMLWithStyle(childElem, styleFile))
+            if (!child->LoadXML(childElem, styleFile))
                 return false;
         }
 

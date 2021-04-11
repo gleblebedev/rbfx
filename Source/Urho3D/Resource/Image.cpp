@@ -411,7 +411,7 @@ bool Image::BeginLoad(Deserializer& source)
                     dataSize += blockSize * blocksWide * blocksHeight * Max(z, 1U);
                 }
             }
-            else if (compressedFormat_ == CF_PVRTC_RGB_2BPP || compressedFormat_ == CF_PVRTC_RGBA_2BPP)
+            else
             {
                 unsigned blockSize = (compressedFormat_ == CF_DXT1 || compressedFormat_ == CF_ETC1 || compressedFormat_ == CF_ETC2_RGB) ? 8 : 16; 
                 // Add 3 to ensure valid block: ie 2x2 fits uses a whole 4x4 block

@@ -126,8 +126,9 @@
 #if URHO3D_RMLUI
 #include "107_HelloRmlUI/HelloRmlUI.h"
 #endif
+#include "200_TextureCompression/TextureCompression.h"
 #if URHO3D_PHYSICS
-#include "108_KinematicPlatform/KinematicCharacterDemo.h"
+#include "201_KinematicCharacter/KinematicCharacterDemo.h"
 #endif
 #include "Rotator.h"
 
@@ -158,7 +159,7 @@ void SamplesManager::Setup()
     engineParameters_[EP_ORIENTATIONS] = "Portrait";
 #endif
     if (!engineParameters_.contains(EP_RESOURCE_PREFIX_PATHS))
-        engineParameters_[EP_RESOURCE_PREFIX_PATHS] = ";..;../..";
+        engineParameters_[EP_RESOURCE_PREFIX_PATHS] = ";..;../../";
 
 #if DESKTOP
     GetCommandLineParser().add_option("--sample", startSample_);
@@ -221,6 +222,7 @@ void SamplesManager::Start()
 
     RegisterSample<HelloWorld>();
     RegisterSample<HelloGUI>();
+    RegisterSample<TextureCompression>();
     RegisterSample<Sprites>();
     RegisterSample<StaticScene>();
     RegisterSample<AnimatingScene>();

@@ -41,8 +41,7 @@
 
 TextureCompression::TextureCompression(Context* context) :
     Sample(context),
-    uiRoot_(GetSubsystem<UI>()->GetRoot()),
-    dragBeginPosition_(IntVector2::ZERO)
+    uiRoot_(GetSubsystem<UI>()->GetRoot())
 {
 }
 
@@ -67,9 +66,6 @@ void TextureCompression::Start()
     // Create and add some controls to the Window
     InitControls();
 
-    // Create a draggable Fish
-    CreateDraggableFish();
-
     // Set the mouse mode to use in the sample
     Sample::InitMouseMode(MM_FREE);
 }
@@ -78,32 +74,14 @@ void TextureCompression::InitControls()
 {
     auto* cache = GetSubsystem<ResourceCache>();
 
-    // Create a CheckBox
-    auto* checkBox = new CheckBox(context_);
-    checkBox->SetName("CheckBox");
-
-    // Create a Button
-    auto* button = new Button(context_);
-    button->SetName("Button");
-    button->SetMinHeight(24);
-
-    // Create a LineEdit
-    auto* lineEdit = new LineEdit(context_);
-    lineEdit->SetName("LineEdit");
-    lineEdit->SetMinHeight(24);
-
     // Add controls to Window
-    window_->AddChild(checkBox);
-    window_->AddChild(button);
-    window_->AddChild(lineEdit);
-
     const char* sprites[] = {
-        "Textures/Compressed/RGBA.dds",
-        "Textures/Compressed/DXT1.dds",
-        "Textures/Compressed/DXT3.dds",
-        "Textures/Compressed/DXT5.dds",
-        "Textures/Compressed/ETC1.dds",
-        "Textures/Compressed/ETC2.dds",
+        //"Textures/Compressed/RGBA.dds",
+        //"Textures/Compressed/DXT1.dds",
+        //"Textures/Compressed/DXT3.dds",
+        //"Textures/Compressed/DXT5.dds",
+        //"Textures/Compressed/ETC1.dds",
+        //"Textures/Compressed/ETC2.dds",
         "Textures/Compressed/PTC2.dds",
         "Textures/Compressed/PTC4.dds",
         nullptr
@@ -114,18 +92,13 @@ void TextureCompression::InitControls()
         if (!sprites[i])
             break;
         auto* sprite = new Sprite(context_);
-        sprite->SetMinSize(128, 128);
-        sprite->SetVerticalAlignment(VA_TOP);
+        sprite->SetMinSize(64, 64);
+        sprite->SetVerticalAlignment(VA_CENTER);
         sprite->SetLayoutMode(LM_HORIZONTAL);
         sprite->SetTexture(cache->GetResource<Texture2D>(sprites[i]));
+        sprite->SetName(sprites[i]);
         window_->AddChild(sprite);
     }
-
-
-    // Apply previously set default style
-    checkBox->SetStyleAuto();
-    button->SetStyleAuto();
-    lineEdit->SetStyleAuto();
 }
 
 void TextureCompression::InitWindow()
@@ -149,7 +122,7 @@ void TextureCompression::InitWindow()
     // Create the Window title Text
     auto* windowTitle = new Text(context_);
     windowTitle->SetName("WindowTitle");
-    windowTitle->SetText("Hello GUI!");
+    windowTitle->SetText("Texture Compression!");
 
     // Create the Window's close button
     auto* buttonClose = new Button(context_);
@@ -172,56 +145,6 @@ void TextureCompression::InitWindow()
 
     // Subscribe also to all UI mouse clicks just to see where we have clicked
     SubscribeToEvent(E_UIMOUSECLICK, URHO3D_HANDLER(TextureCompression, HandleControlClicked));
-}
-
-void TextureCompression::CreateDraggableFish()
-{
-    auto* cache = GetSubsystem<ResourceCache>();
-    auto* graphics = GetSubsystem<Graphics>();
-
-    // Create a draggable Fish button
-    auto* draggableFish = new Button(context_);
-    draggableFish->SetTexture(cache->GetResource<Texture2D>("Textures/UrhoDecal.dds")); // Set texture
-    draggableFish->SetBlendMode(BLEND_ADD);
-    draggableFish->SetSize(128, 128);
-    draggableFish->SetPosition((graphics->GetWidth() - draggableFish->GetWidth()) / 2, 200);
-    draggableFish->SetName("Fish");
-    uiRoot_->AddChild(draggableFish);
-
-    // Add a tooltip to Fish button
-    auto* toolTip = new ToolTip(context_);
-    draggableFish->AddChild(toolTip);
-    toolTip->SetPosition(IntVector2(draggableFish->GetWidth() + 5, draggableFish->GetWidth() / 2)); // slightly offset from close button
-    auto* textHolder = new BorderImage(context_);
-    toolTip->AddChild(textHolder);
-    textHolder->SetStyle("ToolTipBorderImage");
-    auto* toolTipText = new Text(context_);
-    textHolder->AddChild(toolTipText);
-    toolTipText->SetStyle("ToolTipText");
-    toolTipText->SetText("Please drag me!");
-
-    // Subscribe draggableFish to Drag Events (in order to make it draggable)
-    // See "Event list" in documentation's Main Page for reference on available Events and their eventData
-    SubscribeToEvent(draggableFish, E_DRAGBEGIN, URHO3D_HANDLER(TextureCompression, HandleDragBegin));
-    SubscribeToEvent(draggableFish, E_DRAGMOVE, URHO3D_HANDLER(TextureCompression, HandleDragMove));
-    SubscribeToEvent(draggableFish, E_DRAGEND, URHO3D_HANDLER(TextureCompression, HandleDragEnd));
-}
-
-void TextureCompression::HandleDragBegin(StringHash eventType, VariantMap& eventData)
-{
-    // Get UIElement relative position where input (touch or click) occurred (top-left = IntVector2(0,0))
-    dragBeginPosition_ = IntVector2(eventData["ElementX"].GetInt(), eventData["ElementY"].GetInt());
-}
-
-void TextureCompression::HandleDragMove(StringHash eventType, VariantMap& eventData)
-{
-    IntVector2 dragCurrentPosition = IntVector2(eventData["X"].GetInt(), eventData["Y"].GetInt());
-    UIElement* draggedElement = static_cast<UIElement*>(eventData["Element"].GetPtr());
-    draggedElement->SetPosition(dragCurrentPosition - dragBeginPosition_);
-}
-
-void TextureCompression::HandleDragEnd(StringHash eventType, VariantMap& eventData) // For reference (not used here)
-{
 }
 
 void TextureCompression::HandleClosePressed(StringHash eventType, VariantMap& eventData)

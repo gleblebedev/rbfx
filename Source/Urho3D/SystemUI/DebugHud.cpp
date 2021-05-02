@@ -187,7 +187,8 @@ void DebugHud::RenderUI(DebugHudModeFlags mode)
         const ImGuiStyle& style = ui::GetStyle();
         const ImGuiContext& g = *ui::GetCurrentContext();
         ui::SetCursorPos({style.WindowPadding.x, ui::GetWindowSize().y - ui::GetStyle().WindowPadding.y - g.Font->FontSize});
-        ui::Text("Tex:%s | Mat:%s | Spec:%s | Shadows:%s | Size:%i | Quality:%s | Occlusion:%s | Instancing:%s | API:%s",
+        ui::Text("API:%s | Tex:%s | Mat:%s | Spec:%s | Shadows:%s | Size:%i | Quality:%s | Occlusion:%s | Instancing:%s",
+            graphics->GetApiName().c_str(),
             qualityTexts[renderer->GetTextureQuality()],
             qualityTexts[renderer->GetMaterialQuality()],
             renderer->GetSpecularLighting() ? "On" : "Off",
@@ -195,8 +196,7 @@ void DebugHud::RenderUI(DebugHudModeFlags mode)
             renderer->GetShadowMapSize(),
             shadowQualityTexts[renderer->GetShadowQuality()],
             renderer->GetMaxOccluderTriangles() > 0 ? "On" : "Off",
-            renderer->GetDynamicInstancing() ? "On" : "Off",
-            graphics->GetApiName().c_str());
+            renderer->GetDynamicInstancing() ? "On" : "Off");
     }
 }
 

@@ -26,6 +26,7 @@
 #include <Urho3D/Graphics/Animation.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Texture2D.h>
+#include <Urho3D/Graphics/TextureCube.h>
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Resource/XMLFile.h>
@@ -34,6 +35,7 @@
 #include <Urho3D/SystemUI/SystemUI.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Scene/Node.h>
+#include <Urho3D/UI/Font.h>
 
 #include <IconFontCppHeaders/IconsFontAwesome5.h>
 #include "ContentUtilities.h"
@@ -48,6 +50,7 @@ const ea::vector<ea::string> codeExtensions_{".c", ".cpp", ".h", ".hpp", ".hxx",
 const ea::vector<ea::string> imagesExtensions_{".png", ".jpg", ".jpeg", ".gif", ".ttf", ".dds", ".psd"};
 const ea::vector<ea::string> textExtensions_{".xml", ".json", ".txt", ".yml", ".scene", ".material", ".rml", ".rcss", ".node", ".particle"};
 const ea::vector<ea::string> audioExtensions_{".waw", ".ogg", ".mp3"};
+const ea::vector<ea::string> fontExtensions_{".ttf", ".sdf"};
 
 FileType GetFileType(const ea::string& fileName)
 {
@@ -64,6 +67,8 @@ FileType GetFileType(const ea::string& fileName)
         return FTYPE_TEXT;
     if (audioExtensions_.contains(extension))
         return FTYPE_AUDIO;
+    if (fontExtensions_.contains(extension))
+        return FTYPE_FONT;
     if (extension == "pdf")
         return FTYPE_PDF;
     return FTYPE_FILE;
@@ -95,6 +100,8 @@ ea::string GetFileIcon(const ea::string& fileName)
         return ICON_FA_FILE_AUDIO;
     case FTYPE_EXCEL:
         return ICON_FA_FILE_EXCEL;
+    case FTYPE_FONT:
+        return ICON_FA_FONT;
     default:
         return ICON_FA_FILE;
     }
@@ -153,6 +160,8 @@ ContentType GetContentType(Context* context, const ea::string& resourcePath)
             return CTYPE_RENDERPATH;
         if (rootElementName == "texture")
             return CTYPE_TEXTUREXML;
+        if (rootElementName == "cubemap")
+            return CTYPE_TEXTURECUBE;
     }
 
     if (extension == ".mdl")
@@ -173,6 +182,8 @@ ContentType GetContentType(Context* context, const ea::string& resourcePath)
         return CTYPE_SCENEOBJECT;
     if (audioExtensions_.contains(extension))
         return CTYPE_SOUND;
+    if (fontExtensions_.contains(extension))
+        return CTYPE_FONT;
     if (imagesExtensions_.contains(extension))
         return CTYPE_TEXTURE;
 
@@ -221,11 +232,23 @@ bool GetContentResourceType(Context* context, const ea::string& resourcePath, Re
     {
         types.emplace_back(Image::GetTypeStatic());
         types.emplace_back(Texture2D::GetTypeStatic());
+        types.emplace_back(Texture::GetTypeStatic());
+        break;
+    }
+    case CTYPE_TEXTURECUBE:
+    {
+        types.emplace_back(TextureCube::GetTypeStatic());
+        types.emplace_back(Texture::GetTypeStatic());
         break;
     }
     case CTYPE_SOUND:
     {
         types.emplace_back(Sound::GetTypeStatic());
+        break;
+    }
+    case CTYPE_FONT:
+    {
+        types.emplace_back(Font::GetTypeStatic());
         break;
     }
     default:

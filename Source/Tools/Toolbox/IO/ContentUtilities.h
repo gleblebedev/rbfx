@@ -47,6 +47,7 @@ enum FileType : unsigned
     FTYPE_FILM,
     FTYPE_AUDIO,
     FTYPE_EXCEL,
+    FTYPE_FONT,
 };
 
 enum ContentType : unsigned
@@ -63,8 +64,10 @@ enum ContentType : unsigned
     CTYPE_RENDERPATH,
     CTYPE_SOUND,
     CTYPE_TEXTURE,
+    CTYPE_TEXTURECUBE,
     CTYPE_TEXTUREXML,
     CTYPE_FOLDER,
+    CTYPE_FONT,
 };
 
 using ResourceContentTypes = ea::fixed_vector<StringHash, 2>;

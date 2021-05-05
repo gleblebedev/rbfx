@@ -704,7 +704,7 @@ public:
 }
 %ignore Urho3D::CrowdManager::SetVelocityShader;
 %ignore Urho3D::NavBuildData::navAreas_;
-%ignore Urho3D::NavigationMesh::FindPath;
+// %ignore Urho3D::NavigationMesh::FindPath;
 %include "generated/Urho3D/_pre_navigation.i"
 %include "Urho3D/Navigation/CrowdAgent.h"
 %include "Urho3D/Navigation/CrowdManager.h"

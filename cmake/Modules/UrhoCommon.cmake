@@ -31,6 +31,14 @@ if (URHO3D_SDK)
     set (SWIG_EXECUTABLE "${URHO3D_SDK}/bin/swig")
 endif ()
 
+if (WEB)
+    if (EMSCRIPTEN_EMCC_VERSION VERSION_LESS 2.0.17)
+        set (EMCC_WITH_SOURCE_MAPS_FLAG -g4)
+    else ()
+        set (EMCC_WITH_SOURCE_MAPS_FLAG -gsource-map)
+    endif ()
+endif ()
+
 # Macro for setting symbolic link on platform that supports it
 function (create_symlink SOURCE DESTINATION)
     # Make absolute paths so they work more reliably on cmake-gui
@@ -283,13 +291,6 @@ function (web_executable TARGET)
     # Use this macro on targets that should compile for web platform, possibly right after add_executable().
     if (WEB)
         set_target_properties (${TARGET} PROPERTIES SUFFIX .html)
-        if (EMSCRIPTEN_MEMORY_LIMIT)
-            math(EXPR EMSCRIPTEN_TOTAL_MEMORY "${EMSCRIPTEN_MEMORY_LIMIT} * 1024 * 1024")
-            target_link_libraries(${TARGET} PRIVATE "-s TOTAL_MEMORY=${EMSCRIPTEN_TOTAL_MEMORY}")
-        endif ()
-        if (EMSCRIPTEN_MEMORY_GROWTH)
-            target_link_libraries(${TARGET} PRIVATE "-s ALLOW_MEMORY_GROWTH=1")
-        endif ()
         target_link_libraries(${TARGET} PRIVATE "-s NO_EXIT_RUNTIME=1" "-s FORCE_FILESYSTEM=1")
         if (BUILD_SHARED_LIBS)
             target_link_libraries(${TARGET} PRIVATE "-s MAIN_MODULE=1")

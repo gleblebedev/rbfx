@@ -48,8 +48,8 @@ if (WEB AND "${CMAKE_GENERATOR}" STREQUAL "Ninja")
     set (CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 endif ()
 
-# Include file that sets up ccache support for Xcode.
-include(CCacheXcode)
+# Include file that sets up ccache.
+include(CCache)
 
 # Include file that sets up all configurable properties
 include(UrhoOptions)
@@ -240,8 +240,8 @@ if (WEB)
     set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 --memory-init-file 0")
     set (CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 --memory-init-file 0")
     # Preserve LLVM debug information, show line number debug comments, and generate source maps; always disable exception handling codegen
-    set (CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -g4 -s DISABLE_EXCEPTION_CATCHING=1")
-    set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "${CMAKE_MODULE_LINKER_FLAGS_DEBUG} -g4 -s DISABLE_EXCEPTION_CATCHING=1")
+    set (CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} ${EMCC_WITH_SOURCE_MAPS_FLAG} -s DISABLE_EXCEPTION_CATCHING=1")
+    set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "${CMAKE_MODULE_LINKER_FLAGS_DEBUG} ${EMCC_WITH_SOURCE_MAPS_FLAG} -s DISABLE_EXCEPTION_CATCHING=1")
 endif ()
 
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux")

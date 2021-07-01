@@ -2017,8 +2017,12 @@ bool Graphics::CreateDevice(int width, int height)
     // Device needs only to be created once
     if (!impl_->device_)
     {
+        UINT deviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#ifdef _DEBUG
+        deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
         ID3D11DeviceContext* deviceContext = nullptr;
-        D3D_FEATURE_LEVEL featureLevels[] =
+        const D3D_FEATURE_LEVEL featureLevels[] =
         {
             D3D_FEATURE_LEVEL_11_1,
             //D3D_FEATURE_LEVEL_11_0,

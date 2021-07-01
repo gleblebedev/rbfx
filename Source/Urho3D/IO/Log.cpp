@@ -53,13 +53,46 @@ extern "C" void SDL_IOS_LogMessage(const char* message);
 #endif
 
 #include "../DebugNew.h"
-#include "../IO/Log.h"
 
 
 namespace Urho3D
 {
 
-static Log* logInstance = nullptr;
+static Log* GetLog()
+{
+    auto* context = Context::GetInstance();
+    auto* logInstance = context ? context->GetSubsystem<Log>() : nullptr;
+    return logInstance;
+}
+
+unsigned FindLastNewlineInRange(const ea::string& str, unsigned position, unsigned count)
+{
+    const char symbols[] = { '\n' };
+    return ea::find_last_of(str.begin() + position, str.begin() + position + count,
+        ea::begin(symbols), ea::end(symbols)) - str.begin();
+}
+
+ea::vector<ea::string> SliceTextByNewline(const ea::string& str, unsigned maxChunkSize)
+{
+    if (str.size() <= maxChunkSize)
+        return { str };
+
+    ea::vector<ea::string> result;
+
+    unsigned startPosition = 0;
+    while (startPosition < str.size())
+    {
+        const unsigned maxSize = ea::min<unsigned>(str.size() - startPosition, maxChunkSize);
+        const unsigned sliceIndex = startPosition + maxSize != str.size()
+            ? FindLastNewlineInRange(str, startPosition, maxSize) : str.size() - 1;
+        const unsigned chunkSize = sliceIndex != ea::string::npos
+            ? sliceIndex - startPosition + 1 : maxSize;
+
+        result.push_back(str.substr(startPosition, chunkSize));
+        startPosition += chunkSize;
+    }
+    return result;
+}
 
 unsigned FindLastNewlineInRange(const ea::string& str, unsigned position, unsigned count)
 {
@@ -157,6 +190,7 @@ class MessageForwarderSink : public spdlog::sinks::base_sink<Mutex>
 protected:
     void sink_it_(const spdlog::details::log_msg& msg) override
     {
+        auto* logInstance = GetLog();
         if (logInstance == nullptr)
             return;
         time_t time = std::chrono::system_clock::to_time_t(msg.time);
@@ -257,7 +291,6 @@ Log::Log(Context* context) :
     impl_(new LogImpl(context)),
     formatPattern_("[%H:%M:%S] [%l] [%n] : %v")
 {
-    logInstance = this;
 #if !__EMSCRIPTEN__
     spdlog::flush_every(std::chrono::seconds(5));
 #endif
@@ -266,7 +299,6 @@ Log::Log(Context* context) :
 
 Log::~Log()
 {
-    logInstance = nullptr;
     spdlog::shutdown();
 }
 
@@ -333,6 +365,7 @@ void Log::SetLogFormat(const ea::string& format)
 Logger Log::GetLogger(const ea::string& name)
 {
     // Loggers may be used only after initializing Log subsystem, therefore do not use logging from static initializers.
+    auto* logInstance = GetLog();
     if (logInstance == nullptr)
         return {};
 
@@ -352,6 +385,7 @@ Logger Log::GetLogger(const ea::string& name)
 
 Logger Log::GetLogger()
 {
+    auto* logInstance = GetLog();
     if (logInstance == nullptr)
         return {};
     static Logger defaultLogger = Log::GetLogger("main");
@@ -378,15 +412,15 @@ void Log::SendMessageEvent(LogLevel level, time_t timestamp, const ea::string& l
     }
 #endif
 
+    auto* logInstance = GetLog();
+    if (logInstance == nullptr)
+        return;
+
     // If not in the main thread, store message for later processing
     if (!Thread::IsMainThread())
     {
-        if (logInstance)
-        {
-            MutexLock lock(logMutex_);
-            threadMessages_.push_back(StoredLogMessage(level, timestamp, logger, message));
-        }
-
+        MutexLock lock(logMutex_);
+        threadMessages_.push_back(StoredLogMessage(level, timestamp, logger, message));
         return;
     }
 

@@ -102,6 +102,7 @@ public:
     /// Reset octree pointer recursively. Called when the whole octree is being destroyed.
     void ResetOctree();
     /// Draw bounds to the debug graphics recursively.
+    /// @nobind
     void DrawDebugGeometry(DebugRenderer* debug, bool depthTest);
 
     /// Return drawable objects by a query, called internally.

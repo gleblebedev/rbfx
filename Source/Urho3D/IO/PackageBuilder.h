@@ -22,40 +22,61 @@
 
 #pragma once
 
-#include "../IO/Serializer.h"
-#include "../IO/Deserializer.h"
-
 namespace Urho3D
 {
+class File;
+class MemoryBuffer;
 
-/// A common root class for objects that implement both Serializer and Deserializer.
-class URHO3D_API AbstractFile : public Deserializer, public Serializer
+/// A helper class to create PackageFile.
+class URHO3D_API PackageBuilder
 {
 public:
-    /// Construct.
-    AbstractFile() : Deserializer() { }
-    /// Construct.
-    explicit AbstractFile(unsigned int size) : Deserializer(size) { }
-    /// Destruct.
-    ~AbstractFile() override = default;
-    /// Change the file name. Used by the resource system.
-    /// @property
-    virtual void SetName(const ea::string& name) { name_ = name; }
+    /// Constructor.
+    PackageBuilder();
 
-    /// Return whether is open.
-    /// @property
-    virtual bool IsOpen() const { return true; }
-#ifndef SWIG
-    // A workaround for SWIG failing to generate bindings because both IAbstractFile and IDeserializer provide GetName() method. This is
-    // fine because IAbstractFile inherits GetName() from IDeserializer anyway.
+    /// Build package.
+    bool Create(AbstractFile* buffer, bool compress);
 
-    /// Return the file name.
-    const ea::string& GetName() const override { return name_; }
-#endif
+    /// Append entry to package.
+    bool Append(const ea::string& name, const SharedPtr<File>& file);
 
-protected:
-    /// File name.
-    ea::string name_;
+    /// Append entry to package.
+    bool Append(const ea::string& name, MemoryBuffer& content);
+
+    /// Append entry to package.
+    bool Append(const ea::string& name, const ByteVector& content);
+
+    /// Complete package.
+    bool Build();
+private:
+    bool OpenImpl(AbstractFile* buffer, bool compress);
+
+    /// Append entry to package.
+    bool AppendImpl(const ea::string& name, AbstractFile* content);
+
+    bool WriteHeader();
+private:
+    struct FileEntry
+    {
+        ea::string name_;
+        unsigned offset_{};
+        unsigned size_{};
+        unsigned checksum_{};
+    };
+
+    bool compress_;
+
+    unsigned headerPosition_;
+
+    unsigned checksum_ = 0;
+
+    unsigned long long fileListOffset_ = 0;
+
+    AbstractFile* buffer_;
+
+    SharedPtr<RefCounted> file_;
+
+    ea::vector<FileEntry> entries_;
 };
 
 }

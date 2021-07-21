@@ -23,12 +23,26 @@
 #include "../Precompiled.h"
 
 #include "../IO/File.h"
+#include "../IO/MemoryBuffer.h"
 #include "../IO/Log.h"
 #include "../IO/PackageFile.h"
 #include "../IO/FileSystem.h"
+#include "LZ4/lz4.h"
+#include "LZ4/lz4hc.h"
 
 namespace Urho3D
 {
+
+namespace 
+{
+    struct FileEntry
+    {
+        ea::string name_;
+        unsigned offset_{};
+        unsigned size_{};
+        unsigned checksum_{};
+    };
+}
 
 PackageFile::PackageFile(Context* context) :
     Object(context),
@@ -55,8 +69,16 @@ bool PackageFile::Open(const ea::string& fileName, unsigned startOffset)
 {
     SharedPtr<File> file(new File(context_, fileName));
     if (!file->IsOpen())
+    {
+        URHO3D_LOGERROR("Can't open file " + file->GetName());
         return false;
+    }
+    return Open(file);
+}
 
+/// Open the package file. Return true if successful.
+bool PackageFile::Open(AbstractFile* file, unsigned startOffset)
+{
     // Check ID, then read the directory
     file->Seek(startOffset);
     ea::string id = file->ReadFileID();
@@ -79,12 +101,12 @@ bool PackageFile::Open(const ea::string& fileName, unsigned startOffset)
 
         if (id != "UPAK" && id != "ULZ4" && id != "RPAK" && id != "RLZ4")
         {
-            URHO3D_LOGERROR(fileName + " is not a valid package file");
+            URHO3D_LOGERROR(file->GetName() + " is not a valid package file");
             return false;
         }
     }
 
-    fileName_ = fileName;
+    fileName_ = file->GetName();
     nameHash_ = fileName_;
     totalSize_ = file->GetSize();
     compressed_ = id == "ULZ4" || id == "RLZ4";

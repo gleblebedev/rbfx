@@ -697,7 +697,7 @@ public:
 }
 %ignore Urho3D::CrowdManager::SetVelocityShader;
 %ignore Urho3D::NavBuildData::navAreas_;
-%ignore Urho3D::NavigationMesh::FindPath;
+// %ignore Urho3D::NavigationMesh::FindPath;
 %include "generated/Urho3D/_pre_navigation.i"
 %include "Urho3D/Navigation/CrowdAgent.h"
 %include "Urho3D/Navigation/CrowdManager.h"
@@ -806,6 +806,7 @@ using ImGuiConfigFlags = unsigned;
 %include "Urho3D/SystemUI/DebugHud.h"
 %include "Urho3D/SystemUI/SystemMessageBox.h"
 %include "Urho3D/SystemUI/SystemUI.h"
+%rename(LoadXMLWithStyle) Urho3D::UIElement::LoadXML(const XMLElement& source, XMLFile* styleFile);
 #endif
 // --------------------------------------- UI ---------------------------------------
 %ignore Urho3D::UIElement::GetBatches;

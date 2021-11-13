@@ -32,7 +32,7 @@
 namespace Urho3D
 {
 
-#if WIN32
+#if defined(WIN32)
 static const char* NULL_DEVICE = "NUL";
 #else
 static const char* NULL_DEVICE = "/dev/null";

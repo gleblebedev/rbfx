@@ -595,7 +595,7 @@ using AnimationChannelFlags = Urho3D::AnimationChannel;
 %csattribute(Urho3D::ShaderVariation, %arg(ea::vector<unsigned char>), ByteCode, GetByteCode);
 %csattribute(Urho3D::ShaderVariation, %arg(ea::string), Defines, GetDefines, SetDefines);
 %csattribute(Urho3D::ShaderVariation, %arg(ea::string), CompilerOutput, GetCompilerOutput);
-%csattribute(Urho3D::ShaderVariation, %arg(unsigned int *), ConstantBufferSizes, GetConstantBufferSizes);
+//%csattribute(Urho3D::ShaderVariation, %arg(unsigned int *), ConstantBufferSizes, GetConstantBufferSizes);
 %csattribute(Urho3D::Graphics, %arg(bool), IsInitialized, IsInitialized);
 %csattribute(Urho3D::Graphics, %arg(Urho3D::GraphicsImpl *), Impl, GetImpl);
 %csattribute(Urho3D::Graphics, %arg(bool), IsShaderValidationEnabled, IsShaderValidationEnabled, SetShaderValidationEnabled);

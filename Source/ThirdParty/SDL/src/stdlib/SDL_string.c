@@ -27,6 +27,7 @@
 /* This file contains portable string manipulation functions for SDL */
 
 #include "SDL_stdinc.h"
+#include <stdint.h>
 
 #if !defined(HAVE_VSSCANF) || !defined(HAVE_STRTOL) || !defined(HAVE_STRTOUL)  || !defined(HAVE_STRTOLL) || !defined(HAVE_STRTOULL) || !defined(HAVE_STRTOD)
 #define SDL_isupperhex(X)   (((X) >= 'A') && ((X) <= 'F'))
@@ -555,7 +556,7 @@ SDL_utf8strlen(const char *str)
             retval++;
         }
     }
-    
+
     return retval;
 }
 

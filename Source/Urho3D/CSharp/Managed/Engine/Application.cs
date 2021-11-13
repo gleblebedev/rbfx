@@ -1,6 +1,11 @@
 using System;
 using System.Runtime.InteropServices;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Urho3DNet.UWP")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Urho3DNet.Desktop")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Urho3DNet.IOS")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Urho3DNet.Android")]
+
 namespace Urho3DNet
 {
     public partial class Application
@@ -9,6 +14,14 @@ namespace Urho3DNet
         public static Application CreateApplicationFromFactory(Context context, UserApplicationFactory factory)
         {
             return Application.wrap(factory(Context.getCPtr(context)), true);
+        }
+
+        internal IntPtr ExternalWindow
+        {
+            set
+            {
+                EngineParameters[Urho3D.EpExternalWindow] = value;
+            }
         }
     }
 }

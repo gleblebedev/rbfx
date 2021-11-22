@@ -679,6 +679,17 @@ public:
 %include "Urho3D/RenderPipeline/RenderPipeline.h"
 %include "Urho3D/RenderPipeline/RenderPipelineDefs.h"
 
+// ------------------------------------- RenderPipeline -------------------------------------
+%include "RmlUi/Core/Types.h"
+%include "RmlUi/RbfxConfig.h"
+%include "Urho3D/RmlUi/RmlUi.h"
+%include "Urho3D/RmlUi/RmlCanvasComponent.h"
+%include "Urho3D/RmlUi/RmlEventListeners.h"
+%include "Urho3D/RmlUi/RmlFile.h"
+%include "Urho3D/RmlUi/RmlRenderer.h"
+%include "Urho3D/RmlUi/RmlSerializableInspector.h"
+%include "Urho3D/RmlUi/RmlSystem.h"
+%include "Urho3D/RmlUi/RmlUIComponent.h"
 
 // --------------------------------------- Navigation ---------------------------------------
 #if defined(URHO3D_NAVIGATION)

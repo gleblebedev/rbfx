@@ -4,6 +4,7 @@ namespace Urho3DNet
     {
         public static void Main()
         {
+            new Class1();
             Launcher.Run(_ => new SampleApp(_));
         }
     }

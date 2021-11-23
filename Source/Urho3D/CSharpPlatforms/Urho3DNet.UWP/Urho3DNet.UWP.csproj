@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CSharp\Urho3DNet.csproj" />
+    <ProjectReference Include="..\..\CSharp\Urho3DNet.Standard.csproj" />
   </ItemGroup>
 
 </Project>

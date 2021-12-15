@@ -684,6 +684,18 @@ struct BloomPassSettings
     /// @}
 };
 
+struct ScreenSpaceAmbientOcclusionPassSettings
+{
+    bool enabled_{};
+
+    bool operator==(const ScreenSpaceAmbientOcclusionPassSettings& rhs) const
+    {
+        return enabled_ == rhs.enabled_;
+    }
+
+    bool operator!=(const ScreenSpaceAmbientOcclusionPassSettings& rhs) const { return !(*this == rhs); }
+};
+
 /// Post-processing antialiasing mode.
 enum class PostProcessAntialiasing
 {
@@ -699,6 +711,7 @@ struct RenderPipelineSettings : public ShaderProgramCompositorSettings
     /// @{
     AutoExposurePassSettings autoExposure_;
     BloomPassSettings bloom_;
+    ScreenSpaceAmbientOcclusionPassSettings ssao_;
     ToneMappingMode toneMapping_{};
     PostProcessAntialiasing antialiasing_{};
     bool greyScale_{};

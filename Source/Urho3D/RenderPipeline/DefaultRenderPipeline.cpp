@@ -45,6 +45,7 @@
     #include "../SystemUI/SystemUI.h"
 #endif
 
+#include "ScreenSpaceAmbientOcclusionPass.h"
 #include "../DebugNew.h"
 
 namespace Urho3D
@@ -146,6 +147,13 @@ void DefaultRenderPipelineView::ApplySettings()
     {
         auto pass = MakeShared<BloomPass>(this, renderBufferManager_);
         pass->SetSettings(settings_.bloom_);
+        postProcessPasses_.push_back(pass);
+    }
+
+    if (settings_.ssao_.enabled_)
+    {
+        auto pass = MakeShared<ScreenSpaceAmbientOcclusionPass>(this, renderBufferManager_);
+        pass->SetSettings(settings_.ssao_);
         postProcessPasses_.push_back(pass);
     }
 

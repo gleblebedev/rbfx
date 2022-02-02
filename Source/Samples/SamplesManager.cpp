@@ -121,7 +121,6 @@
 #if URHO3D_SYSTEMUI
 #include "100_HelloSystemUI/HelloSystemUI.h"
 #endif
-#include "105_Serialization/Serialization.h"
 #if URHO3D_NAVIGATION
 #include "106_BakedLighting/BakedLighting.h"
 #endif
@@ -156,7 +155,7 @@ void SamplesManager::Setup()
     engineParameters_[EP_FULL_SCREEN]  = false;
     engineParameters_[EP_HEADLESS]     = false;
     engineParameters_[EP_SOUND]        = true;
-    engineParameters_[EP_HIGH_DPI]     = false;
+    engineParameters_[EP_HIGH_DPI]     = true;
     engineParameters_[EP_RESOURCE_PATHS] = "CoreData;Data";
 #if MOBILE
     engineParameters_[EP_ORIENTATIONS] = "Portrait";
@@ -179,7 +178,7 @@ void SamplesManager::Start()
         [](const std::string& str) { return ea::string(str.c_str()); });
 
     // Register an object factory for our custom Rotator component so that we can create them to scene nodes
-    context_->RegisterFactory<Rotator>();
+    context_->AddReflection<Rotator>();
 
     inspectorNode_ = MakeShared<Scene>(context_);
 
@@ -321,7 +320,6 @@ void SamplesManager::Start()
 #if URHO3D_SYSTEMUI
     RegisterSample<HelloSystemUi>();
 #endif
-    RegisterSample<Serialization>();
 #if URHO3D_NAVIGATION
     RegisterSample<BakedLighting>();
 #endif
@@ -592,7 +590,7 @@ void SamplesManager::OnFrameStart()
 template<typename T>
 void SamplesManager::RegisterSample()
 {
-    context_->RegisterFactory<T>();
+    context_->AddReflection<T>();
 
     auto* button = context_->CreateObject<Button>().Detach();
     button->SetMinHeight(30);

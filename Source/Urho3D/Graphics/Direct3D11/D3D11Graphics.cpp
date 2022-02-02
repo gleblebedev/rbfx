@@ -239,9 +239,6 @@ Graphics::Graphics(Context* context) :
     ResetCachedState();
 
     context_->RequireSDL(SDL_INIT_VIDEO);
-
-    // Register Graphics library object factories
-    RegisterGraphicsLibrary(context_);
 }
 
 Graphics::~Graphics()

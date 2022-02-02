@@ -45,6 +45,12 @@ KeyBindings::KeyBindings(Context* context)
     actions_[ActionType::Exit] = {"Exit", KEY_F4, QUAL_ALT};
     actions_[ActionType::Undo] = {"Undo", KEY_Z, QUAL_CTRL};
     actions_[ActionType::Redo] = {"Redo", KEY_Z, QUAL_CTRL | QUAL_SHIFT};
+    actions_[ActionType::Copy] = {"Copy", KEY_C, QUAL_CTRL};
+    actions_[ActionType::Cut] = {"Cut", KEY_X, QUAL_CTRL};
+    actions_[ActionType::Paste] = {"Paste", KEY_V, QUAL_CTRL};
+    actions_[ActionType::PasteInto] = {"Paste Into", KEY_V, QUAL_CTRL | QUAL_SHIFT};
+    actions_[ActionType::Delete] = {"Delete", KEY_DELETE, QUAL_NONE};
+    actions_[ActionType::ClearSelection] = {"Clear Selection", KEY_ESCAPE, QUAL_NONE};
 
     for (int i = 0; i < ActionType::MaxCount; i++)
     {
@@ -65,10 +71,10 @@ void KeyBindings::OnApplicationStarted(StringHash, VariantMap&)
     editor->settingsTabs_.Subscribe(this, &KeyBindings::RenderSettingsUI);
 }
 
-bool KeyBindings::Serialize(Archive& archive)
+void KeyBindings::SerializeInBlock(Archive& archive)
 {
     Input* input = GetSubsystem<Input>();
-    if (auto bindings = archive.OpenSequentialBlock("keyBindings"))
+    if (auto bindings = archive.OpenSequentialBlock("binds"))
     {
         for (int i = 0; i < ActionType::MaxCount; i++)
         {
@@ -97,7 +103,6 @@ bool KeyBindings::Serialize(Archive& archive)
         }
     }
     SortActions();
-    return true;
 }
 
 void KeyBindings::RenderSettingsUI()
@@ -206,9 +211,10 @@ void KeyBindings::OnInputEnd(StringHash, VariantMap&)
         QualifierFlags qualifiersDown = GetCurrentQualifiers() & action.qualifiers_;
         if (qualifiersDown == action.qualifiers_)
         {
-            bool keyPressed = ui::IsKeyPressed(action.key_);
-            action.isDown_ = keyPressed || ui::IsKeyDown(action.key_);
-            if (keyPressed)
+            action.isPressed_ = ui::IsKeyPressed(action.key_);
+            action.isDown_ = action.isPressed_ || ui::IsKeyDown(action.key_);
+            action.isReleased_ = ui::IsKeyReleased(action.key_);
+            if (action.isPressed_)
             {
                 action.onPressed_(this);
                 break;
@@ -268,6 +274,21 @@ void KeyBindings::SortActions()
             nb += ((unsigned)actions_[b].qualifiers_ >> i) & 1u;
         return na > nb;
     });
+}
+
+bool KeyBindings::IsActionPressed(ActionType actionType)
+{
+    return actions_[actionType].isPressed_;
+}
+
+bool KeyBindings::IsActionReleased(ActionType actionType)
+{
+    return actions_[actionType].isReleased_;
+}
+
+bool KeyBindings::IsActionActive(ActionType actionType)
+{
+    return actions_[actionType].isDown_;
 }
 
 }

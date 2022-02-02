@@ -39,6 +39,14 @@ if (NOT MINI_URHO)
     endforeach()
 endif ()
 
+# https://cmake.org/cmake/help/v3.18/policy/CMP0077.html
+# Note that cmake_minimum_required() + project() resets policies, so dependencies using lower CMake version would not
+# properly accept options before we add_subdirectory() them without setting this policy to NEW __in their build script__.
+if (POLICY CMP0077)
+    cmake_policy(SET CMP0077 NEW)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+endif ()
+
 foreach (feature ${URHO3D_FEATURES})
     set (URHO3D_${feature} ON)
 endforeach()
@@ -121,6 +129,7 @@ endif ()
 set(URHO3D_NETFX netstandard2.0 CACHE STRING "TargetFramework value for .NET libraries")
 set_property(CACHE URHO3D_NETFX PROPERTY STRINGS netstandard2.0 netstandard2.1)
 set(URHO3D_NETFX_RUNTIME_VERSION OFF CACHE STRING "Version of runtime to use.")
+option                (URHO3D_DEBUG_ASSERT       "Enable Urho3D assert macros"                           ${URHO3D_ENABLE_ALL}                                    )
 cmake_dependent_option(URHO3D_FILEWATCHER        "Watch filesystem for resource changes"                 ${URHO3D_ENABLE_ALL} "URHO3D_THREADING;NOT UWP"      OFF)
 option                (URHO3D_SPHERICAL_HARMONICS "Use spherical harmonics for ambient lighting"         ON)
 option                (URHO3D_HASH_DEBUG         "Enable StringHash name debugging"                      ${URHO3D_ENABLE_ALL}                                    )

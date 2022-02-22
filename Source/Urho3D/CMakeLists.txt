@@ -114,6 +114,10 @@ if (URHO3D_CSHARP)
     define_engine_source_files (Script)
 endif ()
 
+if (URHO3D_SCRIPT_GRAPH)
+    define_engine_source_files (ScriptGraph)
+endif ()
+
 # Group source code in VS solution
 group_sources()
 

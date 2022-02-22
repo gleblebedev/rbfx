@@ -118,6 +118,7 @@ option                (URHO3D_URHO2D             "2D subsystem enabled"         
 option                (URHO3D_PHYSICS2D          "2D physics subsystem enabled"                          ${URHO3D_ENABLE_ALL})
 option                (URHO3D_RMLUI              "HTML subset UIs via RmlUI middleware"                  ${URHO3D_ENABLE_ALL})
 option                (URHO3D_PARTICLE_GRAPH     "Particle Graph Effects"                                ${URHO3D_ENABLE_ALL})
+option                (URHO3D_SCRIPT_GRAPH       "Script Graph"                                          ${URHO3D_ENABLE_ALL})
 
 # Features
 set (URHO3D_CSHARP_TOOLS ${URHO3D_CSHARP})

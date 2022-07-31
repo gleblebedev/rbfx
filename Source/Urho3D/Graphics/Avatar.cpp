@@ -172,6 +172,18 @@ struct AvatarBuilder
         return (neckBoneIndex_ != rightShoulderBoneIndex_) && (neckBoneIndex_ != leftShoulderBoneIndex_)
             && (rightShoulderBoneIndex_ != leftShoulderBoneIndex_);
     }
+
+    void SetupBone(AvatarBone& avatarBone, unsigned boneIndex)
+    {
+        if (boneIndex == INVALID_BONE_INDEX)
+        {
+            return;
+        }
+        const Bone* bone = skeleton_.GetBone(boneIndex);
+        avatarBone.name_ = bone->name_;
+        avatarBone.nameHash_ = bone->nameHash_;
+    }
+
     Model* model_;
     Vector3 forward_;
     Vector3 up_;
@@ -231,6 +243,21 @@ void Avatar::Autodetect(Model* animatedModel, const Vector3& forward, const Vect
         return;
     if (!builder.FindUpperChest())
         return;
+
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::Root)], builder.rootBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::Hips)], builder.hipBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::Neck)], builder.neckBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::Chest)], builder.upperChestBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::LeftUpperLeg)], builder.leftUpperLegBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::RightUpperLeg)], builder.rightUpperLegBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::LeftShoulder)], builder.leftShoulderBoneIndex_);
+    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::RightShoulder)], builder.rightShoulderBoneIndex_);
+    // unsigned spineBoneIndex = builder.upperChestBoneIndex_;
+    //spineBoneIndex = skeleton.GetBone(spineBoneIndex)->parentIndex_;
+    //if (spineBoneIndex != builder.hipBoneIndex_)
+    //{
+    //    builder.SetupBone(bones_[static_cast<size_t>(AvatarBoneId::UpperSpine)], builder.spineBoneIndex);
+    //}
 }
 
 } // namespace Urho3D

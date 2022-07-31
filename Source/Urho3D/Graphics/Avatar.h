@@ -30,6 +30,39 @@ namespace Urho3D
 {
 class Model;
 
+enum class AvatarBoneId
+{
+    Root,
+    Hips,
+    LowerSpine,
+    MidSpine,
+    UpperSpine,
+    Chest,
+    Neck,
+    Head,
+    LeftUpperLeg,
+    LeftLowerLeg,
+    LeftFoot,
+    LeftShoulder,
+    LeftUpperArm,
+    LeftLowerArm,
+    LeftHand,
+    RightUpperLeg,
+    RightLowerLeg,
+    RightFoot,
+    RightShoulder,
+    RightUpperArm,
+    RightLowerArm,
+    RightHand,
+    NumBones,
+};
+
+struct AvatarBone
+{
+    ea::string name_;
+    StringHash nameHash_;
+};
+
 /// Character setup.
 class URHO3D_API Avatar : public Resource
 {
@@ -44,8 +77,12 @@ public:
     /// @nobind
     static void RegisterObject(Context* context);
 
-    /// Autodetect configuration.
+    /// Autodetect bone configuration.
     void Autodetect(Model* animatedModel, const Vector3& forward = Vector3::FORWARD, const Vector3& up = Vector3::UP);
+
+private:
+
+    ea::array<AvatarBone, static_cast<size_t>(AvatarBoneId::NumBones)> bones_;
 };
 
 }

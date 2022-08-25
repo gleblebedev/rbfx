@@ -60,7 +60,7 @@ if (TARGET libEditor)
 endif ()
 
 target_include_directories(${EDITOR_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries (${EDITOR_TARGET} PUBLIC Urho3D)
+target_link_libraries (${EDITOR_TARGET} PUBLIC Urho3D ImGuiNodeEditor)
 if (TARGET TracyEmbedded)
     target_link_libraries (${EDITOR_TARGET} PUBLIC TracyEmbedded)
 endif ()

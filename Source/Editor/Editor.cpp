@@ -41,6 +41,7 @@
 #include "Foundation/InspectorTab/TextureCubeInspector.h"
 #include "Foundation/ModelImporter.h"
 #include "Foundation/ModelViewTab.h"
+#include "Foundation/ParticleGraphTab.h"
 #include "Foundation/ProfilerTab.h"
 #include "Foundation/ResourceBrowserTab.h"
 #include "Foundation/ResourceBrowserTab/MaterialFactory.h"
@@ -96,6 +97,7 @@ Editor::Editor(Context* context)
     editorPluginManager_->AddPlugin("Foundation.TextureCubeView", &Foundation_TextureCubeViewTab);
     editorPluginManager_->AddPlugin("Foundation.ModelView", &Foundation_ModelViewTab);
     editorPluginManager_->AddPlugin("Foundation.AnimationView", &Foundation_AnimationViewTab);
+    editorPluginManager_->AddPlugin("Foundation.ParticleGraphView", &Foundation_ParticleGraphTab);
     editorPluginManager_->AddPlugin("Foundation.Console", &Foundation_ConsoleTab);
     editorPluginManager_->AddPlugin("Foundation.ResourceBrowser", &Foundation_ResourceBrowserTab);
     editorPluginManager_->AddPlugin("Foundation.HierarchyBrowser", &Foundation_HierarchyBrowserTab);

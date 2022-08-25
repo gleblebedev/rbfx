@@ -23,6 +23,8 @@
 # Set CMake minimum version. Also set in android/build.gradle for android projects.
 cmake_minimum_required (VERSION 3.14)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 # Set C++ standard
 if (NOT DEFINED CMAKE_CXX_STANDARD)
     set (CMAKE_CXX_STANDARD 17)

@@ -130,6 +130,10 @@ if (NOT MINI_URHO)
         add_subdirectory (StanHull)
     endif ()
 
+    if (URHO3D_EDITOR)
+        add_subdirectory(imgui-node-editor)
+    endif ()
+
     if (URHO3D_TOOLS)
         add_subdirectory(nativefiledialog)
     endif ()

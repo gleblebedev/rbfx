@@ -69,7 +69,7 @@ public:
     ~ParticleGraphLayerInstance();
 
     /// Apply layer settings to the layer instance
-    void Apply(const SharedPtr<ParticleGraphLayer>& layer);
+    void Apply(ParticleGraphLayer* layer);
 
     /// Return number of active particles.
     unsigned GetNumActiveParticles() const { return activeParticles_; }

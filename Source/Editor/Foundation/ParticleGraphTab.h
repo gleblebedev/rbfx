@@ -23,18 +23,11 @@
 #pragma once
 
 #include "../Foundation/Shared/CustomSceneViewTab.h"
+#include "../Foundation/Shared/GraphWidget.h"
 #include "../Project/Project.h"
 #include "../Project/ResourceEditorTab.h"
 
 #include <Urho3D/Particles/ParticleGraphEffect.h>
-
-namespace ax
-{
-namespace NodeEditor
-{
-struct EditorContext;
-}
-}
 
 namespace Urho3D
 {
@@ -70,8 +63,8 @@ protected:
     /// @}
 
 private:
-    ax::NodeEditor::EditorContext* editorContext_{};
     SharedPtr<ParticleGraphEffect> particleGraph_;
+    SharedPtr<GraphWidget> graphWidget_;
 };
 
 } // namespace Urho3D

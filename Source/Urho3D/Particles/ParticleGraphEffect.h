@@ -51,7 +51,7 @@ public:
     unsigned GetNumLayers() const;
 
     /// Get layer by index.
-    SharedPtr<ParticleGraphLayer> GetLayer(unsigned layerIndex) const;
+    ParticleGraphLayer* GetLayer(unsigned layerIndex) const;
 
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
     bool BeginLoad(Deserializer& source) override;

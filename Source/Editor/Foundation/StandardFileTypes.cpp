@@ -30,6 +30,7 @@
 #include <Urho3D/Graphics/Texture2DArray.h>
 #include <Urho3D/Graphics/Texture3D.h>
 #include <Urho3D/Graphics/TextureCube.h>
+#include <Urho3D/Particles/ParticleGraphEffect.h>
 #include <Urho3D/Resource/BinaryFile.h>
 #include <Urho3D/Resource/JSONFile.h>
 #include <Urho3D/Resource/XMLFile.h>
@@ -65,6 +66,12 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
     {
         if (ctx.HasXMLRoot("material"))
             desc.AddObjectType<Material>();
+    });
+    
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+    {
+        if (ctx.HasXMLRoot("particleGraphEffect"))
+            desc.AddObjectType<ParticleGraphEffect>();
     });
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)

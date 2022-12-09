@@ -67,8 +67,12 @@ unsigned ParticleGraphEffect::GetNumLayers() const
     return static_cast<unsigned>(layers_.size());
 }
 
-SharedPtr<ParticleGraphLayer> ParticleGraphEffect::GetLayer(unsigned layerIndex) const
+ParticleGraphLayer* ParticleGraphEffect::GetLayer(unsigned layerIndex) const
 {
+    if (layerIndex >= layers_.size())
+    {
+        return nullptr;
+    }
     return layers_[layerIndex];
 }
 

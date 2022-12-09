@@ -54,7 +54,7 @@ ParticleGraphLayerInstance::~ParticleGraphLayerInstance()
     }
 }
 
-void ParticleGraphLayerInstance::Apply(const SharedPtr<ParticleGraphLayer>& layer)
+void ParticleGraphLayerInstance::Apply(ParticleGraphLayer* layer)
 {
     if (!layer)
         return;

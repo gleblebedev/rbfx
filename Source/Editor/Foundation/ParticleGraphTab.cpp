@@ -23,13 +23,10 @@
 #include "../Core/IniHelpers.h"
 #include "../Foundation/ParticleGraphTab.h"
 
+#include "Urho3D/Particles/ParticleGraphLayer.h"
+
 #include <Urho3D/Resource/ResourceCache.h>
 
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include <imgui_internal.h>
-#include <imgui-node-editor/imgui_node_editor.h>
-
-namespace ed = ax::NodeEditor;
 
 namespace Urho3D
 {
@@ -47,8 +44,7 @@ ParticleGraphTab::ParticleGraphTab(Context* context)
     : CustomSceneViewTab(context, "ParticleGraph", "98006bbc-2642-4d5b-98bd-6eb39d16e34c",
         EditorTabFlag::NoContentPadding | EditorTabFlag::OpenByDefault, EditorTabPlacement::DockCenter)
 {
-    ed::Config config;
-    editorContext_ = ed::CreateEditor(&config);
+    graphWidget_ = MakeShared<GraphWidget>(context);
 }
 
 ParticleGraphTab::~ParticleGraphTab()
@@ -62,28 +58,21 @@ bool ParticleGraphTab::CanOpenResource(const ResourceFileDescriptor& desc)
 
 void ParticleGraphTab::RenderContent()
 {
-    ed::SetCurrentEditor(editorContext_);
-    ed::Begin("My Editor", ImVec2(0.0, 0.0f));
-    int uniqueId = 1;
-    // Start drawing nodes.
-    ed::BeginNode(uniqueId++);
-    ImGui::Text("Node A");
-    ed::BeginPin(uniqueId++, ed::PinKind::Input);
-    ImGui::Text("-> In");
-    ed::EndPin();
-    ImGui::SameLine();
-    ed::BeginPin(uniqueId++, ed::PinKind::Output);
-    ImGui::Text("Out ->");
-    ed::EndPin();
-    ed::EndNode();
-    ed::End();
-    ed::SetCurrentEditor(nullptr);
+    graphWidget_->RenderContent();
 }
 
 void ParticleGraphTab::OnResourceLoaded(const ea::string& resourceName)
 {
     auto cache = GetSubsystem<ResourceCache>();
     particleGraph_ = cache->GetResource<ParticleGraphEffect>(resourceName);
+    auto layer = particleGraph_->GetLayer(0);
+    if (layer)
+    {
+        auto& graph = layer->GetUpdateGraph();
+        SharedPtr<Graph> genericGraph = MakeShared<Graph>(context_);
+        graph.SaveGraph(*genericGraph);
+        graphWidget_->SetGraph(genericGraph);
+    }
 }
 
 void ParticleGraphTab::OnResourceUnloaded(const ea::string& resourceName)

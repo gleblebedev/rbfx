@@ -22,12 +22,15 @@
 
 #pragma once
 
+#include "../Core/CommonEditorActionBuilders.h"
 #include "../Core/UndoManager.h"
 
 #include <Urho3D/Scene/Component.h>
 #include <Urho3D/Scene/Node.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Utility/PackedSceneData.h>
+
+#include <EASTL/optional.h>
 
 namespace Urho3D
 {
@@ -42,6 +45,29 @@ public:
     void Redo() const override {}
     void Undo() const override {}
     /// @}
+};
+
+/// Composite action.
+class CompositeEditorAction : public EditorAction
+{
+public:
+    /// Add action to composite.
+    void AddAction(const SharedPtr<EditorAction>& action) { actions_.push_back(action); }
+    template <class T, class... Args> void EmplaceAction(Args&&... args)
+    {
+        actions_.push_back(MakeShared<T>(ea::forward<Args>(args)...));
+    }
+
+    /// Implement EditorAction.
+    /// @{
+    bool CanRedo() const override;
+    bool CanUndo() const override;
+    void Redo() const override;
+    void Undo() const override;
+    /// @}
+
+private:
+    ea::vector<SharedPtr<EditorAction>> actions_;
 };
 
 /// Create or remove node.
@@ -240,7 +266,7 @@ private:
 class ReparentNodeAction : public EditorAction
 {
 public:
-    ReparentNodeAction(Node* node, Node* oldParent);
+    ReparentNodeAction(Node* node, Node* newParent);
 
     /// Implement EditorAction.
     /// @{
@@ -251,11 +277,12 @@ public:
     /// @}
 
 private:
-    void Reparent(unsigned parentId) const;
+    void Reparent(unsigned parentId, ea::optional<unsigned> index) const;
 
     const WeakPtr<Scene> scene_;
     const unsigned nodeId_{};
     const unsigned oldParentId_{};
+    const unsigned oldIndex_{};
     unsigned newParentId_{};
 };
 
@@ -304,42 +331,6 @@ private:
     const WeakPtr<Scene> scene_;
     const PackedSceneData oldData_;
     PackedSceneData newData_;
-};
-
-/// Helper class to create "create component" action based on the component scope.
-/// This class should be created before the component is created, and cooked after.
-class CreateComponentActionFactory
-{
-public:
-    explicit CreateComponentActionFactory(Node* node, StringHash componentType);
-
-    SharedPtr<EditorAction> Cook(Component* component) const;
-
-private:
-    const WeakPtr<Scene> scene_;
-    const AttributeScopeHint scopeHint_;
-
-    PackedNodeData oldNodeData_;
-    PackedSceneData oldSceneData_;
-};
-
-/// Helper class to create "remove component" action based on the component scope.
-/// This class should be created before the component is removed, and cooked after.
-class RemoveComponentActionFactory
-{
-public:
-    explicit RemoveComponentActionFactory(Component* component);
-
-    SharedPtr<EditorAction> Cook() const;
-
-private:
-    const WeakPtr<Scene> scene_;
-    const WeakPtr<Node> node_;
-    const AttributeScopeHint scopeHint_;
-
-    SharedPtr<EditorAction> action_;
-    PackedNodeData oldNodeData_;
-    PackedSceneData oldSceneData_;
 };
 
 }

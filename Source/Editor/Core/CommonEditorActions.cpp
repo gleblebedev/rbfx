@@ -22,18 +22,33 @@
 
 #include "../Core/CommonEditorActions.h"
 
+#include <EASTL/bonus/adaptors.h>
+
 namespace Urho3D
 {
 
-namespace
+bool CompositeEditorAction::CanRedo() const
 {
-
-AttributeScopeHint GetScopeHint(Context* context, const StringHash& componentType)
-{
-    ObjectReflection* reflection = context->GetReflection(componentType);
-    return reflection ? reflection->GetEffectiveScopeHint() : AttributeScopeHint::Serializable;
+    const auto canRedo = [](const SharedPtr<EditorAction>& action) { return action->CanRedo(); };
+    return ea::all_of(actions_.begin(), actions_.end(), canRedo);
 }
 
+bool CompositeEditorAction::CanUndo() const
+{
+    const auto canUndo = [](const SharedPtr<EditorAction>& action) { return action->CanUndo(); };
+    return ea::all_of(actions_.begin(), actions_.end(), canUndo);
+}
+
+void CompositeEditorAction::Redo() const
+{
+    for (const auto& action : actions_)
+        action->Redo();
+}
+
+void CompositeEditorAction::Undo() const
+{
+    for (const auto& action : ea::reverse(actions_))
+        action->Undo();
 }
 
 CreateRemoveNodeAction::CreateRemoveNodeAction(Node* node, bool removed)
@@ -386,11 +401,12 @@ bool ReorderComponentAction::MergeWith(const EditorAction& other)
     return true;
 }
 
-ReparentNodeAction::ReparentNodeAction(Node* node, Node* oldParent)
+ReparentNodeAction::ReparentNodeAction(Node* node, Node* newParent)
     : scene_(node->GetScene())
     , nodeId_(node->GetID())
-    , oldParentId_(oldParent->GetID())
-    , newParentId_(node->GetParent()->GetID())
+    , oldParentId_(node->GetParent()->GetID())
+    , oldIndex_(node->GetIndexInParent())
+    , newParentId_(newParent->GetID())
 {
 }
 
@@ -401,15 +417,15 @@ bool ReparentNodeAction::CanUndoRedo() const
 
 void ReparentNodeAction::Redo() const
 {
-    Reparent(newParentId_);
+    Reparent(newParentId_, ea::nullopt);
 }
 
 void ReparentNodeAction::Undo() const
 {
-    Reparent(oldParentId_);
+    Reparent(oldParentId_, oldIndex_);
 }
 
-void ReparentNodeAction::Reparent(unsigned parentId) const
+void ReparentNodeAction::Reparent(unsigned parentId, ea::optional<unsigned> index) const
 {
     Node* node = scene_->GetNode(nodeId_);
     Node* parent = scene_->GetNode(parentId);
@@ -418,7 +434,11 @@ void ReparentNodeAction::Reparent(unsigned parentId) const
     else if (!parent)
         throw UndoException("Cannot find parent node with id {}", parentId);
     else
+    {
         node->SetParent(parent);
+        if (index)
+            parent->ReorderChild(node, *index);
+    }
 }
 
 bool ReparentNodeAction::MergeWith(const EditorAction& other)
@@ -533,102 +553,6 @@ bool ChangeSceneAction::MergeWith(const EditorAction& other)
 
     newData_ = otherAction->newData_;
     return true;
-}
-
-CreateComponentActionFactory::CreateComponentActionFactory(Node* node, StringHash componentType)
-    : scene_(node->GetScene())
-    , scopeHint_(GetScopeHint(scene_->GetContext(), componentType))
-{
-    switch (scopeHint_)
-    {
-    case AttributeScopeHint::Attribute:
-    case AttributeScopeHint::Serializable:
-    {
-        // No need to prepare
-        break;
-    }
-    case AttributeScopeHint::Node:
-    {
-        oldNodeData_ = PackedNodeData{node};
-        break;
-    }
-    case AttributeScopeHint::Scene:
-    {
-        oldSceneData_.FromScene(scene_);
-        break;
-    }
-    };
-}
-
-SharedPtr<EditorAction> CreateComponentActionFactory::Cook(Component* component) const
-{
-    URHO3D_ASSERTLOG(scopeHint_ == GetScopeHint(scene_->GetContext(), component->GetType()));
-
-    switch (scopeHint_)
-    {
-    case AttributeScopeHint::Attribute:
-    case AttributeScopeHint::Serializable:
-    {
-        return MakeShared<CreateRemoveComponentAction>(component, false);
-    }
-    case AttributeScopeHint::Node:
-    {
-        Node* node = component->GetNode();
-        return MakeShared<ChangeNodeSubtreeAction>(scene_, oldNodeData_, node);
-    }
-    case AttributeScopeHint::Scene:
-    {
-        return MakeShared<ChangeSceneAction>(scene_, oldSceneData_);
-    }
-    default: return nullptr;
-    }
-}
-
-RemoveComponentActionFactory::RemoveComponentActionFactory(Component* component)
-    : scene_(component->GetScene())
-    , node_(component->GetNode())
-    , scopeHint_(GetScopeHint(scene_->GetContext(), component->GetType()))
-{
-    switch (scopeHint_)
-    {
-    case AttributeScopeHint::Attribute:
-    case AttributeScopeHint::Serializable:
-    {
-        action_ = MakeShared<CreateRemoveComponentAction>(component, true);
-        break;
-    }
-    case AttributeScopeHint::Node:
-    {
-        oldNodeData_ = PackedNodeData{node_};
-        break;
-    }
-    case AttributeScopeHint::Scene:
-    {
-        oldSceneData_.FromScene(scene_);
-        break;
-    }
-    };
-}
-
-SharedPtr<EditorAction> RemoveComponentActionFactory::Cook() const
-{
-    switch (scopeHint_)
-    {
-    case AttributeScopeHint::Attribute:
-    case AttributeScopeHint::Serializable:
-    {
-        return action_;
-    }
-    case AttributeScopeHint::Node:
-    {
-        return MakeShared<ChangeNodeSubtreeAction>(scene_, oldNodeData_, node_);
-    }
-    case AttributeScopeHint::Scene:
-    {
-        return MakeShared<ChangeSceneAction>(scene_, oldSceneData_);
-    }
-    default: return nullptr;
-    }
 }
 
 }

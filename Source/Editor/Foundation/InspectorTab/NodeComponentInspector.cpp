@@ -213,15 +213,10 @@ void NodeComponentInspector::BeginEditNodeAttribute(
     if (objects.empty())
         return;
 
-    // For nodes, attributes are known and almost never change.
-    // Currently they all have the smallest scope.
-    scopeHint_ = attribute->scopeHint_;
-    URHO3D_ASSERT(scopeHint_ == AttributeScopeHint::Attribute);
+    URHO3D_ASSERT(!nodeActionBuilder_);
 
     const auto nodes = CastVectorTo<Node*>(objects);
-    oldState_.values_.clear();
-    for (Node* node : nodes)
-        oldState_.values_.push_back(node->GetAttribute(attribute->name_));
+    nodeActionBuilder_ = ea::make_unique<ChangeNodeAttributesActionBuilder>(actionBuffer_, scene_, nodes, *attribute);
 }
 
 void NodeComponentInspector::EndEditNodeAttribute(const WeakSerializableVector& objects, const AttributeInfo* attribute)
@@ -229,13 +224,10 @@ void NodeComponentInspector::EndEditNodeAttribute(const WeakSerializableVector& 
     if (objects.empty())
         return;
 
-    const auto nodes = CastVectorTo<Node*>(objects);
-    newState_.values_.clear();
-    for (Node* node : nodes)
-        newState_.values_.push_back(node->GetAttribute(attribute->name_));
+    URHO3D_ASSERT(nodeActionBuilder_);
 
-    inspectedTab_->PushAction<ChangeNodeAttributesAction>(
-        scene_, attribute->name_, nodes, oldState_.values_, newState_.values_);
+    inspectedTab_->PushAction(nodeActionBuilder_->Build());
+    nodeActionBuilder_ = nullptr;
 }
 
 void NodeComponentInspector::BeginEditComponentAttribute(
@@ -244,39 +236,11 @@ void NodeComponentInspector::BeginEditComponentAttribute(
     if (objects.empty())
         return;
 
-    scopeHint_ = attribute->scopeHint_;
+    URHO3D_ASSERT(!componentActionBuilder_);
 
     const auto components = CastVectorTo<Component*>(objects);
-    const auto nodes = Node::GetNodes({components.Begin(), components.End()});
-    const auto parentNodes = Node::GetParentNodes(nodes);
-
-    switch (scopeHint_)
-    {
-    case AttributeScopeHint::Attribute:
-    {
-        oldState_.values_.clear();
-        for (Component* component : components)
-            oldState_.values_.push_back(component->GetAttribute(attribute->name_));
-        break;
-    }
-
-    case AttributeScopeHint::Serializable:
-    case AttributeScopeHint::Node:
-    {
-        oldState_.nodes_.clear();
-        for (Node* node : parentNodes)
-            oldState_.nodes_.emplace_back(node);
-        break;
-    }
-
-    case AttributeScopeHint::Scene:
-    {
-        oldState_.scene_.FromScene(scene_);
-        break;
-    }
-
-    default: break;
-    }
+    componentActionBuilder_ =
+        ea::make_unique<ChangeComponentAttributesActionBuilder>(actionBuffer_, scene_, components, *attribute);
 }
 
 void NodeComponentInspector::EndEditComponentAttribute(
@@ -285,48 +249,10 @@ void NodeComponentInspector::EndEditComponentAttribute(
     if (objects.empty())
         return;
 
-    const auto components = CastVectorTo<Component*>(objects);
-    const auto nodes = Node::GetNodes({components.Begin(), components.End()});
-    const auto parentNodes = Node::GetParentNodes(nodes);
+    URHO3D_ASSERT(componentActionBuilder_);
 
-    switch (scopeHint_)
-    {
-    case AttributeScopeHint::Attribute:
-    {
-        newState_.values_.clear();
-        for (Component* component : components)
-            newState_.values_.push_back(component->GetAttribute(attribute->name_));
-
-        inspectedTab_->PushAction<ChangeComponentAttributesAction>(
-            scene_, attribute->name_, components, oldState_.values_, newState_.values_);
-        break;
-    }
-
-    case AttributeScopeHint::Serializable:
-    case AttributeScopeHint::Node:
-    {
-        newState_.nodes_.clear();
-        for (Node* node : parentNodes)
-            newState_.nodes_.emplace_back(node);
-
-        for (unsigned index = 0; index < parentNodes.size(); ++index)
-        {
-            inspectedTab_->PushAction<ChangeNodeSubtreeAction>(
-                scene_, oldState_.nodes_[index], newState_.nodes_[index]);
-        }
-        break;
-    }
-
-    case AttributeScopeHint::Scene:
-    {
-        newState_.scene_.FromScene(scene_);
-
-        inspectedTab_->PushAction<ChangeSceneAction>(scene_, oldState_.scene_, newState_.scene_);
-        break;
-    }
-
-    default: break;
-    }
+    inspectedTab_->PushAction(componentActionBuilder_->Build());
+    componentActionBuilder_ = nullptr;
 }
 
 void NodeComponentInspector::BeginAction(const WeakSerializableVector& objects)
@@ -362,17 +288,17 @@ void NodeComponentInspector::AddComponentToNodes(StringHash componentType)
 
     for (Node* node : nodeWidget_->GetNodes())
     {
-        const CreateComponentActionFactory factory(node, componentType);
+        const CreateComponentActionBuilder builder(node, componentType);
         if (auto component = node->CreateComponent(componentType))
-            inspectedTab_->PushAction(factory.Cook(component));
+            inspectedTab_->PushAction(builder.Build(component));
     }
 }
 
 void NodeComponentInspector::RemoveComponent(Component* component)
 {
-    const RemoveComponentActionFactory factory(component);
+    const RemoveComponentActionBuilder builder(component);
     component->Remove();
-    inspectedTab_->PushAction(factory.Cook());
+    inspectedTab_->PushAction(builder.Build());
 }
 
 void NodeComponentInspector::RenderContent()

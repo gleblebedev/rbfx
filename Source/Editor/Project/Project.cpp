@@ -326,6 +326,9 @@ void Project::Destroy()
 
 Project::~Project()
 {
+    auto cache = GetSubsystem<ResourceCache>();
+    cache->ReleaseAllResources(true);
+
     --numActiveProjects;
     URHO3D_ASSERT(numActiveProjects == 0);
 
@@ -438,14 +441,16 @@ ResourceFileDescriptor Project::GetResourceDescriptor(const ea::string& resource
     return result;
 }
 
-void Project::SaveFileDelayed(const ea::string& fileName, const ea::string& resourceName, const SharedByteVector& bytes)
+void Project::SaveFileDelayed(const ea::string& fileName, const ea::string& resourceName, const SharedByteVector& bytes,
+    const FileSavedCallback& onSaved)
 {
-    delayedFileSaves_[resourceName] = PendingFileSave{fileName, bytes};
+    delayedFileSaves_[resourceName] = PendingFileSave{fileName, bytes, onSaved};
 }
 
-void Project::SaveFileDelayed(Resource* resource)
+void Project::SaveFileDelayed(Resource* resource, const FileSavedCallback& onSaved)
 {
-    delayedFileSaves_[resource->GetName()] = PendingFileSave{resource->GetAbsoluteFileName(), nullptr, SharedPtr<Resource>(resource)};
+    delayedFileSaves_[resource->GetName()] =
+        PendingFileSave{resource->GetAbsoluteFileName(), nullptr, onSaved, SharedPtr<Resource>(resource)};
 }
 
 void Project::IgnoreFileNamePattern(const ea::string& pattern)
@@ -547,7 +552,7 @@ void Project::EnsureDirectoryInitialized()
     if (fs->DirExists(projectPath_ + "Resources/"))
         dataPath_ = projectPath_ + "Resources/";
     if (fs->FileExists(dataPath_ + "AssetPipeline.json"))
-        fs->Rename(dataPath_ + "AssetPipeline.json", dataPath_ + "Default.AssetPipeline.json");
+        fs->Rename(dataPath_ + "AssetPipeline.json", dataPath_ + "Default.assetpipeline");
 
     if (!fs->DirExists(dataPath_))
     {
@@ -572,7 +577,7 @@ void Project::InitializeDefaultProject()
     launchManager_->AddConfiguration(LaunchConfiguration{configName, SceneViewerApplication::GetStaticPluginName()});
     currentLaunchConfiguration_ = configName;
 
-    const ea::string defaultSceneName = "Scenes/DefaultScene.xml";
+    const ea::string defaultSceneName = "Scenes/Default.scene";
     DefaultSceneParameters params;
     params.highQuality_ = true;
     params.createObjects_ = true;
@@ -581,7 +586,7 @@ void Project::InitializeDefaultProject()
     const auto request = MakeShared<OpenResourceRequest>(context_, defaultSceneName);
     ProcessRequest(request, nullptr);
 
-    const ea::string defaultAssetPipeline = "Default.AssetPipeline.json";
+    const ea::string defaultAssetPipeline = "Default.assetpipeline";
     CreateAssetPipeline(context_, dataPath_ + defaultAssetPipeline);
 
     Save();
@@ -796,7 +801,11 @@ void Project::ProcessDelayedSaves(bool forceSave)
             delayedSave.resource_->SaveFile(delayedSave.fileName_);
         }
 
-        if (fileExists)
+        bool needReload = !fileExists;
+        if (delayedSave.onSaved_)
+            delayedSave.onSaved_(delayedSave.fileName_, resourceName, needReload);
+
+        if (!needReload)
             cache->IgnoreResourceReload(resourceName);
 
         delayedSave.Clear();

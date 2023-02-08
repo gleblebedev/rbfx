@@ -25,6 +25,7 @@
 #include "../Container/Functors.h"
 #include "../Core/Context.h"
 #include "../Core/Exception.h"
+#include "../Core/StringUtils.h"
 #include "../Graphics/AnimatedModel.h"
 #include "../Graphics/Animation.h"
 #include "../Graphics/AnimationController.h"
@@ -50,6 +51,7 @@
 #include "../Resource/Image.h"
 #include "../Resource/ResourceCache.h"
 #include "../Resource/XMLFile.h"
+#include "../Scene/PrefabResource.h"
 #include "../Scene/Scene.h"
 #include "../Utility/GLTFImporter.h"
 
@@ -63,6 +65,7 @@
 
 #include <cctype>
 #include <exception>
+#include <regex>
 
 #include "../DebugNew.h"
 
@@ -258,14 +261,6 @@ public:
             throw RuntimeException("Cannot save imported resource");
         resource->SetAbsoluteFileName(fileName);
         resource->SaveFile(fileName);
-    }
-
-    void SaveResource(Scene* scene)
-    {
-        XMLFile xmlFile(scene->GetContext());
-        XMLElement rootElement = xmlFile.GetOrCreateRoot("scene");
-        scene->SaveXML(rootElement);
-        xmlFile.SaveFile(scene->GetFileName());
     }
 
     const tg::Model& GetModel() const { return model_; }
@@ -2115,15 +2110,15 @@ private:
 
         const IntVector3 metallicRoughnessImageSize = metallicRoughnessImage ? metallicRoughnessImage->GetSize() : IntVector3::ZERO;
         const IntVector3 occlusionImageSize = occlusionImage ? occlusionImage->GetSize() : IntVector3::ZERO;
-        const IntVector2 repackedImageSize = VectorMax(metallicRoughnessImageSize.ToVector2(), occlusionImageSize.ToVector2());
+        const IntVector2 repackedImageSize = VectorMax(metallicRoughnessImageSize.ToIntVector2(), occlusionImageSize.ToIntVector2());
 
         if (repackedImageSize.x_ <= 0 || repackedImageSize.y_ <= 0)
             throw RuntimeException("Repacked metallic-roughness-occlusion texture has invalid size");
 
-        if (metallicRoughnessImage && metallicRoughnessImageSize.ToVector2() != repackedImageSize)
+        if (metallicRoughnessImage && metallicRoughnessImageSize.ToIntVector2() != repackedImageSize)
             metallicRoughnessImage->Resize(repackedImageSize.x_, repackedImageSize.y_);
 
-        if (occlusionImage && occlusionImageSize.ToVector2() != repackedImageSize)
+        if (occlusionImage && occlusionImageSize.ToIntVector2() != repackedImageSize)
             occlusionImage->Resize(repackedImageSize.x_, repackedImageSize.y_);
 
         auto finalImage = MakeShared<Image>(base_.GetContext());
@@ -2498,6 +2493,9 @@ public:
         , materialImporter_(materialImporter)
     {
         InitializeModels();
+        if (base_.GetSettings().combineLODs_)
+            CombineLODs();
+        CookModels();
     }
 
     void SaveResources()
@@ -2519,12 +2517,17 @@ public:
 private:
     struct ImportedModel
     {
-        GLTFNodePtr skeleton_;
+        ea::string meshName_;
+        ea::optional<unsigned> skin_;
+        ea::string baseMeshName_;
+        ea::optional<float> lodDistance_;
+
         SharedPtr<ModelView> modelView_;
         SharedPtr<Model> model_;
         StringVector materials_;
+
+        bool alreadyProcessedAsLOD_{};
     };
-    using ImportedModelPtr = ea::shared_ptr<ImportedModel>;
 
     void InitializeModels()
     {
@@ -2532,13 +2535,131 @@ private:
         {
             const tg::Mesh& sourceMesh = model_.meshes[pair->mesh_];
 
-            ImportedModel model;
+            ImportedModel& model = models_.emplace_back();
+            model.meshName_ = sourceMesh.name.c_str();
+            model.skin_ = pair->skin_;
+
+            const auto [baseName, distance] = ParseLodDistance(model.meshName_);
+            model.baseMeshName_ = baseName;
+            model.lodDistance_ = distance;
+
             model.modelView_ = ImportModelView(sourceMesh, hierarchyAnalyzer_.GetSkinBones(pair->skin_));
-            model.model_ = model.modelView_->ExportModel();
-            model.materials_ = model.modelView_->ExportMaterialList();
-            base_.AddToResourceCache(model.model_);
-            models_.push_back(model);
         }
+    }
+
+    void CombineLODs()
+    {
+        for (ImportedModel& importedModel : models_)
+        {
+            if (!importedModel.lodDistance_ || importedModel.alreadyProcessedAsLOD_)
+                continue;
+
+            const auto lods = FindLods(importedModel);
+            URHO3D_ASSERT(!lods.empty());
+
+            auto finalModelView = lods[0]->modelView_;
+            auto& finalGeometries = finalModelView->GetGeometries();
+
+            // Set LOD distance for the first LOD
+            for (GeometryView& geometryView : finalGeometries)
+            {
+                if (geometryView.lods_.empty())
+                    continue;
+
+                if (geometryView.lods_.size() > 1)
+                    geometryView.lods_.resize(1);
+                geometryView.lods_[0].lodDistance_ = *lods[0]->lodDistance_;
+            }
+
+            // Append other LODs
+            // TODO: Handle materials more gracefully
+            for (unsigned lodIndex = 1; lodIndex < lods.size(); ++lodIndex)
+            {
+                const auto& otherModelView = lods[lodIndex]->modelView_;
+                const auto& otherGeometries = otherModelView->GetGeometries();
+                const float lodDistance = *lods[lodIndex]->lodDistance_;
+
+                const unsigned numOtherGeometries = otherGeometries.size();
+                if (numOtherGeometries > finalGeometries.size())
+                    finalGeometries.resize(numOtherGeometries);
+
+                for (size_t geometryIndex = 0; geometryIndex < numOtherGeometries; ++geometryIndex)
+                {
+                    const auto& otherGeometryView = otherGeometries[geometryIndex];
+                    auto& geometryView = finalGeometries[geometryIndex];
+
+                    geometryView.lods_.push_back(otherGeometryView.lods_[0]);
+                    geometryView.lods_.back().lodDistance_ = lodDistance;
+                }
+            }
+
+            for (ImportedModel* otherImportedModel : lods)
+            {
+                otherImportedModel->modelView_ = finalModelView;
+                otherImportedModel->alreadyProcessedAsLOD_ = true;
+            }
+        }
+    }
+
+    void CookModels()
+    {
+        ea::unordered_map<SharedPtr<ModelView>, SharedPtr<Model>> viewToModel;
+        for (ImportedModel& importedModel : models_)
+        {
+            importedModel.materials_ = importedModel.modelView_->ExportMaterialList();
+
+            SharedPtr<Model>& model = viewToModel[importedModel.modelView_];
+            if (!model)
+            {
+                const ea::string modelName =
+                    base_.GetResourceName(importedModel.baseMeshName_, "Models/", "Model", ".mdl");
+                importedModel.modelView_->SetName(modelName);
+
+                model = importedModel.modelView_->ExportModel();
+                base_.AddToResourceCache(model);
+                modelsToSave_.push_back(model);
+            }
+
+            importedModel.model_ = model;
+        }
+    }
+
+    ea::vector<ImportedModel*> FindLods(const ImportedModel& importedModel)
+    {
+        ea::map<float, ImportedModel*> lods;
+        for (ImportedModel& otherModel : models_)
+        {
+            if (otherModel.baseMeshName_ == importedModel.baseMeshName_ && otherModel.lodDistance_
+                && otherModel.skin_ == importedModel.skin_)
+            {
+                if (lods.contains(*otherModel.lodDistance_))
+                {
+                    URHO3D_LOGERROR("Multiple LODs with the same distance {} for model {}", *otherModel.lodDistance_,
+                        otherModel.meshName_);
+                    continue;
+                }
+
+                lods.emplace(*otherModel.lodDistance_, &otherModel);
+            }
+        }
+
+        ea::vector<ImportedModel*> result;
+        const auto takeSecond = [](const auto& pair) { return pair.second; };
+        ea::transform(lods.begin(), lods.end(), ea::back_inserter(result), takeSecond);
+        return result;
+    }
+
+    static ea::pair<ea::string, ea::optional<float>> ParseLodDistance(const ea::string& name)
+    {
+        static const std::regex r{R"(^(.*)_LOD(\d+(\.\d+)?)$)"};
+        std::cmatch match;
+        if (std::regex_match(name.c_str(), match, r))
+        {
+            const ea::string baseName{match[1].first, match[1].second};
+            const float distance = ToFloat(ea::string{match[2].first, match[2].second});
+            return {baseName, distance};
+        }
+        return {name, ea::nullopt};
     }
 
     const ImportedModel& GetImportedModel(int meshIndex, int skinIndex) const
@@ -2549,10 +2670,7 @@ private:
 
     SharedPtr<ModelView> ImportModelView(const tg::Mesh& sourceMesh, const ea::vector<BoneView>& bones)
     {
-        const ea::string modelName = base_.GetResourceName(sourceMesh.name.c_str(), "Models/", "Model", ".mdl");
-
         auto modelView = MakeShared<ModelView>(base_.GetContext());
-        modelView->SetName(modelName);
         modelView->SetBones(bones);
 
         const unsigned numMorphWeights = sourceMesh.weights.size();
@@ -2725,7 +2843,7 @@ private:
 
                 const auto colors = bufferReader_.ReadAccessorChecked<Vector3>(accessor);
                 for (unsigned i = 0; i < accessor.count; ++i)
-                    vertices[i].color_[semanticsIndex] = { colors[i], 1.0f };
+                    vertices[i].color_[semanticsIndex] = {colors[i], 1.0f};
             }
             else if (accessor.type == TINYGLTF_TYPE_VEC4)
             {
@@ -2805,6 +2923,7 @@ private:
     GLTFMaterialImporter& materialImporter_;
 
     ea::vector<ImportedModel> models_;
+    ea::vector<SharedPtr<Model>> modelsToSave_;
 };
 
 /// Utility to import animations.
@@ -3107,7 +3226,7 @@ public:
     void SaveResources()
     {
         for (const ImportedScene& scene : scenes_)
-            base_.SaveResource(scene.scene_);
+            base_.SaveResource(scene.prefab_);
     }
 
 private:
@@ -3115,6 +3234,7 @@ private:
     {
         unsigned index_{};
         SharedPtr<Scene> scene_;
+        SharedPtr<PrefabResource> prefab_;
         ea::unordered_map<Node*, unsigned> nodeToIndex_;
         ea::unordered_map<unsigned, Node*> indexToNode_;
     };
@@ -3129,31 +3249,34 @@ private:
             ImportedScene& scene = scenes_[sceneIndex];
             scene.index_ = sceneIndex;
             scene.scene_ = MakeShared<Scene>(base_.GetContext());
-            ImportScene(scene);
+
+            const ea::string sceneName = numScenes == 1 ? "Prefab" : sourceScene.name.c_str();
+            const ea::string sceneFolder = numScenes == 1 ? "" : "Prefabs/";
+            ImportScene(scene, sceneName, sceneFolder);
         }
     }
 
-    void ImportScene(ImportedScene& importedScene)
+    void ImportScene(ImportedScene& importedScene, const ea::string& sceneName, const ea::string& prefix)
     {
+        const GLTFImporterSettings& settings = base_.GetSettings();
         const tg::Scene& sourceScene = model_.scenes[importedScene.index_];
         auto scene = importedScene.scene_;
 
-        const ea::string sceneName = base_.GetResourceName(sourceScene.name.c_str(), "", "Scene", ".xml");
-        scene->SetFileName(base_.GetAbsoluteFileName(sceneName));
+        const ea::string prefabName = base_.GetResourceName(sceneName, prefix, "Prefab", ".prefab");
         scene->CreateComponent<Octree>();
 
         auto renderPipeline = scene->CreateComponent<RenderPipeline>();
-        if (base_.GetSettings().preview_.highRenderQuality_)
+        if (settings.preview_.highRenderQuality_)
         {
-            auto settings = renderPipeline->GetSettings();
-            settings.renderBufferManager_.colorSpace_ = RenderPipelineColorSpace::LinearLDR;
-            settings.sceneProcessor_.pcfKernelSize_ = 5;
-            settings.antialiasing_ = PostProcessAntialiasing::FXAA3;
-            renderPipeline->SetSettings(settings);
+            auto pipelineSettings = renderPipeline->GetSettings();
+            pipelineSettings.renderBufferManager_.colorSpace_ = RenderPipelineColorSpace::LinearLDR;
+            pipelineSettings.sceneProcessor_.pcfKernelSize_ = 5;
+            pipelineSettings.antialiasing_ = PostProcessAntialiasing::FXAA3;
+            renderPipeline->SetSettings(pipelineSettings);
         }
 
-        Node* rootNode = scene->CreateChild("Imported Scene");
-        rootNode->SetRotation(base_.GetSettings().rotation_);
+        Node* rootNode = scene->CreateChild(settings.assetName_);
+        rootNode->SetRotation(settings.rotation_);
 
         if (animationImporter_.HasSceneAnimations())
             InitializeAnimationController(*rootNode, ea::nullopt);
@@ -3167,7 +3290,27 @@ private:
                 scene->CreateChild("Disabled Node Placeholder");
         }
 
+        if (settings.cleanupRootNodes_)
+        {
+            Node* newRootNode = rootNode;
+            while (newRootNode->GetNumChildren() == 1 && newRootNode->GetNumComponents() == 0)
+                newRootNode = newRootNode->GetChild(0u);
+
+            if (newRootNode != rootNode)
+            {
+                newRootNode->SetParent(scene);
+                newRootNode->SetName(rootNode->GetName());
+                rootNode->Remove();
+            }
+        }
+
         InitializeDefaultSceneContent(importedScene);
+
+        importedScene.prefab_ = MakeShared<PrefabResource>(base_.GetContext());
+        importedScene.prefab_->GetMutableScenePrefab() = scene->GeneratePrefab();
+        importedScene.prefab_->NormalizeIds();
+        importedScene.prefab_->SetName(prefabName);
+        base_.AddToResourceCache(importedScene.prefab_);
     }
 
     void ImportNode(ImportedScene& importedScene, Node& parent, const GLTFNode& sourceNode)
@@ -3455,11 +3598,15 @@ void SerializeValue(Archive& archive, const char* name, GLTFImporterSettings& va
 {
     auto block = archive.OpenUnorderedBlock(name);
 
+    SerializeValue(archive, "assetName", value.assetName_);
+
     SerializeValue(archive, "mirrorX", value.mirrorX_);
     SerializeValue(archive, "scale", value.scale_);
     SerializeValue(archive, "rotation", value.rotation_);
 
     SerializeValue(archive, "cleanupBoneNames", value.cleanupBoneNames_);
+    SerializeValue(archive, "cleanupRootNodes", value.cleanupRootNodes_);
+    SerializeValue(archive, "combineLODs", value.combineLODs_);
     SerializeValue(archive, "repairLooping", value.repairLooping_);
 
     SerializeValue(archive, "offsetMatrixError", value.offsetMatrixError_);

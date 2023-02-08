@@ -39,6 +39,13 @@ if (NOT MINI_URHO)
     endforeach()
 endif ()
 
+# TODO: This also is done in UrhoCommon, which is a more proper place. However, we need this variable here. Also, users
+#  include UrhoCommon.cmake in their own projects, but they do not do this for UrhoOptions as options. This file is
+#  mainly intended for engine parameters/config so anything useful to the users should be moved out.
+if (EMSCRIPTEN)
+    set (WEB ON CACHE BOOL "" FORCE)
+endif ()
+
 # https://cmake.org/cmake/help/v3.18/policy/CMP0077.html
 # Note that cmake_minimum_required() + project() resets policies, so dependencies using lower CMake version would not
 # properly accept options before we add_subdirectory() them without setting this policy to NEW __in their build script__.
@@ -77,16 +84,6 @@ if ((WIN32 OR LINUX OR MACOS) AND NOT WEB AND NOT MOBILE AND NOT UWP)
     set (DESKTOP ON CACHE BOOL "" FORCE)
 endif ()
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Emscripten" AND NOT WEB)
-    # Compatibility with old toolchain.
-    set(WEB ON)
-    set(EMSCRIPTEN ON)
-    set(EMSCRIPTEN_EMCC_VERSION "${CMAKE_C_COMPILER_VERSION}")
-    set (EMRUN ${EMSCRIPTEN_ROOT_PATH}/emrun${TOOL_EXT}    CACHE PATH "emrun")
-    set (EMPACKAGER python ${EMSCRIPTEN_ROOT_PATH}/tools/file_packager.py CACHE PATH "file_packager.py")
-    set (EMBUILDER python ${EMSCRIPTEN_ROOT_PATH}/embuilder.py CACHE PATH "embuilder.py")
-endif ()
-
 # Build properties
 option(BUILD_SHARED_LIBS                        "Build engine as shared library."       ON)
 option(URHO3D_ENABLE_ALL                        "Enable (almost) all engine features."  ON)
@@ -119,6 +116,7 @@ option                (URHO3D_PHYSICS2D          "2D physics subsystem enabled" 
 option                (URHO3D_RMLUI              "HTML subset UIs via RmlUI middleware"                  ${URHO3D_ENABLE_ALL})
 option                (URHO3D_PARTICLE_GRAPH     "Particle Graph Effects"                                ${URHO3D_ENABLE_ALL})
 cmake_dependent_option(URHO3D_COMPUTE            "Enable Compute shaders"                                ${URHO3D_ENABLE_ALL} "NOT WEB;NOT MOBILE;NOT URHO3D_GLES2" OFF)
+option                (URHO3D_ACTIONS            "Tweening actions"                                      ${URHO3D_ENABLE_ALL})
 
 # Features
 set (URHO3D_CSHARP_TOOLS ${URHO3D_CSHARP})
@@ -143,6 +141,7 @@ cmake_dependent_option(URHO3D_PLUGINS            "Enable plugins"               
 cmake_dependent_option(URHO3D_THREADING          "Enable multithreading"                                 ${URHO3D_ENABLE_ALL} "NOT WEB"                       OFF)
 option                (URHO3D_WEBP               "WEBP support enabled"                                  ${URHO3D_ENABLE_ALL}                                    )
 cmake_dependent_option(URHO3D_TESTING            "Enable unit tests"                                     OFF                  "NOT WEB;NOT MOBILE;NOT UWP"    OFF)
+option                (URHO3D_PACKAGING          "Enable *.pak file creation"                            OFF                                                     )
 # Web
 cmake_dependent_option(EMSCRIPTEN_WASM           "Use wasm instead of asm.js"                            ON                   "WEB"                           OFF)
 set(EMSCRIPTEN_TOTAL_MEMORY 128 CACHE STRING  "Memory limit in megabytes. Set to 0 for dynamic growth. Must be multiple of 64KB.")

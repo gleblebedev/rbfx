@@ -139,9 +139,13 @@
 #endif
 #include "111_SplashScreen/SplashScreenDemo.h"
 #include "112_AggregatedInput/AggregatedInput.h"
+#if URHO3D_ACTIONS
+#include "113_Actions/ActionDemo.h"
+#endif
 #if URHO3D_RMLUI
 #include "114_AdvancedUI/AdvancedUI.h"
 #endif
+#include "115_RayCast/RayCastSample.h"
 #include "Rotator.h"
 
 #include "SamplesManager.h"
@@ -381,9 +385,13 @@ void SamplesManager::Start()
 #endif
     RegisterSample<SplashScreenDemo>();
     RegisterSample<AggregatedInput>();
+#if URHO3D_ACTIONS
+    RegisterSample<ActionDemo>();
+#endif	
 #if URHO3D_RMLUI
     RegisterSample<AdvancedUI>();
 #endif
+    RegisterSample<RayCastSample>();
 
     if (!commandLineArgs_.empty())
         StartSample(commandLineArgs_[0]);

@@ -49,9 +49,11 @@ enum AttributeMode
     AM_NODEIDVECTOR = 1 << 4,
     /// Attribute is readonly. Can't be used with binary serialized objects.
     AM_READONLY = 1 << 5,
+    /// Attribute should be saved in prefab.
+    AM_PREFAB = 1 << 6,
 
-    /// Default mode, same as AM_FILE.
-    AM_DEFAULT = 1 << 0,
+    /// Default mode, same as AM_FILE and AM_PREFAB.
+    AM_DEFAULT = 1 << 0 | 1 << 6,
 };
 URHO3D_FLAGSET(AttributeMode, AttributeModeFlags);
 
@@ -66,6 +68,7 @@ enum class AttributeScopeHint
     /// Attribute change may affect other attributes, components or children nodes in the owner node.
     Node,
     /// Attribute change may affect anything in the scene.
+    /// \warning It is not fully supported by the Editor yet!
     Scene,
 };
 

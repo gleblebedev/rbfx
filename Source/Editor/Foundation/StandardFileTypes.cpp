@@ -33,6 +33,7 @@
 #include <Urho3D/Resource/BinaryFile.h>
 #include <Urho3D/Resource/JSONFile.h>
 #include <Urho3D/Resource/XMLFile.h>
+#include <Urho3D/Scene/PrefabResource.h>
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/UI/Font.h>
 #include <Urho3D/Utility/AssetPipeline.h>
@@ -59,13 +60,13 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
     {
-        if (ctx.HasXMLRoot("scene"))
+        if (desc.HasExtension({".scene"}) || ctx.HasXMLRoot("scene"))
             desc.AddObjectType<Scene>();
     });
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
     {
-        if (ctx.HasXMLRoot("material"))
+        if (desc.HasExtension({".material"}) || ctx.HasXMLRoot("material"))
             desc.AddObjectType<Material>();
     });
 
@@ -111,7 +112,7 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
     {
-        if (desc.HasExtension({".AssetPipeline.json"}))
+        if (desc.HasExtension({".assetpipeline", ".AssetPipeline.json"}))
         {
             desc.AddObjectType<AssetPipeline>();
         }
@@ -122,6 +123,14 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
         if (desc.HasExtension({".sdf", ".ttf"}))
         {
             desc.AddObjectType<Font>();
+        }
+    });
+
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+    {
+        if (desc.HasExtension({".prefab"}))
+        {
+            desc.AddObjectType<PrefabResource>();
         }
     });
 }

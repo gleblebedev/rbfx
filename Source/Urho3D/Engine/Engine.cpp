@@ -88,9 +88,13 @@
 #ifdef URHO3D_COMPUTE
 #include "../Graphics/ComputeDevice.h"
 #endif
+#include "../Utility/AnimationVelocityExtractor.h"
 #include "../Utility/AssetPipeline.h"
 #include "../Utility/AssetTransformer.h"
 #include "../Utility/SceneViewerApplication.h"
+#ifdef URHO3D_ACTIONS
+#include "../Actions/ActionManager.h"
+#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -196,9 +200,14 @@ Engine::Engine(Context* context) :
     RegisterNavigationLibrary(context_);
 #endif
 
+#ifdef URHO3D_ACTIONS
+    context_->RegisterSubsystem<ActionManager>();
+#endif
+
     SceneViewerApplication::RegisterObject();
     context_->AddFactoryReflection<AssetPipeline>();
     context_->AddFactoryReflection<AssetTransformer>();
+    AnimationVelocityExtractor::RegisterObject(context_);
 
     SubscribeToEvent(E_EXITREQUESTED, URHO3D_HANDLER(Engine, HandleExitRequested));
     SubscribeToEvent(E_ENDFRAME, URHO3D_HANDLER(Engine, HandleEndFrame));
@@ -320,10 +329,12 @@ bool Engine::Initialize(const StringVariantMap& parameters)
         {
             using namespace ScreenMode;
 
-            SetParameter(EP_WINDOW_WIDTH, eventData[P_WIDTH].GetInt());
-            SetParameter(EP_WINDOW_HEIGHT, eventData[P_HEIGHT].GetInt());
+            const bool isBorderless = eventData[P_BORDERLESS].GetBool();
+
+            SetParameter(EP_WINDOW_WIDTH, isBorderless ? 0 : eventData[P_WIDTH].GetInt());
+            SetParameter(EP_WINDOW_HEIGHT, isBorderless ? 0 : eventData[P_HEIGHT].GetInt());
             SetParameter(EP_FULL_SCREEN, eventData[P_FULLSCREEN].GetBool());
-            SetParameter(EP_BORDERLESS, eventData[P_BORDERLESS].GetBool());
+            SetParameter(EP_BORDERLESS, isBorderless);
             SetParameter(EP_MONITOR, eventData[P_MONITOR].GetInt());
         });
 
@@ -1033,7 +1044,7 @@ void Engine::DefineParameters(CLI::App& commandLine, StringVariantMap& enginePar
             return false;
         engineParameters[EP_LOG_LEVEL] = logLevel;
         return true;
-    })->type_name(createOptions("string in {%s}", logLevelNames).c_str());
+    })->type_name(createOptions("string in {%s}", logLevelNames).c_str())->type_size(1);
     addOptionString("--log-file", EP_LOG_NAME, "Log output file");
     addOptionInt("-x,--width", EP_WINDOW_WIDTH, "Window width");
     addOptionInt("-y,--height", EP_WINDOW_HEIGHT, "Window height");
@@ -1055,7 +1066,7 @@ void Engine::DefineParameters(CLI::App& commandLine, StringVariantMap& enginePar
             return true;
         }
         return false;
-    })->type_name(ToString("int {%d-%d}", QUALITY_LOW, QUALITY_MAX).c_str());
+    })->type_name(ToString("int {%d-%d}", QUALITY_LOW, QUALITY_MAX).c_str())->type_size(1);
     addFlagInternal("--tq", "Texture quality", [&](CLI::results_t res) {
         unsigned value = 0;
         if (CLI::detail::lexical_cast(res[0], value) && value >= QUALITY_LOW && value <= QUALITY_MAX)
@@ -1064,14 +1075,14 @@ void Engine::DefineParameters(CLI::App& commandLine, StringVariantMap& enginePar
             return true;
         }
         return false;
-    })->type_name(ToString("int {%d-%d}", QUALITY_LOW, QUALITY_MAX).c_str());
+    })->type_name(ToString("int {%d-%d}", QUALITY_LOW, QUALITY_MAX).c_str())->type_size(1);
     addFlagInternal("--tf", "Texture filter mode", [&](CLI::results_t res) {
         unsigned mode = GetStringListIndex(ea::string(res[0].c_str()).to_upper().replaced('-', '_').c_str(), textureFilterModeNames, M_MAX_UNSIGNED);
         if (mode == M_MAX_UNSIGNED)
             return false;
         engineParameters[EP_TEXTURE_FILTER_MODE] = mode;
         return true;
-    })->type_name(createOptions("string in {%s}", textureFilterModeNames).c_str());
+    })->type_name(createOptions("string in {%s}", textureFilterModeNames).c_str())->type_size(1);
     addFlagInternal("--af", "Use anisotropic filtering", [&](CLI::results_t res) {
         int value = 0;
         if (CLI::detail::lexical_cast(res[0], value) && value >= 1)
@@ -1081,7 +1092,7 @@ void Engine::DefineParameters(CLI::App& commandLine, StringVariantMap& enginePar
             return true;
         }
         return false;
-    })->type_name("int");
+    })->type_name("int")->type_size(1);
     addFlag("--touch", EP_TOUCH_EMULATION, true, "Enable touch emulation");
     addOptionInt("--timeout", EP_TIME_OUT, "Quit application after specified time");
     addOptionString("--plugins", EP_PLUGINS, "Plugins to be loaded")->type_name("plugin1;plugin2;...");
@@ -1121,7 +1132,7 @@ void Engine::PopulateDefaultParameters()
     engineParameters_->DefineVariable(EP_APPLICATION_PREFERENCES_DIR, EMPTY_STRING);
     engineParameters_->DefineVariable(EP_AUTOLOAD_PATHS, "Autoload");
     engineParameters_->DefineVariable(EP_CONFIG_NAME, "EngineParameters.json");
-    engineParameters_->DefineVariable(EP_BORDERLESS, false).Overridable();
+    engineParameters_->DefineVariable(EP_BORDERLESS, true).Overridable();
     engineParameters_->DefineVariable(EP_DUMP_SHADERS, EMPTY_STRING);
     engineParameters_->DefineVariable(EP_ENGINE_AUTO_LOAD_SCRIPTS, false);
     engineParameters_->DefineVariable(EP_ENGINE_CLI_PARAMETERS, true);
@@ -1129,7 +1140,7 @@ void Engine::PopulateDefaultParameters()
     engineParameters_->DefineVariable(EP_FLUSH_GPU, false);
     engineParameters_->DefineVariable(EP_FORCE_GL2, false);
     engineParameters_->DefineVariable(EP_FRAME_LIMITER, true).Overridable();
-    engineParameters_->DefineVariable(EP_FULL_SCREEN, true).Overridable();
+    engineParameters_->DefineVariable(EP_FULL_SCREEN, false).Overridable();
     engineParameters_->DefineVariable(EP_GPU_DEBUG, false);
     engineParameters_->DefineVariable(EP_HEADLESS, false);
     engineParameters_->DefineVariable(EP_HIGH_DPI, true);

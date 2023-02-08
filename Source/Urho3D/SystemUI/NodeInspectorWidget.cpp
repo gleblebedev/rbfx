@@ -95,8 +95,12 @@ void NodeInspectorWidget::RenderContent()
 
     for (SerializableInspectorWidget* componentInspector : componentInspectors_)
     {
-        const auto typeInfo = componentInspector->GetObjects().front()->GetTypeInfo();
-        const IdScopeGuard guard{typeInfo->GetTypeName().c_str()};
+        Serializable* firstComponent = componentInspector->GetObjects().front();
+        if (!firstComponent)
+            continue;
+
+        const auto typeInfo = firstComponent->GetTypeInfo();
+        const IdScopeGuard guard{static_cast<void*>(firstComponent)};
 
         if (ui::Button(ICON_FA_TRASH_CAN "##RemoveComponent"))
         {

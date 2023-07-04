@@ -133,6 +133,7 @@ btVector3 btKinematicCharacterController::perpindicularComponent(const btVector3
 
 btKinematicCharacterController::btKinematicCharacterController(btPairCachingGhostObject* ghostObject, btConvexShape* convexShape, btScalar stepHeight, const btVector3& up)
 {
+    m_floor = nullptr;
 	m_ghostObject = ghostObject;
 	m_up.setValue(0.0f, 0.0f, 1.0f);
 	m_jumpAxis.setValue(0.0f, 0.0f, 1.0f);
@@ -566,6 +567,7 @@ void btKinematicCharacterController::stepDown(btCollisionWorld* collisionWorld, 
 		// we dropped a fraction of the height -> hit floor
 		btScalar fraction = (m_currentPosition.getY() - callback.m_hitPointWorld.getY()) / 2;
 
+        m_floor = callback.m_hitCollisionObject;
 		//printf("hitpoint: %g - pos %g\n", callback.m_hitPointWorld.getY(), m_currentPosition.getY());
 
 		if (bounce_fix == true)
@@ -587,7 +589,8 @@ void btKinematicCharacterController::stepDown(btCollisionWorld* collisionWorld, 
 	}
 	else
 	{
-		// we dropped the full height
+        m_floor = nullptr;
+        // we dropped the full height
 
 		full_drop = true;
 
@@ -927,7 +930,7 @@ btScalar btKinematicCharacterController::getMaxPenetrationDepth() const
 
 bool btKinematicCharacterController::onGround() const
 {
-	return (fabs(m_verticalVelocity) < SIMD_EPSILON) && (fabs(m_verticalOffset) < SIMD_EPSILON);
+    return m_floor != nullptr && (fabs(m_verticalVelocity) < SIMD_EPSILON) && (fabs(m_verticalOffset) < SIMD_EPSILON);
 }
 
 void btKinematicCharacterController::setStepHeight(btScalar h)

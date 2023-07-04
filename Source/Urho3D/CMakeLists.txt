@@ -52,7 +52,7 @@ endmacro()
 define_engine_source_files (Container Core IO Math)
 
 if (NOT MINI_URHO)
-    define_engine_source_files (Audio Engine Input Plugins RenderPipeline Resource Scene Script Shader UI Utility)
+    define_engine_source_files (Audio Engine Input PatternMatching Plugins RenderPipeline Resource Scene Script Shader UI Utility)
     define_engine_source_files (NORECURSE . Graphics)
     list (REMOVE_ITEM SOURCE_FILES BindAll.cpp)     # Utility file for BindTool.
     if (URHO3D_OPENGL)
@@ -459,6 +459,34 @@ if (URHO3D_CSHARP)
         DEPENDS Urho3DNet
     )
 
+    add_target_csharp(
+        TARGET Urho3DNet.Android
+        PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/CSharpPlatforms/Urho3DNet.Android/Urho3DNet.Android.csproj
+        OUTPUT ${NET_OUTPUT_DIRECTORY}/Urho3DNet.Android.dll
+        DEPENDS Urho3DNet
+    )
+
+    add_target_csharp(
+        TARGET Urho3DNet.Desktop
+        PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/CSharpPlatforms/Urho3DNet.Desktop/Urho3DNet.Desktop.csproj
+        OUTPUT ${NET_OUTPUT_DIRECTORY}/Urho3DNet.Desktop.dll
+        DEPENDS Urho3DNet
+    )
+
+    add_target_csharp(
+        TARGET Urho3DNet.IOS
+        PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/CSharpPlatforms/Urho3DNet.IOS/Urho3DNet.IOS.csproj
+        OUTPUT ${NET_OUTPUT_DIRECTORY}/Urho3DNet.IOS.dll
+        DEPENDS Urho3DNet
+    )
+
+    add_target_csharp(
+        TARGET Urho3DNet.UWP
+        PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/CSharpPlatforms/Urho3DNet.UWP/Urho3DNet.UWP.csproj
+        OUTPUT ${NET_OUTPUT_DIRECTORY}/Urho3DNet.UWP.dll
+        DEPENDS Urho3DNet
+    )
+
     file (GLOB_RECURSE EXTRA_NATIVE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/CSharp/Native/*.h ${CMAKE_CURRENT_SOURCE_DIR}/CSharp/Native/*.cpp)
     file (GLOB_RECURSE WRAPPER_FILES)
 
@@ -515,10 +543,22 @@ if (URHO3D_MERGE_STATIC_LIBS)
     endif ()
 endif ()
 
+if (IOS)
+set_target_properties(Urho3D PROPERTIES
+  FRAMEWORK TRUE
+  FRAMEWORK_VERSION C
+  MACOSX_FRAMEWORK_IDENTIFIER com.github.Urho3D
+  MACOSX_FRAMEWORK_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+#  PUBLIC_HEADER dynamicFramework.h
+  XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
+)
+endif ()
+
 # SDK installation
 install(TARGETS Urho3D
     EXPORT Urho3D
     LIBRARY DESTINATION ${DEST_LIBRARY_DIR_CONFIG}
+    FRAMEWORK DESTINATION ${DEST_LIBRARY_DIR_CONFIG}
     RUNTIME DESTINATION ${DEST_BIN_DIR_CONFIG}
     ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR_CONFIG}
 )

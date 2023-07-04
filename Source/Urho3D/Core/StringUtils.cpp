@@ -745,8 +745,20 @@ unsigned GetStringListIndex(const char* value, const ea::string* strings, unsign
 unsigned GetStringListIndex(const char* value, const char* const* strings, unsigned defaultIndex, bool caseSensitive)
 {
     unsigned i = 0;
-
     while (strings[i])
+    {
+        if (!Compare(value, strings[i], caseSensitive))
+            return i;
+        ++i;
+    }
+
+    return defaultIndex;
+}
+
+unsigned GetStringListIndex(const char* value, ea::span<const char*> strings, unsigned defaultIndex, bool caseSensitive)
+{
+    unsigned i = 0;
+    while (i < strings.size())
     {
         if (!Compare(value, strings[i], caseSensitive))
             return i;

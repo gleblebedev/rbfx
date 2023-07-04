@@ -372,6 +372,7 @@ namespace SDL
 %include "Urho3D/Engine/Application.h"
 %include "Urho3D/Engine/StateManager.h"
 %include "Urho3D/Plugins/PluginApplication.h"
+%include "Urho3D/Engine/ConfigFile.h"
 %include "generated/Urho3D/_pre_script.i"
 #if URHO3D_CSHARP
 %include "Urho3D/Script/Script.h"
@@ -394,7 +395,6 @@ namespace SDL
 
 %include "generated/Urho3D/_pre_input.i"
 %include "Urho3D/Input/InputConstants.h"
-%include "Urho3D/Input/Controls.h"
 %include "Urho3D/Input/Input.h"
 %include "Urho3D/Input/MultitouchAdapter.h"
 %include "Urho3D/Input/AxisAdapter.h"
@@ -541,6 +541,18 @@ public:
 
 // --------------------------------------- Extra components ---------------------------------------
 %include "Urho3D/Input/FreeFlyController.h"
+%include "Urho3D/Input/MoveAndOrbitComponent.h"
+%include "Urho3D/Input/MoveAndOrbitController.h"
+%include "Urho3D/Input/InputMap.h"
+
+// --------------------------------------- Pattern matching --------------
+%ignore Urho3D::PatternIndex::Build(const PatternCollection** begin, const PatternCollection** end);
+%include "Urho3D/PatternMatching/PatternCollection.h"
+%include "Urho3D/PatternMatching/PatternDatabase.h"
+%include "Urho3D/PatternMatching/PatternIndex.h"
+%include "Urho3D/PatternMatching/PatternQuery.h"
+%include "Urho3D/PatternMatching/CharacterConfiguration.h"
+%include "Urho3D/PatternMatching/CharacterConfigurator.h"
 
 // --------------------------------------- Audio ---------------------------------------
 %ignore Urho3D::BufferedSoundStream::AddData(const ea::shared_array<signed char>& data, unsigned numBytes);
@@ -571,15 +583,11 @@ public:
 %include "Urho3D/Actions/ActionInstantState.h"
 %include "Urho3D/Actions/AttributeAction.h"
 %include "Urho3D/Actions/AttributeActionState.h"
-%include "Urho3D/Actions/Attribute.h"
 %include "Urho3D/Actions/CallFunc.h"
-%include "Urho3D/Actions/Move.h"
-%include "Urho3D/Actions/Ease.h"
+%include "Urho3D/Actions/Actions.h"
 %include "Urho3D/Actions/Parallel.h"
 %include "Urho3D/Actions/Sequence.h"
-%include "Urho3D/Actions/Misc.h"
 %include "Urho3D/Actions/Repeat.h"
-%include "Urho3D/Actions/ShaderParameter.h"
 
 // --------------------------------------- IK ---------------------------------------
 #if defined(URHO3D_IK)
@@ -707,6 +715,7 @@ public:
 %include "Urho3D/Graphics/ConstantBuffer.h"
 %include "Urho3D/Graphics/ShaderVariation.h"
 %include "Urho3D/Graphics/ShaderPrecache.h"
+%include "Urho3D/Graphics/DecalProjection.h"
 #if defined(URHO3D_COMPUTE)
 %include "Urho3D/Graphics/ComputeDevice.h"
 %include "Urho3D/Graphics/ComputeBuffer.h"
@@ -762,7 +771,7 @@ public:
 }
 %ignore Urho3D::CrowdManager::SetVelocityShader;
 %ignore Urho3D::NavBuildData::navAreas_;
-%ignore Urho3D::NavigationMesh::FindPath;
+// %ignore Urho3D::NavigationMesh::FindPath;
 %include "generated/Urho3D/_pre_navigation.i"
 %include "Urho3D/Navigation/CrowdAgent.h"
 %include "Urho3D/Navigation/CrowdManager.h"
@@ -828,6 +837,8 @@ public:
 %include "Urho3D/Replica/ServerReplicator.h"
 %include "Urho3D/Replica/TickSynchronizer.h"
 %include "Urho3D/Replica/TrackedAnimatedModel.h"
+
+
 #endif
 
 //// --------------------------------------- Physics ---------------------------------------
@@ -867,6 +878,7 @@ public:
 %include "Urho3D/Physics/RaycastVehicle.h"
 %include "Urho3D/Physics/RigidBody.h"
 %include "Urho3D/Physics/KinematicCharacterController.h"
+%include "Urho3D/Physics/TriggerAnimator.h"
 %template(PhysicsRaycastResultVector)   eastl::vector<Urho3D::PhysicsRaycastResult>;
 %template(RigidBodyVector)              eastl::vector<Urho3D::RigidBody*>;
 #endif
@@ -895,6 +907,7 @@ using ImGuiConfigFlags = unsigned;
 %include "Urho3D/SystemUI/DebugHud.h"
 %include "Urho3D/SystemUI/SystemMessageBox.h"
 %include "Urho3D/SystemUI/SystemUI.h"
+%rename(LoadXMLWithStyle) Urho3D::UIElement::LoadXML(const XMLElement& source, XMLFile* styleFile);
 #endif
 // --------------------------------------- UI ---------------------------------------
 %ignore Urho3D::UIElement::GetBatches;
@@ -936,6 +949,13 @@ using ImGuiConfigFlags = unsigned;
 
 // --------------------------------------- RmlUI ---------------------------------------
 #if URHO3D_RMLUI
+%ignore Urho3D::RmlUI::TryConvertVariant;
+%ignore Urho3D::RmlUIComponent::BindDataModelProperty;
+%ignore Urho3D::RmlUIComponent::BindDataModelEvent;
+
+// SWIG applies `override new` modifier by mistake.
+%csmethodmodifiers Urho3D::RmlUIComponent::OnNodeSet "protected override";
+
 %include "Urho3D/RmlUI/RmlSystem.h"
 %include "Urho3D/RmlUI/RmlUI.h"
 %include "Urho3D/RmlUI/RmlUIComponent.h"

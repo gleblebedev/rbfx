@@ -42,9 +42,7 @@
 #include "../Graphics/GraphicsEvents.h"
 #include "../Graphics/Renderer.h"
 #include "../Input/Input.h"
-#include "../Input/FreeFlyController.h"
 #include "../Input/DirectionalPadAdapter.h"
-#include "../Input/PointerAdapter.h"
 #include "../IO/FileSystem.h"
 #include "../IO/VirtualFileSystem.h"
 #include "../IO/MountedDirectory.h"
@@ -126,6 +124,7 @@ typedef struct _CrtMemBlockHeader
 
 namespace Urho3D
 {
+void RegisterPatternMatchingLibrary(Context* context);
 
 extern const char* logLevelNames[];
 
@@ -202,6 +201,8 @@ Engine::Engine(Context* context) :
     RegisterNavigationLibrary(context_);
 #endif
 
+    RegisterPatternMatchingLibrary(context_);
+
 #ifdef URHO3D_ACTIONS
     context_->RegisterSubsystem<ActionManager>();
 #endif
@@ -261,10 +262,7 @@ bool Engine::Initialize(const StringVariantMap& parameters)
 
     // Register the rest of the subsystems
     context_->RegisterSubsystem(new Input(context_));
-    context_->AddFactoryReflection<FreeFlyController>();
-    context_->AddFactoryReflection<PointerAdapter>();
-    context_->AddFactoryReflection<DirectionAggregator>();
-    context_->AddFactoryReflection<DirectionalPadAdapter>();
+    RegisterInputLibrary(context_);
 
     context_->RegisterSubsystem(new UI(context_));
 
@@ -285,6 +283,10 @@ bool Engine::Initialize(const StringVariantMap& parameters)
     context_->RegisterSubsystem(new StateManager(context_));
 #ifdef URHO3D_PARTICLE_GRAPH
     context_->RegisterSubsystem(new ParticleGraphSystem(context_));
+#endif
+
+#ifdef URHO3D_ACTIONS
+    context_->RegisterSubsystem(new ActionManager(context_, true));
 #endif
 
 #ifdef URHO3D_URHO2D

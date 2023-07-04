@@ -33,9 +33,9 @@ if(WINDOWS_STORE)
 endif()
 
 # Build in parallel under Visual Studio. Not enabled by default.
-if(MSVC)
+if(MSVC AND (NOT "${CMAKE_CXX_COMPILER_LAUNCHER}" STREQUAL "ccache"))
   target_compile_options(sdl-build-options INTERFACE "/MP")
-endif(MSVC)
+endif()
 
 # CMake 3.0 expands the "if(${A})" in "set(OFF 1);set(A OFF);if(${A})" to "if(1)"
 # CMake 3.24+ emits a warning when not set.

@@ -26,6 +26,8 @@
 %ignore Urho3D::EP_FULL_SCREEN;
 %constant const char* EpGpuDebug = "GPUDebug";
 %ignore Urho3D::EP_GPU_DEBUG;
+%constant const char* EpOpenxr = "OpenXR";
+%ignore Urho3D::EP_OPENXR;
 %constant const char* EpHeadless = "Headless";
 %ignore Urho3D::EP_HEADLESS;
 %constant const char* EpHighDpi = "HighDPI";
@@ -118,6 +120,8 @@
 %ignore Urho3D::EP_WINDOW_WIDTH;
 %constant const char* EpWorkerThreads = "WorkerThreads";
 %ignore Urho3D::EP_WORKER_THREADS;
+%constant const char* EpConfigDir = "ConfigurationDir";
+%ignore Urho3D::EP_CONFIG_DIR;
 %constant const char* ParamScenename = "SceneName";
 %ignore Urho3D::Param_SceneName;
 %constant const char* ParamSceneposition = "ScenePosition";

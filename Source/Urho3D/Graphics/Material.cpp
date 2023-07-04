@@ -194,7 +194,7 @@ bool Material::BeginLoad(Deserializer& source)
 {
     // In headless mode, do not actually load the material, just return success
     auto* graphics = GetSubsystem<Graphics>();
-    if (!graphics)
+    if (!context_->IsUnitTest() && !graphics)
         return true;
 
     const InternalResourceFormat format = PeekResourceFormat(source);
@@ -220,7 +220,7 @@ bool Material::EndLoad()
 {
     // In headless mode, do not actually load the material, just return success
     auto* graphics = GetSubsystem<Graphics>();
-    if (!graphics)
+    if (!context_->IsUnitTest() && !graphics)
         return true;
 
     bool success = false;
@@ -1294,8 +1294,16 @@ void Material::ResetToDefaults()
 
     SetNumTechniques(1);
     auto* renderer = GetSubsystem<Renderer>();
-    SetTechnique(0, renderer ? renderer->GetDefaultTechnique() :
-        GetSubsystem<ResourceCache>()->GetResource<Technique>("Techniques/NoTexture.xml"));
+    auto* resourceCache = GetSubsystem<ResourceCache>();
+    Technique* technique;
+    if (renderer)
+        technique = renderer->GetDefaultTechnique();
+    else if (resourceCache)
+        technique = resourceCache->GetResource<Technique>("Techniques/NoTexture.xml");
+    else
+        technique = nullptr;
+        
+    SetTechnique(0, technique);
 
     textures_.clear();
     RefreshTextureEventSubscriptions();

@@ -46,6 +46,7 @@ URHO3D_GLOBAL_CONSTANT(ConstString EP_FORCE_GL2{"ForceGL2"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_FRAME_LIMITER{"FrameLimiter"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_FULL_SCREEN{"FullScreen"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_GPU_DEBUG{"GPUDebug"});
+URHO3D_GLOBAL_CONSTANT(ConstString EP_OPENXR{"OpenXR"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_HEADLESS{"Headless"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_HIGH_DPI{"HighDPI"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_LOG_LEVEL{"LogLevel"});
@@ -92,6 +93,7 @@ URHO3D_GLOBAL_CONSTANT(ConstString EP_WINDOW_RESIZABLE{"WindowResizable"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_WINDOW_TITLE{"WindowTitle"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_WINDOW_WIDTH{"WindowWidth"});
 URHO3D_GLOBAL_CONSTANT(ConstString EP_WORKER_THREADS{"WorkerThreads"});
+URHO3D_GLOBAL_CONSTANT(ConstString EP_CONFIG_DIR{"ConfigurationDir"});
 /// @}
 
 /// Global parameters for user code which go as Engine parameters as convenience.

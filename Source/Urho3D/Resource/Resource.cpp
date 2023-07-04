@@ -37,6 +37,7 @@
 #include "Urho3D/IO/MemoryBuffer.h"
 
 #include <EASTL/finally.h>
+#include <catch2/catch2/catch_amalgamated.hpp>
 
 namespace Urho3D
 {
@@ -398,6 +399,38 @@ void ResourceWithMetadata::CopyMetadata(const ResourceWithMetadata& source)
 {
     metadata_ = source.metadata_;
     metadataKeys_ = source.metadataKeys_;
+}
+
+void ResourceWithMetadata::SerializeInArrayBlock(Archive& archive, const char* blockName)
+{
+    if (archive.IsInput())
+    {
+        RemoveAllMetadata();
+        if (!archive.HasElementOrBlock(blockName))
+        {
+            return;
+        }
+        auto block = archive.OpenArrayBlock(blockName, metadataKeys_.size());
+        for (unsigned i = 0; i < block.GetSizeHint(); ++i)
+        {
+            auto elementBlock = archive.OpenUnorderedBlock("metadata");
+            ea::string key;
+            Variant value;
+            SerializeValue(archive, "name", key);
+            SerializeVariantInBlock(archive, value);
+            AddMetadata(key, value);
+        }
+    }
+    else
+    {
+        auto block = archive.OpenArrayBlock(blockName, metadataKeys_.size());
+        for (const auto& key : metadataKeys_)
+        {
+            auto elementBlock = archive.OpenUnorderedBlock("metadata");
+            SerializeValue(archive, "name", const_cast<ea::string&>(key));
+            SerializeVariantInBlock(archive, const_cast<Variant&>(GetMetadata(key)));
+        }
+    }
 }
 
 }

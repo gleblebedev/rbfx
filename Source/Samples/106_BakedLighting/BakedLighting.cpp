@@ -21,21 +21,15 @@
 //
 
 #include <Urho3D/Core/CoreEvents.h>
-#include <Urho3D/Core/ProcessUtils.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Graphics/AnimatedModel.h>
 #include <Urho3D/Graphics/Animation.h>
 #include <Urho3D/Graphics/AnimationController.h>
 #include <Urho3D/Graphics/Camera.h>
-#include <Urho3D/Graphics/DebugRenderer.h>
-#include <Urho3D/Graphics/Light.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
-#include <Urho3D/Graphics/Zone.h>
-#include <Urho3D/Input/Controls.h>
 #include <Urho3D/Input/Input.h>
-#include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/Navigation/CrowdAgent.h>
 #include <Urho3D/Navigation/CrowdManager.h>
 #include <Urho3D/Navigation/NavigationMesh.h>
@@ -94,7 +88,7 @@ void BakedLighting::CreateScene()
     agent_->SetUpdateNodePosition(false);
 
     auto animController = agent_->GetNode()->GetComponent<AnimationController>(true);
-    animController->PlayNewExclusive(AnimationParameters{context_, "Models/Mutant/Mutant_Idle0.ani"}.Looped());
+    animController->PlayNewExclusive(AnimationParameters{context_, "Models/Mutant/Mutant_Idle.ani"}.Looped());
 
     auto crowdManager = scene_->GetComponent<CrowdManager>();
     CrowdObstacleAvoidanceParams params = crowdManager->GetObstacleAvoidanceParams(0);
@@ -171,7 +165,7 @@ void BakedLighting::Update(float timeStep)
 
     // Animate model
     auto* runAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Run.ani");
-    auto* idleAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Idle0.ani");
+    auto* idleAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Idle.ani");
 
     auto animController = agent_->GetNode()->GetComponent<AnimationController>(true);
     auto rotationNode = animController->GetNode()->GetParent();

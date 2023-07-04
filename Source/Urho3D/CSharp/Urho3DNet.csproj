@@ -1,17 +1,48 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>Urho3DNet</AssemblyName>
     <OutputType>Library</OutputType>
     <LangVersion>9.0</LangVersion>
+    <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>
   </PropertyGroup>
   <PropertyGroup>
     <GeneratedCodePath>$(RBFX_BINARY_DIR)Source/Urho3D/</GeneratedCodePath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net7.0;net7.0-android</TargetFrameworks>
+    <RuntimeIdentifier>$(URHO3D_NETFX_RUNTIME_IDENTIFIER)</RuntimeIdentifier>
+    <OutDir>$(BaseOutputPath)$(TargetFramework)</OutDir>
+    <OutputPath>$(BaseOutputPath)$(TargetFramework)</OutputPath>
+    <GeneratedMSBuildEditorConfigFile>$(OutputPath)\$(MSBuildProjectName).GeneratedMSBuildEditorConfig.editorconfig</GeneratedMSBuildEditorConfigFile>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net7.0-ios' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION;IOS</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net7.0-android' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION;ANDROID</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <TargetFrameworkVersion>v9.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net7.0' ">
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <BindingsSourceCodeUrho3D Include="$(GeneratedCodePath)Urho3DCSharp/*.cs" />
     <BindingsSourceCodeImGui Include="$(GeneratedCodePath)ImGuiCSharp/*.cs" />
     <Compile Include="Managed/**/*.cs" />
     <Compile Include="$(RBFX_BINARY_DIR)Source/Urho3D/Urho3DCSharp/Managed/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="bin\**" />
+    <EmbeddedResource Remove="obj\**" />
+    <None Remove="bin\**" />
+    <None Remove="obj\**" />
   </ItemGroup>
   <Target Name="GatherBuildFilesUrho3D" BeforeTargets="BeforeCompile">
     <CreateItem Include="$([System.IO.Directory]::GetFiles(&quot;$(GeneratedCodePath)Urho3DCSharp&quot;, &quot;*.cs&quot;))">

@@ -76,7 +76,9 @@ elseif ((CMAKE_CROSSCOMPILING OR UWP) AND (URHO3D_PACKAGING OR URHO3D_CSHARP))
 	set (CMAKE_GENERATOR_PLATFORM "${_CMAKE_GENERATOR_PLATFORM}")
 	unset (_CMAKE_GENERATOR_PLATFORM)
     set (PACKAGE_TOOL    "${URHO3D_NATIVE_PREFIX}/${DEST_BIN_DIR_CONFIG}/PackageTool" CACHE STRING "" FORCE)
-    set (SWIG_EXECUTABLE "${URHO3D_NATIVE_PREFIX}/${DEST_BIN_DIR_CONFIG}/swig"        CACHE STRING "" FORCE)
+    if (NOT DEFINED SWIG_EXECUTABLE)
+        set (SWIG_EXECUTABLE "${URHO3D_NATIVE_PREFIX}/${DEST_BIN_DIR_CONFIG}/swig"        CACHE STRING "" FORCE)
+    endif ()
 else ()
     set (PACKAGE_TOOL    "$<TARGET_FILE:PackageTool>"                                 CACHE STRING "" FORCE)
     set (SWIG_EXECUTABLE "$<TARGET_FILE:swig>"                                        CACHE STRING "" FORCE)
@@ -96,33 +98,33 @@ if (URHO3D_EDITOR)
     add_subdirectory (Editor)
 endif ()
 
-if (NOT MINI_URHO)
-    if (URHO3D_CSHARP AND NOT CMAKE_VS_MSBUILD_COMMAND)
-        # Generate a VS solution for C# projects when outside of visual studio.
-        vs_generate_sln(${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.sln ${RBFX_CSPROJ_LIST})
+# if (NOT MINI_URHO)
+#     if (URHO3D_CSHARP AND NOT CMAKE_VS_MSBUILD_COMMAND)
+#         # Generate a VS solution for C# projects when outside of visual studio.
+#         vs_generate_sln(${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.sln ${RBFX_CSPROJ_LIST})
 
-        if (LINUX)
-            # On linux instance of dotnet may hang indefinitely which prevents CMake from detecting build completion and hangs the build.
-            set (DOTNET_LINUX_MSBUILD_WORKAROUND COMMAND ${rbfx_SOURCE_DIR}/script/.kill_dangling_dotnet.sh ${DOTNET})
-        elseif (MACOS)
-            # On MacOS Xcode pollutes environment which causes MSBuild to compile all managed targets into Urho3DNet assembly and compilation fails because file contents is not what next build step expects.
-            set (DOTNET_MACOS_MSBUILD_WORKAROUND env -u TARGET_NAME -u TARGETNAME)
-        endif ()
-        add_custom_target(BuildManagedTargets ALL
-            COMMAND ${DOTNET_MACOS_MSBUILD_WORKAROUND} ${DOTNET} build ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.sln
-                -restore -noLogo -interactive:false -nr:false -p:CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}/
-                -consoleLoggerParameters:ErrorsOnly -p:Platform=${URHO3D_PLATFORM} -p:Configuration=${URHO3D_CONFIG}
-                ${DOTNET_LINUX_MSBUILD_WORKAROUND}
-            DEPENDS Urho3D)
-        foreach (TARGET libEditor libPlayer)
-            if (TARGET ${TARGET})
-                add_dependencies(BuildManagedTargets ${TARGET})
-            endif ()
-        endforeach ()
-    endif ()
-    install(FILES
-        ${rbfx_SOURCE_DIR}/script/rbfx.natvis
-        ${rbfx_SOURCE_DIR}/script/rbfx.vscode.unix.natvis
-        DESTINATION ${DEST_SHARE_DIR})
-    install(EXPORT Urho3D DESTINATION ${DEST_SHARE_DIR}/CMake)
-endif ()
+#         if (LINUX)
+#             # On linux instance of dotnet may hang indefinitely which prevents CMake from detecting build completion and hangs the build.
+#             set (DOTNET_LINUX_MSBUILD_WORKAROUND COMMAND ${rbfx_SOURCE_DIR}/script/.kill_dangling_dotnet.sh ${DOTNET})
+#         elseif (MACOS)
+#             # On MacOS Xcode pollutes environment which causes MSBuild to compile all managed targets into Urho3DNet assembly and compilation fails because file contents is not what next build step expects.
+#             set (DOTNET_MACOS_MSBUILD_WORKAROUND env -u TARGET_NAME -u TARGETNAME)
+#         endif ()
+#        add_custom_target(BuildManagedTargets ALL
+#             COMMAND ${DOTNET_MACOS_MSBUILD_WORKAROUND} ${DOTNET} build ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.sln
+#                 -restore -noLogo -interactive:false -nr:false -p:CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}/
+#                 -consoleLoggerParameters:ErrorsOnly -p:Platform=${URHO3D_PLATFORM} -p:Configuration=${URHO3D_CONFIG}
+#                 ${DOTNET_LINUX_MSBUILD_WORKAROUND}
+#             DEPENDS Urho3D)
+#         foreach (TARGET libEditor libPlayer)
+#             if (TARGET ${TARGET})
+#                add_dependencies(BuildManagedTargets ${TARGET})
+#             endif ()
+#         endforeach ()
+#     endif ()
+#     install(FILES
+#         ${rbfx_SOURCE_DIR}/script/rbfx.natvis
+#         ${rbfx_SOURCE_DIR}/script/rbfx.vscode.unix.natvis
+#         DESTINATION ${DEST_SHARE_DIR})
+#     install(EXPORT Urho3D DESTINATION ${DEST_SHARE_DIR}/CMake)
+# endif ()

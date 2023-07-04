@@ -28,6 +28,7 @@
 
 #include "SDL_stdinc.h"
 #include "SDL_vacopy.h"
+#include <stdint.h>
 
 #if !defined(HAVE_VSSCANF) || !defined(HAVE_STRTOL) || !defined(HAVE_STRTOUL) || !defined(HAVE_STRTOD) || !defined(HAVE_STRTOLL) || !defined(HAVE_STRTOULL)
 #define SDL_isupperhex(X)   (((X) >= 'A') && ((X) <= 'F'))

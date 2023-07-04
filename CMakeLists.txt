@@ -38,6 +38,7 @@ if (APPLE)
     enable_language(OBJCXX)
 endif ()
 
+
 # Set CMake modules search path
 set (CMAKE_MODULE_PATH ${rbfx_SOURCE_DIR}/CMake/Modules)
 
@@ -47,6 +48,18 @@ include(UrhoCommon)
 # Enable testing
 if (URHO3D_TESTING)
     include (CTest)
+endif ()
+
+# Override SWIG_EXECUTABLE for mobile
+if (URHO3D_CSHARP_TOOLS AND NOT DESKTOP)
+   if(CMAKE_HOST_SYSTEM MATCHES "^Linux")
+       set (SWIG_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/../tools/linux/swig")
+   elseif (CMAKE_HOST_SYSTEM MATCHES "^Windows")
+       set (SWIG_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/../tools/win/swig.exe")
+   elseif (CMAKE_HOST_SYSTEM MATCHES "^Darwin")
+       set (SWIG_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/../tools/mac/swig")
+   endif ()
+   message(STATUS "SWIG_EXECUTABLE set to ${SWIG_EXECUTABLE}")
 endif ()
 
 # Set compiler variable
@@ -311,6 +324,11 @@ if (BUILD_SHARED_LIBS OR WEB)
 endif ()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+if (MSVC AND (DEFINED ENV{CCACHE_DIR} AND NOT ENV{CCACHE_DIR} STREQUAL ""))
+    ucm_replace_flag("/Z[iI]" "/Z7" REGEX CONFIG Debug RelWithDebInfo)
+    ucm_replace_flag("/FI"    "" REGEX)
+endif ()
+
 if (URHO3D_SSE AND NOT MSVC)
     # Build engine and it's dependencies with SSE/SSE2 enabled.
     ucm_add_flags(-msse -msse2)
@@ -366,6 +384,7 @@ message(STATUS "  SPIR-V Cross    ${URHO3D_SHADER_TRANSLATOR}")
 message(STATUS "  SPIR-V Optimize ${URHO3D_SHADER_OPTIMIZER}")
 message(STATUS "  Threading       ${URHO3D_THREADING}")
 message(STATUS "  WebP            ${URHO3D_WEBP}")
+message(STATUS "  OpenXR          ${URHO3D_OPENXR}")
 if (URHO3D_CSHARP)
     message(STATUS "    Targeting:    ${URHO3D_NETFX}")
     message(STATUS "    Runtime:      ${URHO3D_NETFX_RUNTIME} (${URHO3D_NETFX_RUNTIME_IDENTIFIER})")

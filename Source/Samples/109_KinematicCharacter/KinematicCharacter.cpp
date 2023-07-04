@@ -1,5 +1,6 @@
 //
 // Copyright (c) 2008-2020 the Urho3D project.
+// Copyright (c) 2023-2023 the rbfx project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,13 +32,12 @@
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Math/Ray.h>
-#include <Urho3D/IO/Log.h>
 #include <Urho3D/DebugNew.h>
 
 #include "KinematicCharacter.h"
 
 KinematicCharacter::KinematicCharacter(Context* context) :
-    LogicComponent(context),
+    BaseClassName(context),
     onGround_(false),
     okToJump_(true),
     inAirTimer_(0.0f),
@@ -55,8 +55,10 @@ void KinematicCharacter::RegisterObject(Context* context)
 
     // These macros register the class attributes to the Context for automatic load / save handling.
     // We specify the Default attribute mode which means it will be used both for saving into file, and network replication
-    URHO3D_ATTRIBUTE("Controls Yaw", float, controls_.yaw_, 0.0f, AM_DEFAULT);
-    URHO3D_ATTRIBUTE("Controls Pitch", float, controls_.pitch_, 0.0f, AM_DEFAULT);
+    URHO3D_ACCESSOR_ATTRIBUTE("Controls Yaw", GetYaw, SetYaw, float, 0.0f, AM_DEFAULT);
+    URHO3D_ACCESSOR_ATTRIBUTE("Controls Pitch", GetPitch, SetPitch, float, 0.0f, AM_DEFAULT);
+    URHO3D_MIXED_ACCESSOR_ATTRIBUTE(
+        "Input Map", GetInputMapAttr, SetInputMapAttr, ResourceRef, ResourceRef(InputMap::GetTypeStatic()), AM_DEFAULT);
     URHO3D_ATTRIBUTE("On Ground", bool, onGround_, false, AM_DEFAULT);
     URHO3D_ATTRIBUTE("OK To Jump", bool, okToJump_, true, AM_DEFAULT);
     URHO3D_ATTRIBUTE("In Air Timer", float, inAirTimer_, 0.0f, AM_DEFAULT);
@@ -65,6 +67,7 @@ void KinematicCharacter::RegisterObject(Context* context)
 void KinematicCharacter::DelayedStart()
 {
     collisionShape_ = node_->GetComponent<CollisionShape>(true);
+    characterConfigurator_ = node_->GetComponent<CharacterConfigurator>(true);
     animController_ = node_->GetComponent<AnimationController>(true);
     kinematicController_ = node_->GetComponent<KinematicCharacterController>(true);
 }
@@ -76,10 +79,7 @@ void KinematicCharacter::Start()
 
 void KinematicCharacter::FixedUpdate(float timeStep)
 {
-    auto* cache = GetSubsystem<ResourceCache>();
-    auto* runAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Run.ani");
-    auto* idleAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Idle0.ani");
-    auto* jumpAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Jump1.ani");
+    auto* characterConf = node_->GetComponent<CharacterConfigurator>();
 
     // Update the in air timer. Reset if grounded
     if (!onGround_)
@@ -91,18 +91,10 @@ void KinematicCharacter::FixedUpdate(float timeStep)
 
     // Update movement & animation
     const Quaternion& rot = node_->GetRotation();
-    Vector3 moveDir = Vector3::ZERO;
+    Vector3 moveDir = GetVelocity();
     onGround_ = kinematicController_->OnGround();
 
-    if (controls_.IsDown(CTRL_FORWARD))
-        moveDir += Vector3::FORWARD;
-    if (controls_.IsDown(CTRL_BACK))
-        moveDir += Vector3::BACK;
-    if (controls_.IsDown(CTRL_LEFT))
-        moveDir += Vector3::LEFT;
-    if (controls_.IsDown(CTRL_RIGHT))
-        moveDir += Vector3::RIGHT;
-    if (controls_.IsDown(CTRL_CROUCH))
+    if (inputMap_->Evaluate("Crouch"))
     {
         kinematicController_->SetHeight(0.9f);
         kinematicController_->SetOffset(Vector3(0.0f, 0.45f, 0.0f));
@@ -118,7 +110,8 @@ void KinematicCharacter::FixedUpdate(float timeStep)
         moveDir.Normalize();
 
     // rotate movedir
-    Vector3 velocity = rot * moveDir;
+    const float linearSpeed = characterConfigurator_->GetLinearVelocity().Length();
+    const Vector3 velocity = rot * moveDir * linearSpeed;
     if (onGround_)
     {
         curMoveDir_ = velocity;
@@ -128,7 +121,7 @@ void KinematicCharacter::FixedUpdate(float timeStep)
         curMoveDir_ = curMoveDir_.Lerp(velocity, 0.03f);
     }
 
-    kinematicController_->SetWalkIncrement(curMoveDir_ * (softGrounded ? MOVE_FORCE : INAIR_MOVE_FORCE));
+    kinematicController_->SetWalkIncrement(curMoveDir_ * timeStep);
 
     if (softGrounded)
     {
@@ -138,7 +131,7 @@ void KinematicCharacter::FixedUpdate(float timeStep)
         }
         isJumping_ = false;
         // Jump. Must release jump control between jumps
-        if (controls_.IsDown(CTRL_JUMP))
+        if (inputMap_->Evaluate("Jump"))
         {
             isJumping_ = true;
             if (okToJump_)
@@ -154,34 +147,23 @@ void KinematicCharacter::FixedUpdate(float timeStep)
         }
     }
 
-    if (onGround_)
-    {
-        // Play walk animation if moving on ground, otherwise fade it out
-        if ((softGrounded) && !moveDir.Equals(Vector3::ZERO))
-        {
-            animController_->PlayExistingExclusive(AnimationParameters{runAnimation}.Looped(), 0.2f);
-        }
-        else
-        {
-            animController_->PlayExistingExclusive(AnimationParameters{idleAnimation}.Looped(), 0.2f);
-        }
-    }
-    else if (jumpStarted_)
-    {
-        animController_->PlayNewExclusive(AnimationParameters{jumpAnimation}.KeepOnCompletion(), 0.2f);
-        jumpStarted_ = false;
-    }
+    characterPattern_.SetKey("OnGround", onGround_ ? 1.0f : 0.0f);
+    if (moveDir.Equals(Vector3::ZERO))
+        characterPattern_.RemoveKey("Run");
     else
+        characterPattern_.SetKey("Run");
+    if (controls_.IsDown(CTRL_LEFT))
+        characterPattern_.SetKey("Left");
+    else
+        characterPattern_.RemoveKey("Left");
+    if (controls_.IsDown(CTRL_RIGHT))
+        characterPattern_.SetKey("Right");
+    else
+        characterPattern_.RemoveKey("Right");
+
+    if (characterPattern_.Commit())
     {
-        const float maxDistance = 50.0f;
-        const float segmentDistance = 10.01f;
-        PhysicsRaycastResult result;
-        GetScene()->GetComponent<PhysicsWorld>()->RaycastSingleSegmented(result, Ray(node_->GetPosition(), Vector3::DOWN),
-                                                                         maxDistance, segmentDistance, 0xffff);
-        if (result.body_ && result.distance_ > 0.7f )
-        {
-            animController_->PlayExistingExclusive(AnimationParameters{jumpAnimation}.KeepOnCompletion(), 0.2f);
-        }
+        characterConf->Update(characterPattern_);
     }
 }
 
@@ -211,6 +193,22 @@ void KinematicCharacter::FixedPostUpdate(float timeStep)
     // shift and clear
     movingData_[1] = movingData_[0];
     movingData_[0].node_ = 0;
+}
+
+void KinematicCharacter::SetInputMap(InputMap* inputMap)
+{
+    inputMap_ = inputMap;
+}
+
+void KinematicCharacter::SetInputMapAttr(const ResourceRef& value)
+{
+    auto* cache = GetSubsystem<ResourceCache>();
+    SetInputMap(cache->GetResource<InputMap>(value.name_));
+}
+
+ResourceRef KinematicCharacter::GetInputMapAttr() const
+{
+    return GetResourceRef(inputMap_, InputMap::GetTypeStatic());
 }
 
 bool KinematicCharacter::IsNodeMovingPlatform(Node *node) const

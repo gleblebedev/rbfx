@@ -40,6 +40,7 @@ protected:
 
 	btPairCachingGhostObject* m_ghostObject;
 	btConvexShape* m_convexShape;  //is also in m_ghostObject, but it needs to be convex, so we store it here to avoid upcast
+    const btCollisionObject* m_floor; //Last known collision object the character is standing on. Only valid after stepDown execution.
 
 	btScalar m_maxPenetrationDepth;
 	btScalar m_verticalVelocity;

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Urho3DNets</RootNamespace>
+    <OutDir>$(BaseOutputPath)$(TargetFramework)</OutDir>
+    <OutputPath>$(BaseOutputPath)$(TargetFramework)</OutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Launcher.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CSharp\Urho3DNet.csproj" />
+  </ItemGroup>
+
+</Project>

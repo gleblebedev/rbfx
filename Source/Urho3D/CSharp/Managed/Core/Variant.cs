@@ -1,4 +1,4 @@
-﻿//
+//
 // Copyright (c) 2017-2020 the rbfx project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,8 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-using System;
 
 namespace Urho3DNet
 {
@@ -176,7 +174,7 @@ namespace Urho3DNet
             return new Variant(value);
         }
 
-        public static VariantType GetVariantType(Type type)
+        public static VariantType GetVariantType(System.Type type)
         {
             if (type == typeof(sbyte) || type == typeof(short) || type == typeof(int))
                 return VariantType.VarInt;
@@ -198,7 +196,7 @@ namespace Urho3DNet
                 return VariantType.VarString;
             if (type == typeof(ByteVector))
                 return VariantType.VarBuffer;
-            if (type == typeof(IntPtr))
+            if (type == typeof(System.IntPtr))
                 return VariantType.VarVoidPtr;
             if (type == typeof(ResourceRef))
                 return VariantType.VarResourceRef;

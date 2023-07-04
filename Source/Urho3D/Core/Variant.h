@@ -764,7 +764,7 @@ public:
     Variant& operator =(unsigned rhs)
     {
         SetType(VAR_INT);
-        value_.int_ = (int)rhs;
+        value_.int_ = static_cast<int>(rhs);
         return *this;
     }
 
@@ -772,7 +772,7 @@ public:
     Variant& operator =(const StringHash& rhs)
     {
         SetType(VAR_INT);
-        value_.int_ = (int)rhs.Value();
+        value_.int_ = static_cast<int>(rhs.Value());
         return *this;
     }
 
@@ -1725,6 +1725,8 @@ template <> inline VariantType GetVariantType<Matrix4>() { return VAR_MATRIX4; }
 template <> inline VariantType GetVariantType<VariantCurve>() { return VAR_VARIANTCURVE; }
 
 template <> inline VariantType GetVariantType<StringVariantMap>() { return VAR_STRINGVARIANTMAP; }
+
+template <> inline VariantType GetVariantType<RefCounted*>() { return VAR_PTR; }
 
 // Specializations of Variant::Get<T>
 template <> URHO3D_API int Variant::Get<int>() const;

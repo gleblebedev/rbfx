@@ -211,20 +211,7 @@ void KinematicCharacterDemo::CreateCharacter(const Vector3& position)
     if (headBone)
         headBone->animated_ = false;
 
-    // Create rigidbody
-    auto* body = objectNode->CreateComponent<RigidBody>();
-    body->SetCollisionLayer(1);
-    body->SetKinematic(true);
-    body->SetTrigger(true);
-
-    // Set zero angular factor so that physics doesn't turn the character on its own.
-    // Instead we will control the character yaw manually
-    body->SetAngularFactor(Vector3::ZERO);
-
-    // Set the rigidbody to signal collision also when in rest, so that we get ground collisions properly
-    body->SetCollisionEventMode(COLLISION_ALWAYS);
-
-    // Create the character logic component, which takes care of steering the rigidbody
+    // Create the character logic component, which takes care of steering the fake rigidbody
     // Remember it so that we can set the controls. Use a ea::weak_ptr because the scene hierarchy already owns it
     // and keeps it alive as long as it's not removed from the hierarchy
     character_ = objectNode->CreateComponent<KinematicCharacter>();

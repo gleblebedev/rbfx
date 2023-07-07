@@ -37,15 +37,15 @@ namespace Urho3DNet
         {
             SdlCallback callback = (argn, argv) =>
             {
-                using (var context = new Context())
+                using (SharedPtr<Context> context = new Context())
                 {
-                    using (var application = factory(context))
+                    using (SharedPtr<Application> application = factory(context))
                     {
                         if (externalWindow != IntPtr.Zero)
                         {
-                            application.ExternalWindow = externalWindow;
+                            application.Ptr.ExternalWindow = externalWindow;
                         }
-                        application.Run();
+                        application.Ptr.Run();
                     }
                 }
 

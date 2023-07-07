@@ -15,12 +15,14 @@ namespace Urho3DNet
 
         private static Func<Context, Application> _factory;
 
+        private static SharedPtr<Context> _context;
+
         [MonoPInvokeCallback(typeof(SdlCallback))]
         private static int SdlMain (int argn, IntPtr argv)
         {
-            var context = new Context();
+            _context = new Context();
             {
-                var application = _factory(context);
+                var application = _factory(_context);
                 {
                     return application.Run();
                 }

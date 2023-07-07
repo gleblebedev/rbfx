@@ -34,11 +34,11 @@ namespace Urho3DNet
             ProcessUtils.Platform = "Android";
             SdlCallback callback = (argn, argv) =>
             {
-                using (var context = new Context())
+                using (SharedPtr<Context> context = new Context())
                 {
-                    using (var application = factory(context))
+                    using (SharedPtr<Application> application = factory(context))
                     {
-                        application.Run();
+                        application.Ptr.Run();
                     }
                 }
 

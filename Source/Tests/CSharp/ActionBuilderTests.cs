@@ -22,24 +22,29 @@
 
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Urho3DNet.Tests
 {
     public class ActionBuilderTests
     {
+        private readonly ITestOutputHelper _output;
+
+        public ActionBuilderTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         [Fact]
         public async Task SimpleAction_MoveBy_NodePositionUpdated()
         {
-            await RbfxTestFramework.Context.ToMainThreadAsync();
+            await RbfxTestFramework.ToMainThreadAsync(_output);
             var startPos = new Vector3(0, 1, 0);
             var moveBy = new Vector3(2, 0, 0);
-
             var actionManager = new ActionManager(RbfxTestFramework.Context);
-            var node = new Node(RbfxTestFramework.Context);
-            node.AddRef();
-            try
+            using (SharedPtr<Node> node = new Node(RbfxTestFramework.Context))
             {
-                node.Position = startPos;
+                node.Ptr.Position = startPos;
                 using (var builder = new ActionBuilder(RbfxTestFramework.Context))
                 {
                     builder.MoveBy(0.1f, moveBy).Run(actionManager, node);
@@ -47,11 +52,7 @@ namespace Urho3DNet.Tests
                 actionManager.Update(0.0f);
                 actionManager.Update(0.1f);
 
-                Assert.Equal(startPos + moveBy, node.Position);
-            }
-            finally
-            {
-                node.ReleaseRef();
+                Assert.Equal(startPos + moveBy, node.Ptr.Position);
             }
         }
     }

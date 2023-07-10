@@ -24,6 +24,7 @@
 
 #include <Urho3D/Audio/Sound.h>
 #include <Urho3D/Graphics/Animation.h>
+#include <Urho3D/Graphics/Bipedal.h>
 #include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Model.h>
 #include <Urho3D/Graphics/Texture2D.h>
@@ -72,6 +73,12 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
     {
         if (desc.HasExtension({".material"}) || ctx.HasXMLRoot("material"))
             desc.AddObjectType<Material>();
+    });
+
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+        {
+        if (desc.HasExtension({".bipedal"}) || ctx.HasXMLRoot("bipedal"))
+            desc.AddObjectType<Bipedal>();
     });
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)

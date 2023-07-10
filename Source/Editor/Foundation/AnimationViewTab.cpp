@@ -69,15 +69,15 @@ void AnimationViewTab::RenderTitle()
 
     auto* cache = GetSubsystem<ResourceCache>();
 
-    static const StringVector allowedTextureTypes{
+    static const StringVector allowedResourceTypes{
         Model::GetTypeNameStatic(),
     };
 
-    StringHash textureType = model_ ? model_->GetType() : Texture2D::GetTypeStatic();
-    ea::string textureName = model_ ? model_->GetName() : "";
-    if (Widgets::EditResourceRef(textureType, textureName, &allowedTextureTypes))
+    StringHash modelType = model_ ? model_->GetType() : Model::GetTypeStatic();
+    ea::string modelName = model_ ? model_->GetName() : "";
+    if (Widgets::EditResourceRef(modelType, modelName, &allowedResourceTypes))
     {
-        model_ = cache->GetResource<Model>(textureName);
+        model_ = cache->GetResource<Model>(modelName);
         animatedModel_->SetModel(model_);
         if (model_)
         {

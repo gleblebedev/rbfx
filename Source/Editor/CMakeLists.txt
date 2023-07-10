@@ -55,6 +55,8 @@ else ()
     endif ()
 endif ()
 
+group_sources()
+
 if (TARGET libEditor)
     set_target_properties(libEditor PROPERTIES PREFIX "")
 endif ()

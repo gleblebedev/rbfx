@@ -27,6 +27,8 @@
 
 #include "CreateRagdoll.h"
 
+#include "Urho3D/Graphics/Bipedal.h"
+
 #include <Urho3D/DebugNew.h>
 
 CreateRagdoll::CreateRagdoll(Context* context) :
@@ -54,6 +56,22 @@ void CreateRagdoll::HandleNodeCollision(StringHash eventType, VariantMap& eventD
         // We do not need the physics components in the AnimatedModel's root scene node anymore
         node_->RemoveComponent<RigidBody>();
         node_->RemoveComponent<CollisionShape>();
+        auto* model = GetComponent<AnimatedModel>();
+        auto bipedal = MakeShared<Bipedal>(context_);
+        bipedal->SetModel(model->GetModel());
+        bipedal->AutodetectBones();
+
+        auto pelvis = bipedal->GetBoneName(BipedalBoneType::Hips);
+        auto spine1 = bipedal->GetBoneName(BipedalBoneType::Chest);
+        auto leftThigh = bipedal->GetBoneName(BipedalBoneType::LeftUpperLeg);
+        auto leftCalf = bipedal->GetBoneName(BipedalBoneType::LeftLowerLeg);
+        auto rightThigh = bipedal->GetBoneName(BipedalBoneType::RightUpperLeg);
+        auto rightCalf = bipedal->GetBoneName(BipedalBoneType::RightLowerLeg);
+        auto head = bipedal->GetBoneName(BipedalBoneType::Neck);
+        auto leftUpperArm = bipedal->GetBoneName(BipedalBoneType::LeftUpperArm);
+        auto leftForearm = bipedal->GetBoneName(BipedalBoneType::LeftLowerArm);
+        auto rightUpperArm = bipedal->GetBoneName(BipedalBoneType::RightUpperArm);
+        auto rightForearm = bipedal->GetBoneName(BipedalBoneType::RightLowerArm);
 
         // Create RigidBody & CollisionShape components to bones
         CreateRagdollBone("Bip01_Pelvis", SHAPE_BOX, Vector3(0.3f, 0.2f, 0.25f), Vector3(0.0f, 0.0f, 0.0f),
@@ -84,25 +102,38 @@ void CreateRagdoll::HandleNodeCollision(StringHash eventType, VariantMap& eventD
             Vector2(45.0f, 45.0f), Vector2::ZERO);
         CreateRagdollConstraint("Bip01_R_Thigh", "Bip01_Pelvis", CONSTRAINT_CONETWIST, Vector3::BACK, Vector3::FORWARD,
             Vector2(45.0f, 45.0f), Vector2::ZERO);
-        CreateRagdollConstraint("Bip01_L_Calf", "Bip01_L_Thigh", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
-            Vector2(90.0f, 0.0f), Vector2::ZERO);
-        CreateRagdollConstraint("Bip01_R_Calf", "Bip01_R_Thigh", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
-            Vector2(90.0f, 0.0f), Vector2::ZERO);
+
+        bipedal->CreateConstraint(node_, BipedalBoneType::LeftLowerLeg, BipedalBoneType::LeftUpperLeg, CONSTRAINT_HINGE,
+            Vector3::RIGHT, Vector2(90.0f, 0.0f), Vector2::ZERO);
+        bipedal->CreateConstraint(node_, BipedalBoneType::RightLowerLeg, BipedalBoneType::RightUpperLeg, CONSTRAINT_HINGE,
+            Vector3::RIGHT, Vector2(90.0f, 0.0f), Vector2::ZERO);
+
+        //CreateRagdollConstraint("Bip01_L_Calf", "Bip01_L_Thigh", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
+        //    Vector2(90.0f, 0.0f), Vector2::ZERO);
+        //CreateRagdollConstraint("Bip01_R_Calf", "Bip01_R_Thigh", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
+        //    Vector2(90.0f, 0.0f), Vector2::ZERO);
+
         CreateRagdollConstraint("Bip01_Spine1", "Bip01_Pelvis", CONSTRAINT_HINGE, Vector3::FORWARD, Vector3::FORWARD,
             Vector2(45.0f, 0.0f), Vector2(-10.0f, 0.0f));
         CreateRagdollConstraint("Bip01_Head", "Bip01_Spine1", CONSTRAINT_CONETWIST, Vector3::LEFT, Vector3::LEFT,
             Vector2(0.0f, 30.0f), Vector2::ZERO);
+
         CreateRagdollConstraint("Bip01_L_UpperArm", "Bip01_Spine1", CONSTRAINT_CONETWIST, Vector3::DOWN, Vector3::UP,
             Vector2(45.0f, 45.0f), Vector2::ZERO, false);
         CreateRagdollConstraint("Bip01_R_UpperArm", "Bip01_Spine1", CONSTRAINT_CONETWIST, Vector3::DOWN, Vector3::UP,
             Vector2(45.0f, 45.0f), Vector2::ZERO, false);
-        CreateRagdollConstraint("Bip01_L_Forearm", "Bip01_L_UpperArm", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
-            Vector2(90.0f, 0.0f), Vector2::ZERO);
-        CreateRagdollConstraint("Bip01_R_Forearm", "Bip01_R_UpperArm", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
-            Vector2(90.0f, 0.0f), Vector2::ZERO);
+
+        bipedal->CreateConstraint(node_, BipedalBoneType::LeftLowerArm, BipedalBoneType::LeftUpperArm, CONSTRAINT_HINGE,
+            Vector3::LEFT, Vector2(90.0f, 0.0f), Vector2::ZERO);
+        bipedal->CreateConstraint(node_, BipedalBoneType::RightLowerArm, BipedalBoneType::RightUpperArm,
+            CONSTRAINT_HINGE, Vector3::LEFT, Vector2(90.0f, 0.0f), Vector2::ZERO);
+
+        //CreateRagdollConstraint("Bip01_L_Forearm", "Bip01_L_UpperArm", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
+        //    Vector2(90.0f, 0.0f), Vector2::ZERO);
+        //CreateRagdollConstraint("Bip01_R_Forearm", "Bip01_R_UpperArm", CONSTRAINT_HINGE, Vector3::BACK, Vector3::BACK,
+        //    Vector2(90.0f, 0.0f), Vector2::ZERO);
 
         // Disable keyframe animation from all bones so that they will not interfere with the ragdoll
-        auto* model = GetComponent<AnimatedModel>();
         Skeleton& skeleton = model->GetSkeleton();
         for (unsigned i = 0; i < skeleton.GetNumBones(); ++i)
             skeleton.GetBone(i)->animated_ = false;

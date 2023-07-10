@@ -23,15 +23,10 @@
 #include "../../Foundation/Shared/CustomSceneViewTab.h"
 
 #include "../../Core/IniHelpers.h"
+#include "Urho3D/Core/CoreEvents.h"
 
 #include <Urho3D/Graphics/DebugRenderer.h>
-#include <Urho3D/Graphics/Material.h>
 #include <Urho3D/Graphics/Model.h>
-#include <Urho3D/Graphics/Octree.h>
-#include <Urho3D/Graphics/Skybox.h>
-#include <Urho3D/Graphics/TextureCube.h>
-#include <Urho3D/Graphics/Zone.h>
-#include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/SystemUI/Widgets.h>
 
 namespace Urho3D
@@ -43,10 +38,28 @@ CustomSceneViewTab::CustomSceneViewTab(Context* context, const ea::string& title
     , preview_(MakeShared<SceneWidget>(context))
     , cameraController_(MakeShared<CameraController>(context, GetHotkeyManager()))
 {
+    SubscribeToEvent(E_UPDATE, [&](Object* receiver, StringHash eventType, VariantMap& eventData)
+    {
+        if (IsOpen())
+        {
+            if (auto scene = GetScene())
+            {
+                if (const auto debugRenderer = scene->GetComponent<DebugRenderer>())
+                {
+                    RenderDebugGeometry(debugRenderer);
+                }
+            }
+        }
+    });
     preview_->CreateDefaultScene();
+    preview_->GetScene()->SetUpdateEnabled(false);
 }
 
 CustomSceneViewTab::~CustomSceneViewTab()
+{
+}
+
+void CustomSceneViewTab::RenderDebugGeometry(DebugRenderer* debugRenderer)
 {
 }
 
@@ -74,6 +87,7 @@ void CustomSceneViewTab::RenderContent()
         if (ui::BeginChild("scene_preview", contentSize))
         {
             preview_->RenderContent();
+
         }
         ui::EndChild();
 

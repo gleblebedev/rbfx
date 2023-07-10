@@ -134,6 +134,8 @@ public:
     /// Return root bone.
     /// @property
     Bone* GetRootBone();
+    /// Return root bone index.
+    unsigned GetRootBoneIndex() const { return rootBoneIndex_; }
     /// Return index of the bone by name. Return M_MAX_UNSIGNED if not found.
     unsigned GetBoneIndex(const ea::string& boneName) const;
     /// Return index of the bone by name hash. Return M_MAX_UNSIGNED if not found.

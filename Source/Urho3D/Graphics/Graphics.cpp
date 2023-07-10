@@ -26,6 +26,7 @@
 #include "../Graphics/AnimatedModel.h"
 #include "../Graphics/Animation.h"
 #include "../Graphics/AnimationController.h"
+#include "../Graphics/Bipedal.h"
 #include "../Graphics/Camera.h"
 #include "../Graphics/ComputeBuffer.h"
 #include "../Graphics/ConstantBuffer.h"
@@ -652,6 +653,7 @@ void Graphics::SetMaxBones(unsigned numBones)
 void RegisterGraphicsLibrary(Context* context)
 {
     Animation::RegisterObject(context);
+    Bipedal::RegisterObject(context);
     Material::RegisterObject(context);
     Model::RegisterObject(context);
     Shader::RegisterObject(context);

@@ -351,7 +351,7 @@ void Bipedal::AutodetectBones(const Vector3& right)
     Detector detector(*this, right);
     detector.Detect();
 
-    AutodetectRagdoll();
+    AutodetectRagdoll(right);
 }
 
 bool Bipedal::MapBone(BipedalBoneType type, unsigned boneIndex)
@@ -414,7 +414,7 @@ unsigned Bipedal::GetBoneIndex(BipedalBoneType type) const
     return M_MAX_UNSIGNED;
 }
 
-void Bipedal::AutodetectRagdoll()
+void Bipedal::AutodetectRagdoll(const Vector3& right)
 {
     auto& skeleton = GetModel()->GetSkeleton();
     for (unsigned i = 0; i < NUM_BONE_TYPES; ++i)
@@ -462,7 +462,56 @@ void Bipedal::AutodetectRagdoll()
         }
         }
     }
+
+    for (unsigned i = 0; i < NUM_BONE_TYPES; ++i)
+    {
+        auto& bone = bones_[i];
+        if (bone.boneIndex_ == M_MAX_UNSIGNED || !bone.ragdollBody_.has_value())
+            continue;
+        const auto boneType = static_cast<BipedalBoneType>(i);
+        switch (boneType)
+        {
+        case BipedalBoneType::RightLowerLeg: BuildKneeHinge(BipedalBoneType::RightLowerLeg, right);
+        case BipedalBoneType::LeftLowerLeg: BuildKneeHinge(BipedalBoneType::LeftLowerLeg, right);
+        {
+            break;
+        }
+        }
+
+    }
 }
+
+void Bipedal::BuildKneeHinge(BipedalBoneType lowerLeg, const Vector3& bindSpaceAxis)
+{
+    const auto upperLeg = GetParentBody(lowerLeg);
+    if (upperLeg >= BipedalBoneType::MaxBoneType)
+        return;
+
+    auto lowerLegBone = GetBone(lowerLeg);
+    if (!lowerLegBone)
+        return;
+    auto upperLegBone = GetBone(upperLeg);
+    if (!upperLegBone)
+        return;
+
+
+    auto upperLegToLowerLeg = lowerLegBone->offsetMatrix_ * upperLegBone->offsetMatrix_.Inverse();
+    Vector3 x = (- upperLegToLowerLeg.Translation()).Normalized();
+    Vector3 z = lowerLegBone->offsetMatrix_ * bindSpaceAxis.ToVector4(0);
+    Vector3 y = z.CrossProduct(x).Normalized();
+    z = x.CrossProduct(y).Normalized();
+    Matrix3 bindSpaceRotation{x, y, z};
+
+
+    BipedalConstraint constraint;
+    constraint.connectedBone_ = upperLeg;
+    constraint.constraintType_ = CONSTRAINT_HINGE;
+    constraint.position_ = Vector3::ZERO;
+    constraint.rotation_ = Quaternion(bindSpaceRotation);
+    constraint.highLimit_ = Vector2(90.0f, 0.0f);
+    SetRagdollConstraint(lowerLeg, constraint);
+}
+
 
 void Bipedal::AutodetectCapsuleShape(BipedalBoneType pivot, BipedalBoneType target)
 {
@@ -527,7 +576,7 @@ void Bipedal::CreateRagdoll(AnimatedModel* animatedModel)
                 shape->SetMargin(body.collisionMargin_);
                 const auto rigidBody = boneNode->CreateComponent<RigidBody>();
                 // Set mass to make movable
-                rigidBody->SetMass(1.0f);
+                rigidBody->SetMass(body.mass_);
                 // Set damping parameters to smooth out the motion
                 rigidBody->SetLinearDamping(0.05f);
                 rigidBody->SetAngularDamping(0.85f);
@@ -547,21 +596,106 @@ void Bipedal::CreateRagdoll(AnimatedModel* animatedModel)
             if (bone.ragdollConstraint_.has_value())
             {
                 auto& constraintSettings = bone.ragdollConstraint_.value();
-                const auto otherBoneIndex = static_cast<unsigned>(constraintSettings.connectedBone_);
-                if (otherBoneIndex >= NUM_BONE_TYPES)
+                const auto otherBoneType = static_cast<unsigned>(constraintSettings.connectedBone_);
+                if (otherBoneType >= NUM_BONE_TYPES)
+                {
+                    URHO3D_LOGERROR("Ragdoll constraint doesn't have correct connected bone");
                     break;
-                auto* otherBody = ridgidBodies[i];
+                }
+                auto* otherBody = ridgidBodies[otherBoneType];
                 if (!otherBody)
+                {
+                    URHO3D_LOGERROR("Ragdoll constraint connected bone doesn't have ridgit body");
                     break;
-                
+                }
+
+                auto skelBone = animatedModel->GetSkeleton().GetBone(bones_[i].boneIndex_);
+                auto otherSkelBone = animatedModel->GetSkeleton().GetBone(bones_[otherBoneType].boneIndex_);
+
                 const auto boneNode = boneLookup[i];
                 const auto constraint = boneNode->CreateComponent<Constraint>();
+                constraint->SetConstraintType(constraintSettings.constraintType_);
+                constraint->SetDisableCollision(constraintSettings.disableCollision_);
                 constraint->SetOtherBody(otherBody);
+
+                constraint->SetWorldPosition(boneLookup[i]->LocalToWorld(constraintSettings.position_));
+
+                constraint->SetRotation(constraintSettings.rotation_);
+                Quaternion otherRot{
+                    otherSkelBone->offsetMatrix_.ToMatrix3() * skelBone->offsetMatrix_.ToMatrix3().Inverse()};
+                constraint->SetOtherRotation(otherRot * constraintSettings.rotation_);
+
+                constraint->SetHighLimit(constraintSettings.highLimit_);
+                constraint->SetLowLimit(constraintSettings.lowLimit_);
             }
         }
     }
 #endif
 }
+
+BipedalBoneType Bipedal::GetParent(BipedalBoneType boneType)
+{
+    switch (boneType)
+    {
+    case BipedalBoneType::Root: return BipedalBoneType::MaxBoneType;
+    case BipedalBoneType::Hips: return BipedalBoneType::Root;
+    case BipedalBoneType::LowerSpine: return BipedalBoneType::Hips;
+    case BipedalBoneType::UpperSpine: return BipedalBoneType::LowerSpine;
+    case BipedalBoneType::Chest: return BipedalBoneType::UpperSpine;
+    case BipedalBoneType::UpperChest: return BipedalBoneType::Chest;
+    case BipedalBoneType::Neck: return BipedalBoneType::UpperChest;
+    case BipedalBoneType::Head: return BipedalBoneType::Neck;
+    case BipedalBoneType::LeftUpperLeg: return BipedalBoneType::Hips;
+    case BipedalBoneType::LeftLowerLeg: return BipedalBoneType::LeftUpperLeg;
+    case BipedalBoneType::LeftFoot: return BipedalBoneType::LeftLowerLeg;
+    case BipedalBoneType::LeftToes: return BipedalBoneType::LeftFoot;
+    case BipedalBoneType::RightUpperLeg: return BipedalBoneType::Hips;
+    case BipedalBoneType::RightLowerLeg: return BipedalBoneType::RightUpperLeg;
+    case BipedalBoneType::RightFoot: return BipedalBoneType::RightLowerLeg;
+    case BipedalBoneType::RightToes: return BipedalBoneType::RightFoot;
+    case BipedalBoneType::LeftShoulder: return BipedalBoneType::UpperChest;
+    case BipedalBoneType::LeftUpperArm: return BipedalBoneType::LeftShoulder;
+    case BipedalBoneType::LeftLowerArm: return BipedalBoneType::LeftUpperArm;
+    case BipedalBoneType::LeftHand: return BipedalBoneType::LeftLowerArm;
+    case BipedalBoneType::RightShoulder: return BipedalBoneType::UpperChest;
+    case BipedalBoneType::RightUpperArm: return BipedalBoneType::RightShoulder;
+    case BipedalBoneType::RightLowerArm: return BipedalBoneType::RightUpperArm;
+    case BipedalBoneType::RightHand: return BipedalBoneType::RightLowerArm;
+    case BipedalBoneType::MaxBoneType: return BipedalBoneType::MaxBoneType;
+    default: return BipedalBoneType::MaxBoneType;
+    }
+}
+
+BipedalBoneType Bipedal::GetExistingParent(BipedalBoneType boneType)
+{
+    for (;;)
+    {
+        const BipedalBoneType parent = GetParent(boneType);
+        if (parent == boneType)
+            return BipedalBoneType::MaxBoneType;
+
+        if (GetBone(parent))
+            return parent;
+
+        boneType = parent;
+    }
+}
+
+inline BipedalBoneType Bipedal::GetParentBody(BipedalBoneType boneType)
+{
+    for (;;)
+    {
+        const BipedalBoneType parent = GetParent(boneType);
+        if (parent == boneType)
+            return BipedalBoneType::MaxBoneType;
+
+        if (bones_[static_cast<unsigned>(boneType)].ragdollBody_.has_value())
+            return parent;
+
+        boneType = parent;
+    }
+}
+
 
 void Bipedal::SetRagdollBody(BipedalBoneType type, const BipedalRigidBody& body)
 {
@@ -597,51 +731,6 @@ Quaternion BipedalConstraint::RotationFromAxis(ConstraintType type, const Vector
     return Quaternion::IDENTITY;
 }
 
-Constraint* Bipedal::CreateConstraint(Node* rootNode, BipedalBoneType childType, BipedalBoneType parentType,
-    ConstraintType constraintType, const Vector3& axisInBindPoseSpace, const Vector2& highLimit,
-    const Vector2& lowLimit, bool disableCollision) const
-{
-    auto* bone = GetBone(childType);
-    auto* parent = GetBone(parentType);
-    if (!bone || !parent)
-    {
-        URHO3D_LOGWARNING("Bone is not mapped");
-        return nullptr;
-    }
-
-    Node* boneNode = rootNode->GetChild(bone->nameHash_, true);
-    Node* parentNode = rootNode->GetChild(parent->nameHash_, true);
-    if (!boneNode)
-    {
-        URHO3D_LOGWARNING("Could not find bone " + bone->name_ + " for creating ragdoll constraint");
-        return nullptr;
-    }
-    if (!parentNode)
-    {
-        URHO3D_LOGWARNING("Could not find bone " + parent->name_ + " for creating ragdoll constraint");
-        return nullptr;
-    }
-
-    auto* constraint = boneNode->CreateComponent<Constraint>();
-    constraint->SetConstraintType(constraintType);
-    // Most of the constraints in the ragdoll will work better when the connected bodies don't collide against each
-    // other
-    constraint->SetDisableCollision(disableCollision);
-    // The connected body must be specified before setting the world position
-    constraint->SetOtherBody(parentNode->GetComponent<RigidBody>());
-    // Position the constraint at the child bone we are connecting
-    constraint->SetWorldPosition(boneNode->GetWorldPosition());
-    // Configure axes and limits
-    auto recommendedAxis = (bone->offsetMatrix_.Inverse() * axisInBindPoseSpace.ToVector4(0.0f));
-    auto axis = (bone->offsetMatrix_ * axisInBindPoseSpace.ToVector4(0.0f));
-    auto parentAxis = (parent->offsetMatrix_ * axisInBindPoseSpace.ToVector4(0.0f));
-
-    constraint->SetAxis(axis);
-    constraint->SetOtherAxis(parentAxis);
-    constraint->SetHighLimit(highLimit);
-    constraint->SetLowLimit(lowLimit);
-    return constraint;
-}
 #endif
 
 } // namespace Urho3D

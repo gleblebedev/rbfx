@@ -69,6 +69,7 @@ enum class BipedalBoneType: unsigned
 struct URHO3D_API BipedalRigidBody
 {
     static constexpr float DEFAULT_COLLISION_MARGIN = 0.04f;
+    static constexpr float DEFAULT_MASS = 1.0f;
 
     //Collision shape type.
     ShapeType collisionShape_{SHAPE_BOX};
@@ -80,14 +81,15 @@ struct URHO3D_API BipedalRigidBody
     Quaternion offsetRotation_{Quaternion::IDENTITY};
     // Collision shape collision margin.
     float collisionMargin_{DEFAULT_COLLISION_MARGIN};
-
+    // Rigid body mass.
+    float mass_{DEFAULT_MASS};
 };
 
 struct URHO3D_API BipedalConstraint
 {
-    //Connected node
+    //Connected node.
     BipedalBoneType connectedBone_{BipedalBoneType::Root};
-    //Constraint type
+    //Constraint type.
     ConstraintType constraintType_{CONSTRAINT_POINT};
     // Constraint position relative to current bone.
     Vector3 position_{Vector3::ZERO};
@@ -102,6 +104,7 @@ struct URHO3D_API BipedalConstraint
 
     static Quaternion RotationFromAxis(ConstraintType type, const Vector3& axis);
 };
+
 #endif
 
 struct URHO3D_API BipedalBone
@@ -163,24 +166,28 @@ public:
     /// Create ragdoll.
     void CreateRagdoll(AnimatedModel* animatedModel);
 
+    /// Get parent bone for the provided bone type. Returns MaxBoneType if no parent bone is found.
+    static BipedalBoneType GetParent(BipedalBoneType boneType);
+
+    /// Get next existing parent bone for the provided bone type. Returns MaxBoneType if no parent bone is found.
+    BipedalBoneType GetExistingParent(BipedalBoneType boneType);
+    /// Get next existing parent bone with rigid body for the provided bone type. Returns MaxBoneType if no parent bone is found.
+    BipedalBoneType GetParentBody(BipedalBoneType boneType);
+
 #ifdef URHO3D_PHYSICS
     /// Set ragdoll rigid body.
     void SetRagdollBody(BipedalBoneType type, const BipedalRigidBody& body);
     /// Set ragdoll rigid body constraint.
     void SetRagdollConstraint(BipedalBoneType type, const BipedalConstraint& constraint);
-
-    /// Create constraint between two bones.
-    Constraint* CreateConstraint(Node* rootNode, BipedalBoneType childType, BipedalBoneType parentType,
-        ConstraintType constraintType,
-        const Vector3& axisInBindPoseSpace, const Vector2& highLimit, const Vector2& lowLimit,
-        bool disableCollision = true) const;
 #endif
 
 private:
     /// Autodetect ragdoll.
-    void AutodetectRagdoll();
+    void AutodetectRagdoll(const Vector3& right);
     /// Autodetect capsule shape for ragdoll ridgid body.
     void AutodetectCapsuleShape(BipedalBoneType pivot, BipedalBoneType target);
+
+    void BuildKneeHinge(BipedalBoneType lowerLeg, const Vector3& bindSpaceAxis);
 
     /// Bones by type.
     ea::array<BipedalBone, NUM_BONE_TYPES> bones_;

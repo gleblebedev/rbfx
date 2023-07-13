@@ -59,6 +59,21 @@ void Matrix3::FromAngleAxis(float angle, const Vector3& axis)
     m22_ = cosAngle + normAxis.z_ * normAxis.z_ * _cosAngle;
 }
 
+void Matrix3::FromAxes(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis)
+{
+    m00_ = xAxis.x_;
+    m01_ = yAxis.x_;
+    m02_ = zAxis.x_;
+
+    m10_ = xAxis.y_;
+    m11_ = yAxis.y_;
+    m12_ = zAxis.y_;
+
+    m20_ = xAxis.z_;
+    m21_ = yAxis.z_;
+    m22_ = zAxis.z_;
+}
+
 float Matrix3::Determinant() const
 {
     return m00_ * m11_ * m22_ +

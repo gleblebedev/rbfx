@@ -36,3 +36,11 @@ TEST_CASE("Matrix3 from Axis Angle")
 
     CHECK(matrix.Equals(expected));
 }
+
+TEST_CASE("Matrix3 from Axes")
+{
+    auto expected = Quaternion{45, Vector3{1, 2, 3}.Normalized()}.RotationMatrix();
+    Matrix3 matrix{expected * Vector3{1, 0, 0}, expected * Vector3{0, 1, 0}, expected * Vector3{0, 0, 1}};
+
+    CHECK(matrix.Equals(expected));
+}

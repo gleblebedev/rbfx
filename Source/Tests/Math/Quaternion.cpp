@@ -37,6 +37,16 @@ TEST_CASE("Quaternion from Euler")
     CHECK(matrix.Equals(expected));
 }
 
+TEST_CASE("Quaternion from Axes")
+{
+    auto expectedMatrix = Quaternion{45, Vector3{1, 2, 3}.Normalized()}.RotationMatrix();
+    Quaternion quaternion{
+        expectedMatrix * Vector3{1, 0, 0}, expectedMatrix * Vector3{0, 1, 0}, expectedMatrix * Vector3{0, 0, 1}};
+    Quaternion expected{expectedMatrix};
+    
+    CHECK(quaternion.Equals(expected));
+}
+
 TEST_CASE("Quaternion from Gimbal lock position")
 {
     {

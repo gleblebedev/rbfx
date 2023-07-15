@@ -398,7 +398,10 @@ inline void SerializeValue(Archive& archive, const char* name, ea::optional<T>& 
             if (value.has_value())
                 SerializeValue(archive, name, value.value());
             else
-                SerializeValue(archive, name, T{});
+            {
+                T tmp;
+                SerializeValue(archive, name, tmp);
+            }
         }
         return;
     }

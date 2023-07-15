@@ -97,9 +97,21 @@ void BipedalViewTab::RenderTitle()
             ResetModel();
         }
         ui::SameLine();
-        if (ui::Button("Autodetect"))
+        if (ui::Button("Detect bones"))
         {
             bipedal_->AutodetectBones();
+            ResetModel();
+        }
+        ui::SameLine();
+        if (ui::Button("Detect shapes"))
+        {
+            bipedal_->AutodetectRagdollShapes(Vector3::RIGHT);
+            ResetModel();
+        }
+        ui::SameLine();
+        if (ui::Button("Detect constraints"))
+        {
+            bipedal_->AutodetectRagdollConstraints(Vector3::RIGHT);
             ResetModel();
         }
     }

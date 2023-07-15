@@ -36,6 +36,7 @@
 #include "../Math/Quaternion.h"
 
 #include <type_traits>
+#include <EASTL/optional.h>
 
 namespace Urho3D
 {
@@ -300,6 +301,47 @@ void SerializeOptionalValue(Archive& archive, const char* name, T& value, const 
         // Don't try to cast from AlwaysSerialize
         if constexpr(!std::is_base_of_v<AlwaysSerialize, U>)
             value = static_cast<T>(defaultValue);
+    }
+}
+
+/// Serialize optional object with standard interface as value.
+template <class T, std::enable_if_t<IsObjectSerializableInBlock<T>::value, int> = 0>
+inline void SerializeValue(Archive& archive, const char* name, ea::optional<T>& value)
+{
+    const bool loading = archive.IsInput();
+    if (!archive.IsUnorderedAccessSupportedInCurrentBlock())
+    {
+        if (loading)
+        {
+            value = T{};
+            SerializeValue(archive, name, value.value());
+        }
+        else
+        {
+            if (value.has_value())
+                SerializeValue(archive, name, value.value());
+            else
+                SerializeValue(archive, name, T{});
+        }
+        return;
+    }
+
+    if (loading)
+    {
+        if (archive.HasElementOrBlock(name))
+        {
+            value.emplace();
+            SerializeValue(archive, name, value.value());
+        }
+        else
+        {
+            value.reset();
+        }
+    }
+    else
+    {
+        if (value.has_value())
+            SerializeValue(archive, name, value.value());
     }
 }
 

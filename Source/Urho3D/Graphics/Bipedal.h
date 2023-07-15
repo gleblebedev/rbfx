@@ -25,12 +25,7 @@
 #pragma once
 
 #include "Urho3D/Graphics/Model.h"
-#ifdef URHO3D_PHYSICS
-#include "Urho3D/Physics/Constraint.h"
-#include "Urho3D/Physics/CollisionShape.h"
-#endif
-
-#include "AnimatedModel.h"
+#include "Urho3D/Graphics/AnimatedModel.h"
 
 #include <EASTL/array.h>
 
@@ -56,23 +51,32 @@ enum class BipedalBoneType: unsigned
     RightToes,
     LeftShoulder,
     LeftUpperArm,
-    LeftLowerArm,
+    LeftForearm,
     LeftHand,
     RightShoulder,
     RightUpperArm,
-    RightLowerArm,
+    RightForearm,
     RightHand,
     MaxBoneType
 };
 
-#ifdef URHO3D_PHYSICS
+/// Collision shape type.
+enum class BipedalShapeType
+{
+    Box = 0,
+    Sphere,
+    Cylinder,
+    Capsule,
+    Cone
+};
+
 struct URHO3D_API BipedalRigidBody
 {
     static constexpr float DEFAULT_COLLISION_MARGIN = 0.04f;
     static constexpr float DEFAULT_MASS = 1.0f;
 
     //Collision shape type.
-    ShapeType collisionShape_{SHAPE_BOX};
+    BipedalShapeType collisionShape_{BipedalShapeType::Box};
     // Collision shape size.
     Vector3 size_{Vector3::ONE};
     // Collision shape offset position.
@@ -83,6 +87,18 @@ struct URHO3D_API BipedalRigidBody
     float collisionMargin_{DEFAULT_COLLISION_MARGIN};
     // Rigid body mass.
     float mass_{DEFAULT_MASS};
+
+    /// Force override of SerializeInBlock.
+    void SerializeInBlock(Archive& archive);
+};
+
+/// Supported constraint types.
+enum class BipedalConstraintType
+{
+    Point = 0,
+    Hindge,
+    Slider,
+    ConeTwist
 };
 
 struct URHO3D_API BipedalConstraint
@@ -90,7 +106,7 @@ struct URHO3D_API BipedalConstraint
     //Connected node.
     BipedalBoneType connectedBone_{BipedalBoneType::Root};
     //Constraint type.
-    ConstraintType constraintType_{CONSTRAINT_POINT};
+    BipedalConstraintType constraintType_{BipedalConstraintType::Point};
     // Constraint position relative to current bone.
     Vector3 position_{Vector3::ZERO};
     // Constraint rotation relative to current bone.
@@ -99,23 +115,25 @@ struct URHO3D_API BipedalConstraint
     Vector2 highLimit_{Vector2::ZERO};
     // Constraint low limits.
     Vector2 lowLimit_{Vector2::ZERO};
-    // Disable collision between this and parent bone.
-    bool disableCollision_{true};
+    // Enable/disable collision between this and parent bone.
+    bool collision_{false};
 
-    static Quaternion RotationFromAxis(ConstraintType type, const Vector3& axis);
+    /// Force override of SerializeInBlock.
+    void SerializeInBlock(Archive& archive);
 };
-
-#endif
 
 struct URHO3D_API BipedalBone
 {
     unsigned boneIndex_{M_MAX_UNSIGNED};
-#ifdef URHO3D_PHYSICS
     ea::optional<BipedalRigidBody> ragdollBody_{};
     ea::optional<BipedalConstraint> ragdollConstraint_{};
-#endif
+
+    /// Force override of SerializeInBlock.
+    void SerializeInBlock(Archive& archive);
 
     void Setup(unsigned boneIndex);
+
+    operator bool() const { return boneIndex_ != M_MAX_UNSIGNED; }
 };
 
 /// Bone structure for a bipedal.
@@ -150,9 +168,15 @@ public:
 
     /// Autodetect bone structure from model's skeleton.
     void AutodetectBones(const Vector3& right = Vector3::RIGHT);
+    /// Autodetect ragdoll collision shapes.
+    void AutodetectRagdollShapes(const Vector3& right);
+    /// Autodetect ragdoll constraints.
+    void AutodetectRagdollConstraints(const Vector3& right);
 
     /// Set bone from skeleton bone.
     bool MapBone(BipedalBoneType type, unsigned boneIndex);
+    /// Set bone from skeleton bone by name.
+    bool MapBone(BipedalBoneType type, const ea::string& boneName);
 
     /// Returns true if bone is mapped.
     bool HasBone(BipedalBoneType type) const;
@@ -171,23 +195,31 @@ public:
 
     /// Get next existing parent bone for the provided bone type. Returns MaxBoneType if no parent bone is found.
     BipedalBoneType GetExistingParent(BipedalBoneType boneType);
-    /// Get next existing parent bone with rigid body for the provided bone type. Returns MaxBoneType if no parent bone is found.
+    /// Get next existing parent bone with rigid body for the provided bone type. Returns MaxBoneType if no parent bone
+    /// is found.
     BipedalBoneType GetParentBody(BipedalBoneType boneType);
 
-#ifdef URHO3D_PHYSICS
+    /// Get bipedal bone type enum names.
+    static const char* const* GetBipedalBoneTypeNames();
+    /// Get bipedal constraint type enum names.
+    static const char* const* GetBipedalConstraintTypeNames();
+    /// Get bipedal shape type enum names.
+    static const char* const* GetBipedalShapeTypeNames();
+
     /// Set ragdoll rigid body.
     void SetRagdollBody(BipedalBoneType type, const BipedalRigidBody& body);
     /// Set ragdoll rigid body constraint.
     void SetRagdollConstraint(BipedalBoneType type, const BipedalConstraint& constraint);
-#endif
 
 private:
-    /// Autodetect ragdoll.
-    void AutodetectRagdoll(const Vector3& right);
     /// Autodetect capsule shape for ragdoll ridgid body.
     void AutodetectCapsuleShape(BipedalBoneType pivot, BipedalBoneType target);
 
+    void BuildSpineHinge(BipedalBoneType spine, const Vector3& bindSpaceAxis);
     void BuildKneeHinge(BipedalBoneType lowerLeg, const Vector3& bindSpaceAxis);
+    void BuildLegConeTwist(BipedalBoneType pivot, BipedalBoneType lowerLeg, const Vector3& right);
+    void BuildHeadConeTwist(BipedalBoneType pivot, const Vector3& right);
+    //void BuildArmConeTwist(BipedalBoneType pivot, const Vector3& right);
 
     /// Bones by type.
     ea::array<BipedalBone, NUM_BONE_TYPES> bones_;

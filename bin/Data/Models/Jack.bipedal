@@ -1,3 +1,193 @@
 {
+	"bones": [
+		{
+			"key": "Hips",
+			"value": {
+				"index": 2,
+				"ragdollBody": {
+					"collisionShape": "Box",
+					"size": "0.3 0.2 0.25"
+				}
+			}
+		},
+		{
+			"key": "UpperChest",
+			"value": {
+				"index": 4,
+				"ragdollBody": {
+					"collisionShape": "Box",
+					"offsetPosition": "0.15 0 0",
+					"size": "0.35 0.2 0.3"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "Hips",
+					"constraintType": "Hinge",
+					"highLimit": "45 0",
+					"lowLimit": "-10 0"
+				}
+			}
+		},
+		{
+			"key": "Head",
+			"value": {
+				"index": 7,
+				"ragdollBody": {
+					"collisionShape": "Box",
+					"offsetPosition": "0.1 0 0",
+					"size": "0.2 0.2 0.2"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "UpperChest",
+					"constraintType": "ConeTwist",
+					"highLimit": "0 30",
+					"rotation": "-4.37114e-08 0 0 -1"
+				}
+			}
+		},
+		{
+			"key": "LeftUpperLeg",
+			"value": {
+				"index": 57,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.25 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.175 0.45 0.175"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "Hips",
+					"constraintType": "ConeTwist",
+					"highLimit": "45 45",
+					"rotation": "0.707107 -0 0.707107 0"
+				}
+			}
+		},
+		{
+			"key": "LeftLowerLeg",
+			"value": {
+				"index": 58,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.25 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.15 0.55 0.15"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "LeftUpperLeg",
+					"constraintType": "Hinge",
+					"highLimit": "90 0",
+					"rotation": "-4.37114e-08 0 -1 0"
+				}
+			}
+		},
+		{
+			"key": "RightUpperLeg",
+			"value": {
+				"index": 62,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.25 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.175 0.45 0.175"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "Hips",
+					"constraintType": "ConeTwist",
+					"highLimit": "45 45",
+					"rotation": "0.707107 -0 0.707107 0"
+				}
+			}
+		},
+		{
+			"key": "RightLowerLeg",
+			"value": {
+				"index": 63,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.25 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.15 0.55 0.15"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "RightUpperLeg",
+					"constraintType": "Hinge",
+					"highLimit": "90 0",
+					"rotation": "-4.37114e-08 0 -1 0"
+				}
+			}
+		},
+		{
+			"key": "LeftUpperArm",
+			"value": {
+				"index": 10,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.1 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.15 0.35 0.15"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "UpperChest",
+					"constraintType": "ConeTwist",
+					"highLimit": "45 45",
+					"rotation": "0.707107 0 0 -0.707107"
+				}
+			}
+		},
+		{
+			"key": "LeftForearm",
+			"value": {
+				"index": 11,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.2 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.125 0.4 0.125"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "LeftUpperArm",
+					"constraintType": "Hinge",
+					"highLimit": "90 0",
+					"rotation": "-4.37114e-08 0 -1 0"
+				}
+			}
+		},
+		{
+			"key": "RightUpperArm",
+			"value": {
+				"index": 34,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.1 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.15 0.35 0.15"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "UpperChest",
+					"constraintType": "ConeTwist",
+					"highLimit": "45 45",
+					"rotation": "0.707107 0 0 -0.707107"
+				}
+			}
+		},
+		{
+			"key": "RightForearm",
+			"value": {
+				"index": 35,
+				"ragdollBody": {
+					"collisionShape": "Capsule",
+					"offsetPosition": "0.2 0 0",
+					"offsetRotation": "0.707107 0 0 0.707107",
+					"size": "0.125 0.4 0.125"
+				},
+				"ragdollConstraint": {
+					"connectedBone": "RightUpperArm",
+					"constraintType": "Hinge",
+					"highLimit": "90 0",
+					"rotation": "-4.37114e-08 0 -1 0"
+				}
+			}
+		}
+	],
 	"model": "Model;Models/Jack.mdl"
 }

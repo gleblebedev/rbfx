@@ -26,6 +26,11 @@
 #include "../Project/Project.h"
 #include "../Project/ResourceEditorTab.h"
 
+#ifdef URHO3D_PHYSICS
+#include <Urho3D/Physics/CollisionShape.h>
+#include <Urho3D/Physics/Constraint.h>
+#endif
+
 #include <Urho3D/Graphics/AnimatedModel.h>
 #include <Urho3D/Graphics/Bipedal.h>
 #include <Urho3D/Graphics/Model.h>

@@ -376,8 +376,8 @@ void BipedalConstraint::SerializeInBlock(Archive& archive)
 void BipedalBone::SerializeInBlock(Archive& archive)
 {
     SerializeValue(archive, "index", boneIndex_);
-    SerializeValue(archive, "ragdollBody", ragdollBody_);
-    SerializeValue(archive, "ragdollConstraint", ragdollConstraint_);
+    SerializeValue<BipedalRigidBody>(archive, "ragdollBody", ragdollBody_);
+    SerializeValue<BipedalConstraint>(archive, "ragdollConstraint", ragdollConstraint_);
 }
 
 void BipedalBone::Setup(unsigned boneIndex)

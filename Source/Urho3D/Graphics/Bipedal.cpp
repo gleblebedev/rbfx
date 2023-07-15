@@ -924,7 +924,7 @@ BipedalBoneType Bipedal::GetExistingParent(BipedalBoneType boneType)
     }
 }
 
-inline BipedalBoneType Bipedal::GetParentBody(BipedalBoneType boneType)
+BipedalBoneType Bipedal::GetParentBody(BipedalBoneType boneType)
 {
     for (;;)
     {

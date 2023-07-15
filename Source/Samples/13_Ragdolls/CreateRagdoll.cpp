@@ -38,6 +38,32 @@ CreateRagdoll::CreateRagdoll(Context* context) :
 {
 }
 
+void CreateRagdoll::RegisterObject(Context* context)
+{
+    context->AddFactoryReflection<CreateRagdoll>();
+
+    URHO3D_MIXED_ACCESSOR_ATTRIBUTE("Bipedal", GetBipedalAttr, SetBipedalAttr, ResourceRef, ResourceRef(Bipedal::GetTypeStatic()), AM_DEFAULT);
+}
+
+void CreateRagdoll::SetBipedal(Bipedal* bipedal)
+{
+    if (bipedal == bipedal_)
+        return;
+
+    bipedal_ = bipedal;
+}
+
+void CreateRagdoll::SetBipedalAttr(const ResourceRef& value)
+{
+    auto* cache = GetSubsystem<ResourceCache>();
+    SetBipedal(cache->GetResource<Bipedal>(value.name_));
+}
+
+ResourceRef CreateRagdoll::GetBipedalAttr() const
+{
+    return GetResourceRef(bipedal_, Bipedal::GetTypeStatic());
+}
+
 void CreateRagdoll::OnNodeSet(Node* previousNode, Node* currentNode)
 {
     // If the node pointer is non-null, this component has been created into a scene node. Subscribe to physics collisions that
@@ -59,8 +85,7 @@ void CreateRagdoll::HandleNodeCollision(StringHash eventType, VariantMap& eventD
         node_->RemoveComponent<RigidBody>();
         node_->RemoveComponent<CollisionShape>();
         auto* model = GetComponent<AnimatedModel>();
-        auto bipedal = context_->GetSubsystem<ResourceCache>()->GetResource<Bipedal>("Models/Jack.bipedal");
-        bipedal->CreateRagdoll(model);
+        bipedal_->CreateRagdoll(model);
 
         //// Disable keyframe animation from all bones so that they will not interfere with the ragdoll
         //Skeleton& skeleton = model->GetSkeleton();

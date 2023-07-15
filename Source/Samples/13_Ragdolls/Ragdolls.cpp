@@ -23,6 +23,7 @@
 #include <Urho3D/Core/CoreEvents.h>
 #include <Urho3D/Engine/Engine.h>
 #include <Urho3D/Graphics/AnimatedModel.h>
+#include <Urho3D/Graphics/Bipedal.h>
 #include <Urho3D/Graphics/Camera.h>
 #include <Urho3D/Graphics/DebugRenderer.h>
 #include <Urho3D/Graphics/Graphics.h>
@@ -31,6 +32,7 @@
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Graphics/Renderer.h>
 #include <Urho3D/Graphics/Zone.h>
+#include <Urho3D/Input/FreeFlyController.h>
 #include <Urho3D/Input/Input.h>
 #include <Urho3D/IO/File.h>
 #include <Urho3D/IO/FileSystem.h>
@@ -42,7 +44,6 @@
 #include <Urho3D/UI/Font.h>
 #include <Urho3D/UI/Text.h>
 #include <Urho3D/UI/UI.h>
-#include <Urho3D/Input/FreeFlyController.h>
 
 #include "CreateRagdoll.h"
 #include "Ragdolls.h"
@@ -55,7 +56,7 @@ Ragdolls::Ragdolls(Context* context)
 {
     // Register an object factory for our custom CreateRagdoll component so that we can create them to scene nodes
     if (!context->IsReflected<CreateRagdoll>())
-        context->AddFactoryReflection<CreateRagdoll>();
+        CreateRagdoll::RegisterObject(context);
 }
 
 void Ragdolls::Start()
@@ -161,7 +162,8 @@ void Ragdolls::CreateScene()
             shape->SetCapsule(0.7f, 2.0f, Vector3(0.0f, 1.0f, 0.0f));
 
             // Create a custom component that reacts to collisions and creates the ragdoll
-            modelNode->CreateComponent<CreateRagdoll>();
+            CreateRagdoll* createRagdoll = modelNode->CreateComponent<CreateRagdoll>();
+            createRagdoll->SetBipedal(context_->GetSubsystem<ResourceCache>()->GetResource<Bipedal>("Models/Jack.bipedal"));
         }
     }
 

@@ -95,13 +95,7 @@ void Quaternion::FromRotationTo(const Vector3& start, const Vector3& end)
 
 void Quaternion::FromAxes(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis)
 {
-    Matrix3 matrix(
-        xAxis.x_, yAxis.x_, zAxis.x_,
-        xAxis.y_, yAxis.y_, zAxis.y_,
-        xAxis.z_, yAxis.z_, zAxis.z_
-    );
-
-    FromRotationMatrix(matrix);
+    FromRotationMatrix(Matrix3{xAxis, yAxis, zAxis});
 }
 
 void Quaternion::FromRotationMatrix(const Matrix3& matrix)

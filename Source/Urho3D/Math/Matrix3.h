@@ -79,9 +79,15 @@ public:
     }
 
     /// Construct from an angle (in degrees) and axis.
-    Matrix3(float angle, const Vector3& axis) noexcept
+    explicit Matrix3(float angle, const Vector3& axis) noexcept
     {
         FromAngleAxis(angle, axis);
+    }
+
+    /// Define from orthonormal axes.
+    explicit Matrix3(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis)
+    {
+        FromAxes(xAxis, yAxis, zAxis);
     }
 
     /// Assign from another matrix.
@@ -181,6 +187,9 @@ public:
 
     /// Define from an angle (in degrees) and axis.
     void FromAngleAxis(float angle, const Vector3& axis);
+
+    /// Define from orthonormal axes.
+    void FromAxes(const Vector3& xAxis, const Vector3& yAxis, const Vector3& zAxis);
 
     /// Set scaling elements.
     void SetScale(const Vector3& scale)

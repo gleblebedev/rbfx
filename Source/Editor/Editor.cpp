@@ -25,6 +25,7 @@
 #include "Assets/ModelImporter.h"
 #include "Foundation/ActionViewTab.h"
 #include "Foundation/AnimationViewTab.h"
+#include "Foundation/BipedalViewTab.h"
 #include "Foundation/ConsoleTab.h"
 #include "Foundation/ConcurrentAssetProcessing.h"
 #include "Foundation/GameViewTab.h"
@@ -110,6 +111,7 @@ Editor::Editor(Context* context)
     editorPluginManager_->AddPlugin("Foundation.ModelView", &Foundation_ModelViewTab);
     editorPluginManager_->AddPlugin("Foundation.ActionView", &Foundation_ActionViewTab);
     editorPluginManager_->AddPlugin("Foundation.AnimationView", &Foundation_AnimationViewTab);
+    editorPluginManager_->AddPlugin("Foundation.BipedalView", &Foundation_BipedalViewTab);
     editorPluginManager_->AddPlugin("Foundation.Console", &Foundation_ConsoleTab);
     editorPluginManager_->AddPlugin("Foundation.ResourceBrowser", &Foundation_ResourceBrowserTab);
     editorPluginManager_->AddPlugin("Foundation.HierarchyBrowser", &Foundation_HierarchyBrowserTab);

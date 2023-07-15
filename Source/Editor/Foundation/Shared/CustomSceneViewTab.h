@@ -53,7 +53,9 @@ public:
     Scene* GetScene() const { return preview_ ? preview_->GetScene() : nullptr; }
 
 protected:
+    virtual void RenderDebugGeometry(DebugRenderer* debugRenderer);
     virtual void RenderTitle();
+
 
     const SharedPtr<SceneWidget> preview_;
     SharedPtr<CameraController> cameraController_;

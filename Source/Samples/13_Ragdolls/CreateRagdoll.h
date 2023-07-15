@@ -35,6 +35,17 @@ class CreateRagdoll : public Component
 public:
     /// Construct.
     explicit CreateRagdoll(Context* context);
+    /// Register object factory and attributes.
+    static void RegisterObject(Context* context);
+
+    /// Set Bipedal.
+    void SetBipedal(Bipedal* bipedal);
+    /// Return Bipedal.
+    Bipedal* GetBipedal() const { return bipedal_; }
+    /// Set Bipedal attribute.
+    void SetBipedalAttr(const ResourceRef& value);
+    /// Return Bipedal attribute.
+    ResourceRef GetBipedalAttr() const;
 
 protected:
     /// Handle node being assigned.
@@ -47,4 +58,7 @@ private:
     void CreateRagdollBone(const ea::string& boneName, ShapeType type, const Vector3& size, const Vector3& position, const Quaternion& rotation);
     /// Join two bones with a Constraint component.
     void CreateRagdollConstraint(const ea::string& boneName, const ea::string& parentName, ConstraintType type, const Vector3& axis, const Vector3& parentAxis, const Vector2& highLimit, const Vector2& lowLimit, bool disableCollision = true);
+
+    /// Model.
+    SharedPtr<Bipedal> bipedal_;
 };

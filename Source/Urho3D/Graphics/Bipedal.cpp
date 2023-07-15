@@ -30,6 +30,7 @@
 #endif
 
 #include <EASTL/queue.h>
+#include <EASTL/sort.h>
 
 namespace Urho3D
 {

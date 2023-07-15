@@ -750,6 +750,7 @@ public:
 %include "Urho3D/Graphics/Renderer.h"
 %include "Urho3D/Graphics/Graphics.h"
 %include "Urho3D/Graphics/OutlineGroup.h"
+%include "Urho3D/Graphics/Bipedal.h"
 
 %include "Urho3D/Particles/ParticleGraphPin.h"
 %include "Urho3D/Particles/ParticleGraphNode.h"

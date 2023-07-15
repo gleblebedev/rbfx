@@ -305,7 +305,7 @@ void SerializeOptionalValue(Archive& archive, const char* name, T& value, const 
 }
 
 /// Serialize optional object with standard interface as value.
-template <class T, std::enable_if_t<IsObjectSerializableInBlock<T>::value, int> = 0>
+template <class T>
 inline void SerializeValue(Archive& archive, const char* name, ea::optional<T>& value)
 {
     const bool loading = archive.IsInput();
@@ -321,7 +321,10 @@ inline void SerializeValue(Archive& archive, const char* name, ea::optional<T>& 
             if (value.has_value())
                 SerializeValue(archive, name, value.value());
             else
-                SerializeValue(archive, name, T{});
+            {
+                T tmp;
+                SerializeValue(archive, name, tmp);
+            }
         }
         return;
     }

@@ -551,6 +551,8 @@ public:
 %include "Urho3D/Scene/ShakeComponent.h"
 
 // --------------------------------------- Extra components ---------------------------------------
+%ignore Urho3D::InputMap::GetMappings;
+
 %include "Urho3D/Input/FreeFlyController.h"
 %include "Urho3D/Input/MoveAndOrbitComponent.h"
 %include "Urho3D/Input/MoveAndOrbitController.h"

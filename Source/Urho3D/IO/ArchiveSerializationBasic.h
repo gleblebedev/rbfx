@@ -150,14 +150,14 @@ template <> struct EnumStringCaster<unsigned>
 template <class T> struct EnumStringSafeCaster
 {
     using UnderlyingInteger = std::underlying_type_t<T>;
-    ea::span<const char*> enumConstants_{};
+    ea::span<ea::string_view> enumConstants_{};
 
     ea::string ToArchive(Archive& archive, const char* name, const T& value) const
     {
         UnderlyingInteger index = static_cast<UnderlyingInteger>(value);
         if (index < 0 || index >= enumConstants_.size())
             return ea::to_string(index);
-        return enumConstants_[index];
+        return ea::string{enumConstants_[index]};
     }
 
     T FromArchive(Archive& archive, const char* name, const ea::string& value) const
@@ -176,9 +176,9 @@ template <class T> struct EnumStringSafeCaster
 
 template <> struct EnumStringSafeCaster<unsigned>
 {
-    ea::span<const char*> enumConstants_{};
+    ea::span<ea::string_view> enumConstants_{};
 
-    ea::string ToArchive(Archive& archive, const char* name, const unsigned& value) const
+    ea::string_view ToArchive(Archive& archive, const char* name, const unsigned& value) const
     {
         if (value >= enumConstants_.size())
             return ea::to_string(value);
@@ -188,7 +188,7 @@ template <> struct EnumStringSafeCaster<unsigned>
     unsigned FromArchive(Archive& archive, const char* name, const ea::string& value) const
     {
         constexpr unsigned invalidIndex = ea::numeric_limits<unsigned>::max();
-        unsigned index = GetStringListIndex(value.c_str(), enumConstants_, invalidIndex);
+        unsigned index = GetStringListIndex(value, enumConstants_, invalidIndex);
         if (index == invalidIndex)
         {
             char* end;
@@ -316,12 +316,13 @@ void SerializeEnum(Archive& archive, const char* name, EnumType& value, const ch
 
 /// Serialize enum as integer or as string.
 template <class EnumType, class UnderlyingInteger = std::underlying_type_t<EnumType>>
-void SerializeEnum(Archive& archive, const char* name, EnumType& value, const ea::span<const char*> enumConstants)
+void SerializeEnum(Archive& archive, const char* name, EnumType& value, const ea::span<ea::string_view> enumConstants)
 {
     if (!archive.IsHumanReadable())
         SerializeValueAsType<UnderlyingInteger>(archive, name, value);
     else
-        SerializeValueAsType<ea::string>(archive, name, value, Detail::EnumStringSafeCaster<EnumType>{enumConstants});
+        SerializeValueAsType<ea::string>(
+            archive, name, value, Detail::EnumStringSafeCaster<EnumType>{enumConstants});
 }
 
 /// Serialize optional element or block.

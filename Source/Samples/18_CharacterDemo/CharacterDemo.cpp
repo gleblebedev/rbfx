@@ -295,7 +295,6 @@ void CharacterDemo::Update(float timeStep)
             // Switch between 1st and 3rd person
             if (input->GetKeyPress(KEY_F))
                 firstPerson_ = !firstPerson_;
-
             // Check for loading / saving the scene
             if (input->GetKeyPress(KEY_F5))
             {

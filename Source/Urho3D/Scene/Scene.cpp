@@ -20,13 +20,14 @@
 // THE SOFTWARE.
 //
 
-#include "../Precompiled.h"
+#include "Urho3D/Precompiled.h"
+
+#include "Urho3D/Scene/Scene.h"
 
 #include "Urho3D/Core/Context.h"
 #include "Urho3D/Core/CoreEvents.h"
 #include "Urho3D/Core/Profiler.h"
 #include "Urho3D/Core/WorkQueue.h"
-#include "Urho3D/DebugNew.h"
 #include "Urho3D/Graphics/Texture2D.h"
 #include "Urho3D/IO/Archive.h"
 #include "Urho3D/IO/Log.h"
@@ -41,13 +42,14 @@
 #include "Urho3D/Scene/ObjectAnimation.h"
 #include "Urho3D/Scene/PrefabReference.h"
 #include "Urho3D/Scene/PrefabResource.h"
-#include "Urho3D/Scene/Scene.h"
 #include "Urho3D/Scene/SceneEvents.h"
 #include "Urho3D/Scene/SceneResource.h"
 #include "Urho3D/Scene/ShakeComponent.h"
 #include "Urho3D/Scene/SplinePath.h"
 #include "Urho3D/Scene/UnknownComponent.h"
 #include "Urho3D/Scene/ValueAnimation.h"
+
+#include "Urho3D/DebugNew.h"
 
 namespace Urho3D
 {
@@ -143,11 +145,16 @@ bool Scene::Load(Deserializer& source)
 
     StopAsyncLoading();
 
-    // Check ID
-    if (source.ReadFileID() != "USCN")
+    constexpr BinaryMagic sceneBinaryMagic{{'U', 'S', 'C', 'N'}};
+
+    const InternalResourceFormat format = PeekResourceFormat(source, sceneBinaryMagic);
+
+    switch (format)
     {
-        URHO3D_LOGERROR(source.GetName() + " is not a valid scene file");
-        return false;
+    case InternalResourceFormat::Json: return LoadJSON(source);
+    case InternalResourceFormat::Xml: return LoadXML(source);
+    case InternalResourceFormat::Binary: break; // Fall through to binary load.
+    default: URHO3D_LOGERROR(source.GetName() + " is not a valid scene file"); return false;
     }
 
     URHO3D_LOGINFO("Loading scene from " + source.GetName());

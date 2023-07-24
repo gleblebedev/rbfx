@@ -38,14 +38,9 @@ vec4 WorldToClipSpace(vec3 worldPos)
 }
 
 /// Clip vertex if needed.
-#if defined(URHO3D_CLIP_PLANE) && !defined(GL_ES)
-    #ifdef GL3
-        #define ApplyClipPlane(clipPos) \
-            gl_ClipDistance[0] = dot(cClipPlane, clipPos)
-    #else
-        #define ApplyClipPlane(clipPos) \
-            gl_ClipVertex = clipPos
-    #endif
+#if defined(URHO3D_CLIP_PLANE) && defined(URHO3D_FEATURE_CLIP_DISTANCE)
+    #define ApplyClipPlane(clipPos) \
+        gl_ClipDistance[0] = dot(cClipPlane, clipPos)
 #else
     #define ApplyClipPlane(clipPos)
 #endif
@@ -94,7 +89,7 @@ mat4 GetModelMatrix()
 
 /// Apply normal offset to position in world space.
 #ifdef URHO3D_SHADOW_NORMAL_OFFSET
-    void ApplyShadowNormalOffset(inout vec4 position, const half3 normal)
+    void ApplyShadowNormalOffset(inout vec4 position, half3 normal)
     {
         #ifdef URHO3D_LIGHT_DIRECTIONAL
             half3 lightDir = cLightDir;

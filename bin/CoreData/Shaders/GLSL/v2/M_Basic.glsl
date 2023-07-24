@@ -6,6 +6,7 @@
 
 #include "_Uniforms.glsl"
 #include "_Samplers.glsl"
+#include "_SamplerUtils.glsl"
 #include "_VertexLayout.glsl"
 
 #include "_VertexTransform.glsl"
@@ -45,10 +46,10 @@ void main()
 
     #ifdef URHO3D_MATERIAL_HAS_DIFFUSE
         #ifdef ALPHAMAP
-            half alphaInput = DecodeAlphaMap(texture2D(sDiffMap, vTexCoord));
+            half alphaInput = texture(sDiffMap, vTexCoord).r;
             diffColor.a *= alphaInput;
         #else
-            half4 diffInput = texture2D(sDiffMap, vTexCoord);
+            half4 diffInput = texture(sDiffMap, vTexCoord);
             #ifdef ALPHAMASK
                 if (diffInput.a < 0.5)
                     discard;

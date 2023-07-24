@@ -55,7 +55,7 @@ void main()
     #endif
 
     #ifdef DIFFMAP
-        vec4 diffInput = texture2D(sDiffMap, vTexCoord);
+        vec4 diffInput = texture(sDiffMap, vTexCoord);
         #ifdef ALPHAMASK
             if (diffInput.a < 0.5)
                 discard;
@@ -63,11 +63,7 @@ void main()
         diffColor *= diffInput;
     #endif
     #ifdef ALPHAMAP
-        #if defined(GL3) && !defined(D3D11)
-            float alphaInput = texture2D(sDiffMap, vTexCoord).r;
-        #else
-            float alphaInput = texture2D(sDiffMap, vTexCoord).a;
-        #endif
+        float alphaInput = texture(sDiffMap, vTexCoord).r;
         diffColor.a *= alphaInput;
     #endif
 

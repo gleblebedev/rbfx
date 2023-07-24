@@ -14,7 +14,7 @@
     {
         half3 ambientLighting = vAmbientAndVertexLigthing;
     #ifdef URHO3D_HAS_LIGHTMAP
-        ambientLighting += GammaToLightSpace(2.0 * texture2D(sEmissiveMap, vTexCoord2).rgb);
+        ambientLighting += GammaToLightSpace(2.0 * texture(sEmissiveMap, vTexCoord2).rgb);
     #endif
         return ambientLighting;
     }
@@ -50,7 +50,7 @@
     half3 _GetFragmentNormalEx(out half3 normalInTangentSpace)
     {
     #ifdef URHO3D_NORMAL_MAPPING
-        normalInTangentSpace = DecodeNormal(texture2D(sNormalMap, vTexCoord));
+        normalInTangentSpace = DecodeNormal(texture(sNormalMap, vTexCoord));
         mediump mat3 tbn = mat3(vTangent.xyz, vec3(vBitangentXY.xy, vTangent.w), vNormal);
         half3 normal = normalize(tbn * normalInTangentSpace);
     #else
@@ -90,8 +90,8 @@
 /// out: SurfaceData.oneMinusReflectivity
 /// out: SurfaceData.roughness
 /// out: SurfaceData.occlusion
-#if (URHO3D_SPECULAR == 2) && defined(URHO3D_FEATURE_DERIVATIVES) && defined(URHO3D_PHYSICAL_MATERIAL)
-    half _GetAdjustedFragmentRoughness(const half roughness, const half3 normal)
+#if (URHO3D_SPECULAR == 2) && defined(URHO3D_PHYSICAL_MATERIAL)
+    half _GetAdjustedFragmentRoughness(half roughness, half3 normal)
     {
         half3 dNdx = dFdx(normal);
         half3 dNdy = dFdy(normal);
@@ -115,7 +115,7 @@
     void _GetFragmentMetallicRoughnessOcclusion(out half oneMinusReflectivity, out half roughness, out half occlusion)
     {
     #ifdef URHO3D_MATERIAL_HAS_SPECULAR
-        half3 rmo = texture2D(sSpecMap, vTexCoord).rga;
+        half3 rmo = texture(sSpecMap, vTexCoord).rga;
         rmo.xy *= vec2(cRoughness, cMetallic);
     #else
         half3 rmo = vec3(cRoughness, cMetallic, 1.0);
@@ -141,7 +141,7 @@
         roughness = 0.5;
 
     #if !defined(URHO3D_HAS_LIGHTMAP) && defined(AO) && defined(URHO3D_MATERIAL_HAS_EMISSIVE)
-        occlusion = texture2D(sEmissiveMap, vTexCoord).r;
+        occlusion = texture(sEmissiveMap, vTexCoord).r;
     #else
         occlusion = 1.0;
     #endif
@@ -155,10 +155,10 @@
 /// Fill surface albedo and specular.
 /// out: SurfaceData.albedo
 /// out: SurfaceData.specular
-void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albedo, out half3 specular)
+void _GetFragmentAlbedoSpecular(half oneMinusReflectivity, out half4 albedo, out half3 specular)
 {
 #ifdef URHO3D_MATERIAL_HAS_DIFFUSE
-    half4 albedoInput = texture2D(sDiffMap, vTexCoord);
+    half4 albedoInput = texture(sDiffMap, vTexCoord);
     #ifdef ALPHAMASK
         if (albedoInput.a < cAlphaCutoff)
             discard;
@@ -178,7 +178,7 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
     albedo.rgb *= oneMinusReflectivity;
 #else
     #ifdef URHO3D_MATERIAL_HAS_SPECULAR
-        specular = GammaToLightSpace(cMatSpecColor.rgb * texture2D(sSpecMap, vTexCoord).rgb);
+        specular = GammaToLightSpace(cMatSpecColor.rgb * texture(sSpecMap, vTexCoord).rgb);
     #else
         specular = GammaToLightSpace(cMatSpecColor.rgb);
     #endif
@@ -201,7 +201,7 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
     #ifndef URHO3D_HAS_LIGHTMAP
         #if defined(URHO3D_MATERIAL_HAS_EMISSIVE) && !defined(AO)
             #define FillSurfaceEmission(surfaceData) \
-                surfaceData.emission = GammaToLightSpace(cMatEmissiveColor) * EmissiveMap_ToLight(texture2D(sEmissiveMap, vTexCoord).rgb)
+                surfaceData.emission = GammaToLightSpace(cMatEmissiveColor) * EmissiveMap_ToLight(texture(sEmissiveMap, vTexCoord).rgb)
         #else
             #define FillSurfaceEmission(surfaceData) \
                 surfaceData.emission = GammaToLightSpace(cMatEmissiveColor)
@@ -240,9 +240,9 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
 
         /// Planar reflections don't support reflection blending
         void FillSurfaceReflectionColorPlanar(out half4 reflectionColor[URHO3D_NUM_REFLECTIONS],
-            const vec2 screenPos, const half3 normal)
+            vec2 screenPos, half3 normal)
         {
-            reflectionColor[0] = texture2D(sEnvMap, GetPlanarReflectionUV(screenPos, vec4(normal, 1.0)));
+            reflectionColor[0] = texture(sEnvMap, GetPlanarReflectionUV(screenPos, vec4(normal, 1.0)));
         }
 
         #define FillSurfaceReflectionColor(surfaceData) \
@@ -254,9 +254,9 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
         void FillSurfaceReflectionColorCubeSimple(out half4 reflectionColor[URHO3D_NUM_REFLECTIONS])
         {
             #ifdef URHO3D_BLEND_REFLECTIONS
-                reflectionColor[1] = textureCube(sZoneCubeMap, vReflectionVec);
+                reflectionColor[1] = texture(sZoneCubeMap, vReflectionVec);
             #endif
-            reflectionColor[0] = textureCube(sEnvCubeMap, vReflectionVec);
+            reflectionColor[0] = texture(sEnvMap, vReflectionVec);
         }
 
         #define FillSurfaceReflectionColor(surfaceData) \
@@ -266,17 +266,17 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
 
         /// Best quality reflections with optional LOD sampling
         half4 SampleCubeReflectionColor(in samplerCube source, \
-            half3 reflectionVec, const half roughness, const half roughnessFactor)
+            half3 reflectionVec, half roughness, half roughnessFactor)
         {
         #ifdef URHO3D_BLUR_REFLECTION
-            return textureCubeLod(source, reflectionVec, roughness * roughnessFactor);
+            return textureLod(source, reflectionVec, roughness * roughnessFactor);
         #else
-            return textureCube(source, reflectionVec);
+            return texture(source, reflectionVec);
         #endif
         }
 
         void FillSurfaceReflectionColorCube(out half4 reflectionColor[URHO3D_NUM_REFLECTIONS],
-            const half3 normal, const half3 eyeVec, const half roughness)
+            half3 normal, half3 eyeVec, half roughness)
         {
             half3 reflectionVec0 = reflect(-eyeVec, normal);
 
@@ -294,7 +294,7 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
                 reflectionVec0 = ApplyBoxProjection(reflectionVec0, vWorldPos,
                     cCubemapCenter0, cProjectionBoxMin0.xyz, cProjectionBoxMax0.xyz);
             #endif
-            reflectionColor[0] = SampleCubeReflectionColor(sEnvCubeMap, reflectionVec0, roughness, cRoughnessToLODFactor0);
+            reflectionColor[0] = SampleCubeReflectionColor(sEnvMap, reflectionVec0, roughness, cRoughnessToLODFactor0);
         }
 
         #define FillSurfaceReflectionColor(surfaceData) \
@@ -310,7 +310,7 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
 /// out: SurfaceData.backgroundColor
 #ifdef URHO3D_SURFACE_NEED_BACKGROUND_COLOR
     #define FillSurfaceBackgroundColor(surfaceData) \
-        surfaceData.backgroundColor = texture2D(sEmissiveMap, surfaceData.screenPos).rgb
+        surfaceData.backgroundColor = texture(sEmissiveMap, surfaceData.screenPos).rgb
 #else
     #define FillSurfaceBackgroundColor(surfaceData)
 #endif
@@ -319,7 +319,7 @@ void _GetFragmentAlbedoSpecular(const half oneMinusReflectivity, out half4 albed
 /// out: SurfaceData.backgroundDepth
 #ifdef URHO3D_SURFACE_NEED_BACKGROUND_DEPTH
     #define FillSurfaceBackgroundDepth(surfaceData) \
-        surfaceData.backgroundDepth = ReconstructDepth(texture2D(sDepthBuffer, surfaceData.screenPos).r)
+        surfaceData.backgroundDepth = ReconstructDepth(texture(sDepthBuffer, surfaceData.screenPos).r)
 #else
     #define FillSurfaceBackgroundDepth(surfaceData)
 #endif

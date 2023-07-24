@@ -8,7 +8,7 @@ VERTEX_OUTPUT_HIGHP(vec2 vTexCoord)
 #endif
 
 #ifdef URHO3D_VERTEX_SHADER
-void FillVertexOutputs(const VertexTransform vertexTransform)
+void FillVertexOutputs(VertexTransform vertexTransform)
 {
     gl_Position = WorldToClipSpace(vertexTransform.position.xyz);
     ApplyClipPlane(gl_Position);
@@ -25,14 +25,14 @@ void FillVertexOutputs(const VertexTransform vertexTransform)
 void DefaultPixelShader()
 {
 #ifdef ALPHAMASK
-    fixed alpha = texture2D(sDiffMap, vTexCoord.xy).a;
+    fixed alpha = texture(sDiffMap, vTexCoord.xy).a;
     if (alpha < 0.5)
         discard;
 #endif
 
 #ifdef URHO3D_VARIANCE_SHADOW_MAP
     float depth = vDepth.x / vDepth.y;
-    #ifndef D3D11
+    #ifndef URHO3D_OPENGL
         // Remap from [-1, 1] to [0, 1] for OpenGL
         depth = depth * 0.5 + 0.5;
     #endif

@@ -36,7 +36,6 @@
 #include "../Graphics/Technique.h"
 #include "../Graphics/Texture2D.h"
 #include "../Graphics/VertexBuffer.h"
-#include "../Graphics/View.h"
 #include "../IO/Log.h"
 #include "../RenderPipeline/RenderPipeline.h"
 #include "../Scene/Node.h"
@@ -145,7 +144,7 @@ void Renderer2D::UpdateBatchesDelayed(const FrameInfo& frame)
         bool largeIndices = (indexCount * 4 / 6) > 0xffff;
         indexBuffer_->SetSize(indexCount, largeIndices);
 
-        void* buffer = indexBuffer_->Lock(0, indexCount, true);
+        void* buffer = indexBuffer_->Map();
         if (buffer)
         {
             unsigned quadCount = indexCount / 6;
@@ -180,7 +179,7 @@ void Renderer2D::UpdateBatchesDelayed(const FrameInfo& frame)
                 }
             }
 
-            indexBuffer_->Unlock();
+            indexBuffer_->Unmap();
         }
         else
         {
@@ -196,12 +195,14 @@ void Renderer2D::UpdateBatchesDelayed(const FrameInfo& frame)
     {
         unsigned vertexCount = viewBatchInfo.vertexCount_;
         VertexBuffer* vertexBuffer = viewBatchInfo.vertexBuffer_;
+        vertexBuffer->SetDebugName("Renderer2D Batches");
+
         if (vertexBuffer->GetVertexCount() < vertexCount)
             vertexBuffer->SetSize(vertexCount, MASK_VERTEX2D, true);
 
         if (vertexCount)
         {
-            auto* dest = reinterpret_cast<Vertex2D*>(vertexBuffer->Lock(0, vertexCount, true));
+            auto* dest = reinterpret_cast<Vertex2D*>(vertexBuffer->Map());
             if (dest)
             {
                 const ea::vector<const SourceBatch2D*>& sourceBatches = viewBatchInfo.sourceBatches_;
@@ -213,7 +214,7 @@ void Renderer2D::UpdateBatchesDelayed(const FrameInfo& frame)
                     dest += vertices.size();
                 }
 
-                vertexBuffer->Unlock();
+                vertexBuffer->Unmap();
             }
             else
                 URHO3D_LOGERROR("Failed to lock vertex buffer");
@@ -311,9 +312,8 @@ void Renderer2D::HandleBeginViewUpdate(StringHash eventType, VariantMap& eventDa
     if (GetScene() != eventData[P_SCENE].GetPtr())
         return;
 
-    auto view = static_cast<View*>(eventData[P_VIEW].GetPtr());
     auto renderPipelineView = static_cast<RenderPipelineView*>(eventData[P_RENDERPIPELINEVIEW].GetPtr());
-    frame_ = renderPipelineView ? renderPipelineView->GetFrameInfo() : view->GetFrameInfo();
+    frame_ = renderPipelineView->GetFrameInfo();
 
     URHO3D_PROFILE("UpdateRenderer2D");
 

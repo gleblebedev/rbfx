@@ -48,7 +48,6 @@
 // #define URHO3D_DISABLE_SPECULAR_SAMPLING
 // #define URHO3D_DISABLE_EMISSIVE_SAMPLING
 
-
 /// =================================== Material defines ===================================
 
 /// Whether to disable all lighting calculation.

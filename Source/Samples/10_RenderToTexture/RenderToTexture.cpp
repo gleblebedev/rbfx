@@ -95,7 +95,7 @@ void RenderToTexture::CreateScene()
         for (unsigned i = 0; i < NUM_OBJECTS; ++i)
         {
             Node* boxNode = rttScene_->CreateChild("Box");
-            boxNode->SetPosition(Vector3(Random(200.0f) - 100.0f, Random(200.0f) - 100.0f, Random(200.0f) - 100.0f));
+            boxNode->SetPosition(Vector3(Random(200.0f) - 100.0f, Random(100.0f), Random(200.0f) - 100.0f));
             // Orient using random pitch, yaw and roll Euler angles
             boxNode->SetRotation(Quaternion(Random(360.0f), Random(360.0f), Random(360.0f)));
             auto* boxObject = boxNode->CreateComponent<StaticModel>();
@@ -175,7 +175,7 @@ void RenderToTexture::CreateScene()
 
             // Create a renderable texture (1024x768, RGB format), enable bilinear filtering on it
             SharedPtr<Texture2D> renderTexture(new Texture2D(context_));
-            renderTexture->SetSize(1024, 768, Graphics::GetRGBFormat(), TEXTURE_RENDERTARGET);
+            renderTexture->SetSize(1024, 768, TextureFormat::TEX_FORMAT_RGBA8_UNORM, TextureFlag::BindRenderTarget, 4);
             renderTexture->SetFilterMode(FILTER_BILINEAR);
 
             // Create a new material from scratch, use the diffuse unlit technique, assign the render texture

@@ -2195,7 +2195,7 @@ private:
             "wrap",
             "mirror",
             "clamp",
-            "border"
+            "", // border is not supported
         };
 
         static const ea::string filterModeNames[] =

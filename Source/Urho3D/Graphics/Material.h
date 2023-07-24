@@ -53,7 +53,6 @@ static const char* textureUnitNames[] =
     "specular",
     "emissive",
     "environment",
-#ifdef DESKTOP_GRAPHICS
     "volume",
     "custom1",
     "custom2",
@@ -66,12 +65,6 @@ static const char* textureUnitNames[] =
     "light",
     "zone",
     nullptr
-#else
-    "lightramp",
-    "lightshape",
-    "shadowmap",
-    nullptr
-#endif
 };
 
 static const char* cullModeNames[] =
@@ -345,6 +338,9 @@ public:
     static ea::string GetTextureUnitName(TextureUnit unit);
     /// Parse a shader parameter value from a string. Retunrs either a bool, a float, or a 2 to 4-component vector.
     static Variant ParseShaderParameterValue(const ea::string& value);
+
+    /// Return shader resource name for given texture unit.
+    static StringHash TextureUnitToShaderResource(TextureUnit unit);
 
 private:
     /// Helper function for loading JSON files.

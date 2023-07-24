@@ -23,7 +23,6 @@
 #include "../Precompiled.h"
 
 #include "../Graphics/Graphics.h"
-#include "../Graphics/GraphicsImpl.h"
 #include "../Graphics/Renderer.h"
 #include "../IO/Log.h"
 #include "../RenderPipeline/CameraProcessor.h"
@@ -53,8 +52,6 @@ int GetTextureColorSpaceHint(bool linearInput, bool srgbTexture)
 ShaderProgramCompositor::ShaderProgramCompositor(Context* context)
     : Object(context)
 {
-    auto graphics = GetSubsystem<Graphics>();
-    constantBuffersSupported_ = graphics->GetCaps().constantBuffersSupported_;
 }
 
 void ShaderProgramCompositor::SetSettings(const ShaderProgramCompositorSettings& settings)
@@ -131,9 +128,6 @@ void ShaderProgramCompositor::SetupShaders(ShaderProgramDesc& result, Pass* pass
 void ShaderProgramCompositor::ApplyCommonDefines(ShaderProgramDesc& result,
     DrawableProcessorPassFlags flags, Pass* pass) const
 {
-    if (constantBuffersSupported_)
-        result.AddCommonShaderDefines("URHO3D_USE_CBUFFERS");
-
     if (isCameraReversed_)
         result.AddCommonShaderDefines("URHO3D_CAMERA_REVERSED");
 
@@ -195,6 +189,9 @@ void ShaderProgramCompositor::ApplyGeometryVertexDefines(ShaderProgramDesc& resu
         result.AddShaderDefines(VS, geometryDefines[geometryTypeIndex]);
     else
         result.AddShaderDefines(VS, Format("URHO3D_GEOMETRY_CUSTOM={} ", geometryTypeIndex));
+
+    if (geometryType == GEOM_SKINNED)
+        result.AddShaderDefines(VS, Format("URHO3D_MAXBONES={} ", Graphics::GetMaxBones()));
 }
 
 void ShaderProgramCompositor::ApplyPixelLightPixelAndCommonDefines(ShaderProgramDesc& result,
@@ -298,12 +295,8 @@ void ShaderProgramCompositor::ApplyAmbientLightingVertexAndCommonDefinesForUserP
     if (drawable->GetGlobalIlluminationType() == GlobalIlluminationType::UseLightMap)
         result.AddCommonShaderDefines("URHO3D_HAS_LIGHTMAP");
 
-#ifdef DESKTOP_GRAPHICS
-#ifndef GL_ES_VERSION_2_0
     if (drawable->GetReflectionMode() >= ReflectionMode::BlendProbes)
         result.AddCommonShaderDefines("URHO3D_BLEND_REFLECTIONS");
-#endif
-#endif
 
     static const ea::string ambientModeDefines[] = {
         "URHO3D_AMBIENT_CONSTANT ",

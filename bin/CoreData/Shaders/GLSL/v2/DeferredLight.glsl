@@ -5,6 +5,7 @@
 #include "_VertexScreenPos.glsl"
 #include "_GammaCorrection.glsl"
 #include "_Samplers.glsl"
+#include "_SamplerUtils.glsl"
 #include "_DirectLighting.glsl"
 #include "_Shadow.glsl"
 #include "_Fog.glsl"
@@ -48,7 +49,7 @@ void main()
     #ifdef URHO3D_PHYSICAL_MATERIAL
         half roughness = specularInput.a;
     #else
-        half specularPower = (1.0 - specularInput.a) * 255;
+        half specularPower = (1.0 - specularInput.a) * 255.0;
     #endif
 
     DirectLightData lightData = GetDeferredDirectLightData(worldPos, depth);

@@ -45,7 +45,9 @@ class URHO3D_API AnimationParameters
 public:
     AnimationParameters() = default;
     explicit AnimationParameters(Animation* animation);
+    AnimationParameters(Animation* animation, float minTime, float maxTime);
     AnimationParameters(Context* context, const ea::string& animationName);
+    AnimationParameters(Context* context, const ea::string& animationName, float minTime, float maxTime);
 
     /// Helper utility to fade animation out and remove it later.
     bool RemoveDelayed(float fadeTime);
@@ -76,7 +78,7 @@ public:
     /// Time operations.
     /// @{
     float GetTime() const { return time_.Value(); }
-    void SetTime(float time);
+    void SetTime(float time) { time_.Set(time); }
     WrappedScalarRange<float> Update(float scaledTimeStep);
     /// @}
 
@@ -123,6 +125,7 @@ public:
 
     /// Empty AnimationParameters.
     static const AnimationParameters EMPTY;
+
 private:
     /// Animation to be played.
     /// Animation can be replicated over network only if is exists as named Resource on all machines.

@@ -109,8 +109,22 @@ AnimationParameters::AnimationParameters(Animation* animation)
 {
 }
 
+AnimationParameters::AnimationParameters(Animation* animation, float minTime, float maxTime)
+    : animation_(animation)
+    , animationName_(animation ? animation_->GetNameHash() : StringHash::Empty)
+    , time_{0.0f, minTime, maxTime}
+{
+}
+
 AnimationParameters::AnimationParameters(Context* context, const ea::string& animationName)
     : AnimationParameters(context->GetSubsystem<ResourceCache>()->GetResource<Animation>(animationName))
+{
+}
+
+AnimationParameters::AnimationParameters(
+    Context* context, const ea::string& animationName, float minTime, float maxTime)
+    : AnimationParameters(
+        context->GetSubsystem<ResourceCache>()->GetResource<Animation>(animationName), minTime, maxTime)
 {
 }
 
@@ -187,6 +201,11 @@ AnimationParameters& AnimationParameters::KeepOnZeroWeight()
 {
     removeOnZeroWeight_ = false;
     return *this;
+}
+
+WrappedScalarRange<float> AnimationParameters::Update(float scaledTimeStep)
+{
+    return looped_ ? time_.UpdateWrapped(scaledTimeStep) : time_.UpdateClamped(scaledTimeStep, true);
 }
 
 void AnimationParameters::SetTime(float time)

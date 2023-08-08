@@ -96,24 +96,8 @@ ea::string MountedRoot::GetAbsoluteNameFromIdentifier(const FileIdentifier& file
         return EMPTY_STRING;
 
     const auto* fileSystem = GetSubsystem<FileSystem>();
-    if (IsAbsolutePath(fileName.fileName_))
-    {
-        if (fileSystem->FileExists(fileName.fileName_))
-            return fileName.fileName_;
-    }
-
-    return EMPTY_STRING;
-}
-
-ea::string MountedRoot::GetWritableAbsoluteNameFromIdentifier(const FileIdentifier& fileName) const
-{
-    if (!AcceptsScheme(fileName.scheme_))
-        return EMPTY_STRING;
-
-    if (IsAbsolutePath(fileName.fileName_))
-    {
+    if (IsAbsolutePath(fileName.fileName_) && fileSystem->FileExists(fileName.fileName_))
         return fileName.fileName_;
-    }
 
     return EMPTY_STRING;
 }

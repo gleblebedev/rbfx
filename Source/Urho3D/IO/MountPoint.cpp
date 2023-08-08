@@ -48,11 +48,6 @@ ea::string MountPoint::GetAbsoluteNameFromIdentifier(const FileIdentifier& fileN
     return EMPTY_STRING;
 }
 
-ea::string MountPoint::GetWritableAbsoluteNameFromIdentifier(const FileIdentifier& fileName) const
-{
-    return EMPTY_STRING;
-}
-
 FileIdentifier MountPoint::GetIdentifierFromAbsoluteName(const ea::string& fileFullPath) const
 {
     return FileIdentifier::Empty;

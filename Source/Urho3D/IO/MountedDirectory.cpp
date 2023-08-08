@@ -148,39 +148,17 @@ ea::optional<FileTime> MountedDirectory::GetLastModifiedTime(
     if (!Exists(fileName))
         return ea::nullopt;
 
-    const auto fileSystem = context_->GetSubsystem<FileSystem>();
+    auto fileSystem = context_->GetSubsystem<FileSystem>();
     const ea::string fullPath = directory_ + fileName.fileName_;
     return fileSystem->GetLastModifiedTime(fullPath, creationIsModification);
 }
 
 ea::string MountedDirectory::GetAbsoluteNameFromIdentifier(const FileIdentifier& fileName) const
 {
-    if (!AcceptsScheme(fileName.scheme_))
-        return EMPTY_STRING;
-
-    const auto fileSystem = GetSubsystem<FileSystem>();
-    if (IsAbsolutePath(fileName.fileName_))
-        return EMPTY_STRING;
-
-    ea::string result = directory_ + fileName.fileName_;
-
-    if (fileSystem->FileExists(result))
-        return result;
+    if (Exists(fileName))
+        return directory_ + fileName.fileName_;
 
     return EMPTY_STRING;
-}
-
-ea::string MountedDirectory::GetWritableAbsoluteNameFromIdentifier(const FileIdentifier& fileName) const
-{
-    if (!AcceptsScheme(fileName.scheme_))
-        return EMPTY_STRING;
-
-    const auto fileSystem = GetSubsystem<FileSystem>();
-    if (IsAbsolutePath(fileName.fileName_))
-        return EMPTY_STRING;
-
-    ea::string result = directory_ + fileName.fileName_;
-    return result;
 }
 
 FileIdentifier MountedDirectory::GetIdentifierFromAbsoluteName(const ea::string& absoluteFileName) const

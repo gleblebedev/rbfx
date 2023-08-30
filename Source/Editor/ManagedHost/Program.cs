@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Urho3DNet;
@@ -31,7 +32,8 @@ namespace Editor
     {
         private void Run(string[] args)
         {
-            Urho3D.ParseArguments(Assembly.GetExecutingAssembly(), args);
+            var executingAssembly = typeof(Program).Assembly;
+            Urho3D.ParseArguments(executingAssembly, args);
             Context.SetRuntimeApi(new ScriptRuntimeApiReloadableImpl());
             using (var context = new Context())
             {

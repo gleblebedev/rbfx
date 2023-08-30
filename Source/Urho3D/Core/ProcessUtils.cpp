@@ -122,6 +122,7 @@ namespace Urho3D
 static bool consoleOpened = false;
 #endif
 static ea::string currentLine;
+static ea::string programName;
 static ea::vector<ea::string> arguments;
 static ea::string miniDumpDir;
 
@@ -258,7 +259,10 @@ const ea::vector<ea::string>& ParseArguments(const ea::string& cmdLine, bool ski
     if (!arguments.empty())
     {
         if (skipFirstArgument)
+        {
+            programName = arguments.front();
             arguments.pop_front();
+        }
     }
 
     return arguments;
@@ -287,6 +291,11 @@ const ea::vector<ea::string>& ParseArguments(int argc, char** argv)
         cmdLine.append_sprintf("\"%s\" ", (const char*)argv[i]);
 
     return ParseArguments(cmdLine);
+}
+
+const ea::string& GetProgramName()
+{
+    return programName;
 }
 
 const ea::vector<ea::string>& GetArguments()

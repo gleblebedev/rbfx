@@ -83,6 +83,8 @@ URHO3D_API const ea::vector<ea::string>& ParseArguments(const ea::wstring& cmdLi
 URHO3D_API const ea::vector<ea::string>& ParseArguments(const wchar_t* cmdLine);
 /// Parse arguments from argc & argv.
 URHO3D_API const ea::vector<ea::string>& ParseArguments(int argc, char** argv);
+/// Return program name from previously parsed arguments.
+URHO3D_API const ea::string& GetProgramName();
 /// Return previously parsed arguments.
 URHO3D_API const ea::vector<ea::string>& GetArguments();
 /// Read input from the console window. Return empty if no input.

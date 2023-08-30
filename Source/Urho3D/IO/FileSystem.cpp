@@ -31,6 +31,7 @@
 #include "../IO/FileSystem.h"
 #include "../IO/IOEvents.h"
 #include "../IO/Log.h"
+#include "Urho3D/Core/ProcessUtils.h"
 #if URHO3D_SYSTEMUI
 #   include "../SystemUI/Console.h"
 #endif
@@ -1584,7 +1585,19 @@ ea::string FileSystem::FindResourcePrefixPath() const
 #endif
     };
 
-    for (ea::string result : {GetCurrentDir(), GetProgramDir()})
+    ea::vector<ea::string> dirs{GetCurrentDir(), GetProgramDir()};
+
+    const auto& programName = GetProgramName();
+    if (!programName.empty())
+    {
+        const auto pathFromArgs = GetParentPath(programName);
+        if (!pathFromArgs.empty() && IsAbsolutePath(pathFromArgs) && DirExists(pathFromArgs))
+        {
+            dirs.push_back(pathFromArgs);
+        }
+    }
+
+    for (ea::string result : dirs)
     {
         while (!isFileSystemRoot(result))
         {

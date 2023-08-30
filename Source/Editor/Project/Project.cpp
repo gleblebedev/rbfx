@@ -199,7 +199,6 @@ Project::Project(Context* context, const ea::string& projectPath, const ea::stri
     , isHeadless_(context->GetSubsystem<Engine>()->IsHeadless())
     , isReadOnly_(isReadOnly)
     , projectPath_(GetSanitizedPath(projectPath + "/"))
-    , coreDataPath_(projectPath_ + "CoreData/")
     , cachePath_(projectPath_ + "Cache/")
     , tempPath_(projectPath_ + "Temp/")
     , artifactsPath_(projectPath_ + "Artifacts/")
@@ -533,12 +532,13 @@ void Project::EnsureDirectoryInitialized()
         fs->CreateDirsRecursive(artifactsPath_);
     }
 
-    if (!fs->DirExists(coreDataPath_))
-    {
-        if (fs->FileExists(coreDataPath_))
-            fs->Delete(coreDataPath_);
-        fs->CopyDir(oldCacheState_.GetCoreData(), coreDataPath_);
-    }
+    // C# gets CoreData from nuget.
+    //if (!fs->DirExists(coreDataPath_))
+    //{
+    //    if (fs->FileExists(coreDataPath_))
+    //        fs->Delete(coreDataPath_);
+    //    fs->CopyDir(oldCacheState_.GetCoreData(), coreDataPath_);
+    //}
 
     if (!fs->FileExists(settingsJsonPath_))
     {
@@ -623,7 +623,11 @@ void Project::InitializeResourceCache()
     vfs->UnmountAll();
     vfs->MountRoot();
     vfs->MountDir(oldCacheState_.GetEditorData());
-    vfs->MountDir(coreDataPath_);
+
+    // C# gets CoreData from nuget.
+    //vfs->MountDir(coreDataPath_);
+    vfs->MountDir(oldCacheState_.GetCoreData());
+
     vfs->MountDir(dataPath_);
     vfs->MountDir(cachePath_);
     vfs->MountDir("conf" , engine->GetAppPreferencesDir());

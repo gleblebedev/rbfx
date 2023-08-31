@@ -269,7 +269,9 @@ void PluginManager::SerializeInBlock(Archive& archive)
 {
     SerializeOptionalValue(archive, "LoadedPlugins", loadedPlugins_);
     if (archive.IsInput())
+    {
         SetPluginsLoaded(loadedPlugins_);
+    }
 }
 
 void PluginManager::Reload()
@@ -314,6 +316,16 @@ void PluginManager::SetPluginsLoaded(const StringVector& plugins)
     loadedPlugins_ = plugins;
     stackReloadPending_ = true;
     revision_ = ea::max(1u, revision_ + 1);
+}
+
+void PluginManager::SetImplicitPlugin(const ea::string& implicitPlugin)
+{
+    if (implicitPlugin_ != implicitPlugin)
+    {
+        implicitPlugin_ = implicitPlugin;
+        stackReloadPending_ = true;
+        revision_ = ea::max(1u, revision_ + 1);
+    }
 }
 
 bool PluginManager::IsPluginLoaded(const ea::string& name)
@@ -435,8 +447,14 @@ void PluginManager::DisposeStack()
 void PluginManager::RestoreStack()
 {
     URHO3D_ASSERT(pluginStack_ == nullptr);
-
-    pluginStack_ = MakeShared<PluginStack>(this, loadedPlugins_);
+    StringVector loadedPlugins;
+    loadedPlugins.reserve(loadedPlugins_.size() + 1);
+    if (!implicitPlugin_.empty())
+    {
+        loadedPlugins.push_back(implicitPlugin_);
+    }
+    loadedPlugins.insert(loadedPlugins.end(), loadedPlugins_.begin(), loadedPlugins_.end());
+    pluginStack_ = MakeShared<PluginStack>(this, loadedPlugins);
     if (wasStarted_)
         pluginStack_->ResumeApplication(restoreBuffer_);
     restoreBuffer_.clear();

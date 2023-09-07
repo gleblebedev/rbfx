@@ -9,7 +9,8 @@
     <GeneratedCodePath>$(RBFX_BINARY_DIR)Source/Urho3D/</GeneratedCodePath>
   </PropertyGroup>
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net7.0;net7.0-android;net7.0-ios</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('Linux'))">netstandard2.0;net7.0;net7.0-android</TargetFrameworks>
+    <TargetFrameworks Condition="$(![MSBuild]::IsOSPlatform('Linux'))">netstandard2.0;net7.0;net7.0-android;net7.0-ios</TargetFrameworks>
     <RuntimeIdentifier>$(URHO3D_NETFX_RUNTIME_IDENTIFIER)</RuntimeIdentifier>
     <OutDir>$(BaseOutputPath)$(TargetFramework)</OutDir>
     <OutputPath>$(BaseOutputPath)$(TargetFramework)</OutputPath>

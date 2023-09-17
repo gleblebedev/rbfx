@@ -1,16 +1,9 @@
 #define URHO3D_PIXEL_NEED_TEXCOORD
 #define URHO3D_CUSTOM_MATERIAL_UNIFORMS
-#define URHO3D_DISABLE_DIFFUSE_SAMPLING
-#define URHO3D_DISABLE_NORMAL_SAMPLING
-#define URHO3D_DISABLE_SPECULAR_SAMPLING
-#define URHO3D_DISABLE_EMISSIVE_SAMPLING
-
-#ifndef URHO3D_PIXEL_NEED_SCREEN_POSITION
-    #define URHO3D_PIXEL_NEED_SCREEN_POSITION
-#endif
 
 #include "_Config.glsl"
 #include "_Uniforms.glsl"
+#include "_DefaultSamplers.glsl"
 
 UNIFORM_BUFFER_BEGIN(4, Material)
     DEFAULT_MATERIAL_UNIFORMS
@@ -25,7 +18,7 @@ VERTEX_OUTPUT_HIGHP(vec2 vDetailTexCoord)
 void main()
 {
     VertexTransform vertexTransform = GetVertexTransform();
-    FillVertexOutputs(vertexTransform);
+    Vertex_SetAll(vertexTransform, cNormalScale, cUOffset, cVOffset, cLMOffset);
     vDetailTexCoord = vTexCoord * cDetailTiling;
 }
 #endif
@@ -35,42 +28,32 @@ void main()
 {
     SurfaceData surfaceData;
 
-    FillSurfaceCommon(surfaceData);
-    FillSurfaceNormal(surfaceData);
-    FillSurfaceMetallicRoughnessOcclusion(surfaceData);
-    FillSurfaceReflectionColor(surfaceData);
-    FillSurfaceBackground(surfaceData);
+    Surface_SetCommon(surfaceData);
+    Surface_SetAmbient(surfaceData, sEmission, vTexCoord2);
+    Surface_SetNormal(surfaceData, vNormal, sNormal, vTexCoord, vTangent, vBitangentXY);
+    Surface_SetPhysicalProperties(surfaceData, cRoughness, cMetallic, cDielectricReflectance, sProperties, vTexCoord);
+    Surface_SetLegacyProperties(surfaceData, cMatSpecColor.a, sEmission, vTexCoord);
+    Surface_SetCubeReflection(surfaceData, sReflection0, sReflection1, vReflectionVec, vWorldPos);
+    Surface_SetPlanarReflection(surfaceData, sReflection0, cReflectionPlaneX, cReflectionPlaneY);
+    Surface_SetBackground(surfaceData, sEmission, sDepthBuffer);
 
-    half3 weights = texture2D(sDiffMap, vTexCoord).rgb;
+    half3 weights = texture(sAlbedo, vTexCoord).rgb;
     half sumWeights = weights.r + weights.g + weights.b;
     weights /= sumWeights;
     surfaceData.albedo =
-        weights.r * texture2D(sNormalMap, vDetailTexCoord) +
-        weights.g * texture2D(sSpecMap, vDetailTexCoord) +
-        weights.b * texture2D(sEmissiveMap, vDetailTexCoord);
-#ifdef URHO3D_PHYSICAL_MATERIAL
-    surfaceData.albedo.rgb = GammaToLightSpace(cMatDiffColor.rgb) * LinearToLightSpace(surfaceData.albedo.rgb);
-#else
-    surfaceData.albedo.rgb = GammaToLightSpace(cMatDiffColor.rgb) * GammaToLightSpace(surfaceData.albedo.rgb);
-#endif
+        weights.r * texture(sNormal, vDetailTexCoord) +
+        weights.g * texture(sProperties, vDetailTexCoord) +
+        weights.b * texture(sEmission, vDetailTexCoord);
+    surfaceData.albedo = GammaToLightSpaceAlpha(cMatDiffColor) * GammaToLightSpaceAlpha(surfaceData.albedo);
 
-#ifdef URHO3D_PIXEL_NEED_VERTEX_COLOR
-    albedo *= LinearToLightSpaceAlpha(vColor);
-#endif
-
-#ifdef URHO3D_PHYSICAL_MATERIAL
-    surfaceData.specular = surfaceData.albedo.rgb * (1.0 - surfaceData.oneMinusReflectivity);
-    surfaceData.albedo.rgb *= surfaceData.oneMinusReflectivity;
-#else
     surfaceData.specular = GammaToLightSpace(cMatSpecColor.rgb);
-#endif    
-
 #ifdef URHO3D_SURFACE_NEED_AMBIENT
     surfaceData.emission = GammaToLightSpace(cMatEmissiveColor);
 #endif
 
+    Surface_ApplySoftFadeOut(surfaceData, vWorldDepth, cFadeOffsetScale);
+
     half3 surfaceColor = GetSurfaceColor(surfaceData);
-    half surfaceAlpha = GetSurfaceAlpha(surfaceData);
-    gl_FragColor = GetFragmentColorAlpha(surfaceColor, surfaceAlpha, surfaceData.fogFactor);
+    gl_FragColor = GetFragmentColorAlpha(surfaceColor, surfaceData.albedo.a, surfaceData.fogFactor);
 }
 #endif

@@ -32,9 +32,11 @@
 #include <Urho3D/Scene/Scene.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Math/Ray.h>
-#include <Urho3D/DebugNew.h>
+#include <Urho3D/IO/Log.h>
 
 #include "KinematicCharacter.h"
+
+#include <Urho3D/DebugNew.h>
 
 KinematicCharacter::KinematicCharacter(Context* context) :
     BaseClassName(context),

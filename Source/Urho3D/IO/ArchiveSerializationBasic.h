@@ -293,6 +293,14 @@ void SerializeValueAsType(Archive& archive, const char* name, U& value, const TC
         value = caster.FromArchive(archive, name, convertedValue);
 }
 
+/// Serialize enum as integer.
+template <class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+inline void SerializeValue(Archive& archive, const char* name, T& value)
+{
+    using UnderlyingInteger = std::underlying_type_t<T>;
+    SerializeValueAsType<UnderlyingInteger>(archive, name, value);
+}
+
 /// Serialize string hash as integer or as string.
 inline void SerializeStringHash(Archive& archive, const char* name, StringHash& value, const ea::string_view stringHint)
 {
@@ -428,7 +436,7 @@ inline void SerializeValue(Archive& archive, const char* name, ea::optional<T>& 
 
 /// Wrapper that consumes ArchiveException and converts it to boolean status.
 template <class T>
-bool ConsumeArchiveException(const T& lambda)
+bool ConsumeArchiveException(const T& lambda, bool errorOnException = true)
 {
     try
     {
@@ -437,7 +445,10 @@ bool ConsumeArchiveException(const T& lambda)
     }
     catch (const ArchiveException& e)
     {
-        URHO3D_LOGERROR("Serialization error: {}", e.what());
+        if (errorOnException)
+            URHO3D_LOGERROR("Serialization error: {}", e.what());
+        else
+            URHO3D_LOGDEBUG("Archive cannot be serialization: {}", e.what());
         return false;
     }
 }

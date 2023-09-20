@@ -98,6 +98,34 @@ if (URHO3D_ACTIONS)
     define_engine_source_files (Actions)
 endif ()
 
+if (URHO3D_XR)
+    add_definitions(-DXR_USE_TIMESPEC)
+    if (PLATFORM_WIN32 OR PLATFORM_UNIVERSAL_WINDOWS)
+        add_definitions(-DXR_OS_WINDOWS -DXR_USE_PLATFORM_WIN32)
+    endif ()
+    if (PLATFORM_LINUX)
+        add_definitions(-DXR_OS_LINUX -DXR_USE_PLATFORM_LINUX)
+    endif ()
+    if (PLATFORM_ANDROID)
+        add_definitions(-DXR_OS_ANDROID -DXR_USE_PLATFORM_ANDROID)
+    endif ()
+    if (D3D11_SUPPORTED)
+        add_definitions(-DXR_USE_GRAPHICS_API_D3D11)
+    endif ()
+    if (D3D12_SUPPORTED)
+        add_definitions(-DXR_USE_GRAPHICS_API_D3D12)
+    endif ()
+    if (VULKAN_SUPPORTED)
+        add_definitions(-DXR_USE_GRAPHICS_API_VULKAN)
+    endif ()
+    if (GL_SUPPORTED)
+        add_definitions(-DXR_USE_GRAPHICS_API_OPENGL)
+    endif ()
+    if (GLES_SUPPORTED)
+        add_definitions(-DXR_USE_GRAPHICS_API_OPENGL_ES)
+    endif ()
+    define_engine_source_files (XR)
+endif ()
 # Group source code in VS solution
 group_sources()
 
@@ -158,7 +186,6 @@ set (PUBLIC_THIRD_PARTY_DEPENDENCIES
     STB
     IconFontCppHeaders
     Civetweb
-    SLikeNet
     Detour
     DetourCrowd
     DetourTileCache
@@ -186,6 +213,7 @@ set (PUBLIC_THIRD_PARTY_DEPENDENCIES
     Diligent-GraphicsEngineMetal-static
     Diligent-HLSL2GLSLConverterLib
     Vulkan-Headers
+    datachannel-static
 )
 
 # Private dependencies that are hidden from the user and are not exposed in the public API or headers
@@ -201,6 +229,17 @@ set (PRIVATE_THIRD_PARTY_DEPENDENCIES
     SPIRV-Tools-opt
     SPIRV-Reflect
 )
+if (TARGET datachannel-wasm)
+    target_link_libraries(Urho3D PUBLIC datachannel-wasm)
+endif ()
+
+if (URHO3D_XR AND DESKTOP)
+    if (URHO3D_MERGE_STATIC_LIBS)
+        list (APPEND PUBLIC_THIRD_PARTY_DEPENDENCIES openxr_loader)
+    else () # shouldn't need to wrorry about WEB right now
+        target_link_libraries(Urho3D PUBLIC openxr_loader)
+    endif ()
+endif ()
 
 if (URHO3D_MERGE_STATIC_LIBS)
     list (APPEND PUBLIC_THIRD_PARTY_DEPENDENCIES Bullet)

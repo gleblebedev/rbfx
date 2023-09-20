@@ -114,7 +114,6 @@
 #include "50_Urho2DPlatformer/Urho2DPlatformer.h"
 #endif
 #if URHO3D_NETWORK
-#include "52_NATPunchtrough/NATPunchtrough.h"
 #include "53_LANDiscovery/LANDiscovery.h"
 #endif
 #include "54_WindowSettingsDemo/WindowSettingsDemo.h"
@@ -158,11 +157,14 @@
 #include "116_VirtualFileSystem/VFSSample.h"
 #if URHO3D_PHYSICS
 #include "117_PointerAdapter/PointerAdapterSample.h"
-#endif
 #include "118_CameraShake/CameraShake.h"
+#endif
+#if URHO3D_XR
+#include "120_HelloVR/HelloVR.h"
+#endif
+
 #include "200_TextureCompression/TextureCompression.h"
 #include "Rotator.h"
-
 
 #include "SamplesManager.h"
 
@@ -387,7 +389,6 @@ void SamplesManager::Start()
     RegisterSample<Urho2DPlatformer>();
 #endif
 #if URHO3D_NETWORK
-    RegisterSample<NATPunchtrough>();
     RegisterSample<LANDiscovery>();
 #endif
     RegisterSample<WindowSettingsDemo>();
@@ -433,14 +434,22 @@ void SamplesManager::Start()
     RegisterSample<PointerAdapterSample>();
 #endif
     RegisterSample<CameraShake>();
+#if URHO3D_XR
+    RegisterSample<HelloVR>();
+#endif
 
+#if URHO3D_OCULUS_QUEST
+    StartSample(HelloVR::GetTypeStatic());
+#else
     if (!commandLineArgs_.empty())
         StartSample(commandLineArgs_[0]);
+#endif
 }
 
 void SamplesManager::Stop()
 {
     engine_->DumpResources(true);
+    GetSubsystem<StateManager>()->Reset();
 }
 
 void SamplesManager::OnClickSample(VariantMap& args)

@@ -49,21 +49,41 @@ public:
         const AssetTransformerVector& transformers) override;
 
 protected:
-    /// Implement GLTFImporterCallback.
-    /// @{
-    void OnModelLoaded(ModelView& modelView) override;
-    /// @}
+    struct ResetRootMotionInfo
+    {
+        float factor_{};
+        Vector3 positionWeight_{};
+        float rotationSwingWeight_{};
+        float rotationTwistWeight_{};
+        float scaleWeight_{};
 
-private:
+        void SerializeInBlock(Archive& archive);
+    };
+
     struct ModelMetadata
     {
         ea::string metadataFileName_;
         StringVector appendFiles_;
         ea::unordered_map<ea::string, ea::string> nodeRenames_;
+        ea::unordered_map<ea::string, ResetRootMotionInfo> resetRootMotion_;
+        ea::unordered_map<ea::string, StringVariantMap> resourceMetadata_;
 
         void SerializeInBlock(Archive& archive);
     };
 
+    /// Implement GLTFImporterCallback.
+    /// @{
+    void OnModelLoaded(ModelView& modelView) override;
+    void OnAnimationLoaded(Animation& animation) override;
+    /// @}
+
+    /// Tweaks.
+    /// @{
+    void ResetRootMotion(Animation& animation, const ResetRootMotionInfo& info);
+    void AppendResourceMetadata(ResourceWithMetadata& resource) const;
+    /// @}
+
+private:
     /// Information about GLTF file that can be imported directly.
     struct GLTFFileInfo
     {
@@ -86,10 +106,15 @@ private:
     ToolManager* GetToolManager() const;
 
     GLTFImporterSettings settings_;
+
+    bool repairLooping_{false};
+
     bool blenderApplyModifiers_{true};
     bool lightmapUVGenerate_{};
     float lightmapUVTexelsPerUnit_{10.0f};
     unsigned lightmapUVChannel_{1};
+
+    const ModelMetadata* currentMetadata_{};
 };
 
 } // namespace Urho3D

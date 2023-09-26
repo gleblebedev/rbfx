@@ -213,10 +213,10 @@ void Baker::Bake()
     elements.push_back(VertexElement(TYPE_VECTOR2, SEM_TEXCOORD));
     elements.push_back(VertexElement(TYPE_VECTOR2, SEM_TEXCOORD,1));
     outputVertexBuffer->SetSize(vertexData.size(), elements);
-    outputVertexBuffer->SetData(vertexData.data());
+    outputVertexBuffer->Update(vertexData.data());
 
     outputIndexBuffer->SetSize(indexData.size(), false);
-    outputIndexBuffer->SetData(indexData.data());
+    outputIndexBuffer->Update(indexData.data());
 
     outputModel->SetVertexBuffers({outputVertexBuffer}, {}, {});
     outputModel->SetIndexBuffers({outputIndexBuffer});

@@ -38,6 +38,7 @@
 #include "../../../Include/RmlUi/Core/Math.h"
 #include "../../../Include/RmlUi/Core/Profiling.h"
 #include "../../../Include/RmlUi/Core/Property.h"
+#include "../DataModel.h"
 
 namespace Rml {
 
@@ -129,9 +130,17 @@ void WidgetDropDown::OnUpdate()
 		const int selection = GetSelection();
 
 		if (Element* option = selection_element->GetChild(selection))
+		{
 			option->GetInnerRML(value_rml);
+			if (auto model = value_element->GetDataModel())
+				model->CopyAliases(option, value_element);
+		}
 		else
+		{
+			if (auto model = value_element->GetDataModel())
+				model->EraseAliases(value_element);
 			value_rml = parent_element->GetValue();
+		}
 
 		value_element->SetInnerRML(value_rml);
 
@@ -325,7 +334,7 @@ void WidgetDropDown::SetSelection(Element* select_option, bool force)
 	value_rml_dirty = true;
 }
 
-void WidgetDropDown::SeekSelection(bool seek_forward)
+bool WidgetDropDown::SeekSelection(bool seek_forward)
 {
 	const int selected_option = GetSelection();
 	const int num_options = selection_element->GetNumChildren();
@@ -338,11 +347,12 @@ void WidgetDropDown::SeekSelection(bool seek_forward)
 		if (!element->HasAttribute("disabled") && element->IsVisible())
 		{
 			SetSelection(element);
-			return;
+			return true;
 		}
 	}
 
 	// No valid option found, leave selection unchanged.
+	return false;
 }
 
 int WidgetDropDown::GetSelection() const
@@ -546,12 +556,12 @@ void WidgetDropDown::ProcessEvent(Event& event)
 		switch (key_identifier)
 		{
 		case Input::KI_UP:
-			SeekSelection(false);
-			event.StopPropagation();
+			if (SeekSelection(false))
+			    event.StopPropagation();
 			break;
 		case Input::KI_DOWN:
-			SeekSelection(true);
-			event.StopPropagation();
+			if (SeekSelection(true))
+			    event.StopPropagation();
 			break;
 		case Input::KI_RETURN:
 		case Input::KI_NUMPADENTER:

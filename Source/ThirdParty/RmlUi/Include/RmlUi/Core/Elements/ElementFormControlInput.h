@@ -77,6 +77,10 @@ public:
 	/// @note Only applies to text and password input types.
 	void GetSelection(int* selection_start, int* selection_end, String* selected_text) const;
 
+	/// Returns the control's type name.
+	/// @return The type name.
+	const String& GetTypeName() const { return type_name; }
+
 protected:
 	/// Updates the element's underlying type.
 	void OnUpdate() override;

@@ -3,7 +3,6 @@
     <AssemblyName>Urho3DNet.Scripts</AssemblyName>
     <OutputType>Library</OutputType>
     <LangVersion>9.0</LangVersion>
-    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Scripts/**/*.cs" />

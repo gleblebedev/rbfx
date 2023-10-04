@@ -8,7 +8,7 @@
     <PackageID>unofficial.Urho3DNet.Editor</PackageID>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>$(URHO3D_NETFX_RUNTIME)</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="*.cs" />

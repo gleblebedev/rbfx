@@ -862,10 +862,19 @@ ea::pair<SharedPtr<OpenXRBinding>, SharedPtr<OpenXRBinding>> CreateBinding(
 
     // Create action
     XrActionCreateInfo createInfo = {XR_TYPE_ACTION_CREATE_INFO};
+    XrPath customPath;
+
     if (handed)
     {
         createInfo.countSubactionPaths = 2;
         createInfo.subactionPaths = handPaths.data();
+    }
+    else if (element.HasAttribute("subaction"))
+    {
+        // User specified subaction path (originally for vive trackers), currently preferring fully specified paths in the manifest,
+        // but a case where that isn't workable isn't unlikely to pop in the future, so support it ahead of time.
+        xrStringToPath(instance, element.GetAttributeCString("subaction"), &customPath);
+        createInfo.subactionPaths = &customPath;
     }
 
     const ea::string localizedName = localization->Get(name);
@@ -1405,6 +1414,10 @@ void OpenXR::InitializeActiveExtensions(RenderBackend backend)
     ActivateOptionalExtension( //
         activeExtensions_, supportedExtensions_, XR_EXT_SAMSUNG_ODYSSEY_CONTROLLER_EXTENSION_NAME);
 
+    // Trackers
+    ActivateOptionalExtension(
+        activeExtensions_, supportedExtensions_, XR_HTCX_VIVE_TRACKER_INTERACTION_EXTENSION_NAME);
+
     for (const ea::string& extension : userExtensions_)
         ActivateOptionalExtension(activeExtensions_, supportedExtensions_, extension.c_str());
 }
@@ -1425,6 +1438,14 @@ bool OpenXR::InitializeTweaks(RenderBackend backend)
         return true;
     }
 #endif
+
+    // SteamVR currently is reporting depth modes (D32_FLOAT) that it doesn't actually support as frame depth attachments
+    // Expect to see something like "SteamVR / OpenXR : holographic" in system name
+    // TODO: in the future when it's somewhat known what sort of other strange oddities like this exist
+    //       coalesce them into something like a json overrides rules file like the graphics tweaks stuff.
+    if (systemName_.contains("steamvr", false))
+        features_.depthLayer_ = false;
+
     return true;
 }
 
@@ -1668,22 +1689,20 @@ void OpenXR::LocateViewsAndSpaces()
     headLocation_.next = &headVelocity_;
     xrLocateSpace(viewSpace_.Raw(), headSpace_.Raw(), predictedTime_, &headLocation_);
 
-    // Hands
-    for (VRHand hand : {VRHand::Left, VRHand::Right})
+    // All pose related actions will now need their locations updated.
+    if (activeActionSet_)
     {
-        if (handAims_[hand])
+        for (auto binding : activeActionSet_->GetBindings())
         {
-            // ensure velocity is linked
-            handAims_[hand]->location_.next = &handAims_[hand]->velocity_;
-            xrLocateSpace(
-                handAims_[hand]->actionSpace_.Raw(), headSpace_.Raw(), predictedTime_, &handAims_[hand]->location_);
-        }
+            OpenXRBinding* xrBind = binding->Cast<OpenXRBinding>();
+            if (xrBind)
+            {
+                auto expected = xrBind->GetExpectedType();
 
-        if (handGrips_[hand])
-        {
-            handGrips_[hand]->location_.next = &handGrips_[hand]->velocity_;
-            xrLocateSpace(
-                handGrips_[hand]->actionSpace_.Raw(), headSpace_.Raw(), predictedTime_, &handGrips_[hand]->location_);
+                // Check if we're bound and we're presumed to be a pose type
+                if (xrBind->IsBound() && (expected == VAR_MATRIX3X4 || expected == VAR_VECTOR3))
+                    xrLocateSpace(xrBind->actionSpace_.Raw(), headSpace_.Raw(), predictedTime_, &xrBind->location_);
+            }
         }
     }
 

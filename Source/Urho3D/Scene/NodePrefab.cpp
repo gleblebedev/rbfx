@@ -197,7 +197,7 @@ void SerializablePrefab::Import(const Serializable* serializable, PrefabSaveFlag
             ? attributes_.emplace_back(attr.nameHash_)
             : attributes_.emplace_back(attr.name_);
 
-        if (flags.Test(PrefabSaveFlag::EnumsAsStrings) && !attr.enumNames_.empty())
+        if (flags.Test(PrefabSaveFlag::EnumsAsStrings) && attr.IsEnum())
             value = attr.ConvertEnumToString(value.GetUInt());
 
         attributePrefab.SetValue(ea::move(value));
@@ -242,7 +242,7 @@ void SerializablePrefab::Export(Serializable* serializable, PrefabLoadFlags flag
 
         const Variant& value = attributePrefab.GetValue();
 
-        if (value.GetType() == VAR_STRING && !attr.enumNames_.empty())
+        if (value.GetType() == VAR_STRING && attr.IsEnum())
         {
             const unsigned enumValue = attr.ConvertEnumToUInt(value.GetString());
             if (enumValue != M_MAX_UNSIGNED)

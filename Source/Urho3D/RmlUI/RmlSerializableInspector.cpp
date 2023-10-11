@@ -188,7 +188,7 @@ void RmlSerializableInspector::Connect(Serializable* serializable)
 
         if (attributeInfo.type_ == VAR_BOOL)
             attribute.type_ = AttributeType_Bool;
-        else if (!attributeInfo.enumNames_.empty())
+        else if (attributeInfo.IsEnum())
         {
             attribute.type_ = AttributeType_Enum;
             attribute.enumNames_ = attributeInfo.enumNames_;

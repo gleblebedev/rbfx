@@ -136,8 +136,17 @@ struct AttributeInfo
     /// Return whether the attribute should be loaded.
     bool ShouldLoad() const { return !!(mode_ & AM_FILE); }
 
+    /// Return whether the attribute type is enum.
+    bool IsEnum() const { return !enumNames_.empty(); }
+
+    /// Return number of enum value names.
+    unsigned GetNumEnumNames() const { return enumNames_.size(); }
+
     /// Convert enum value to string.
-    const ea::string& ConvertEnumToString(unsigned value) const { return enumNames_[value]; }
+    const ea::string& ConvertEnumToString(unsigned value) const
+    {
+        return (value < enumNames_.size()) ? enumNames_[value] : EMPTY_STRING;
+    }
 
     /// Convert enum value to integer.
     unsigned ConvertEnumToUInt(ea::string_view value) const

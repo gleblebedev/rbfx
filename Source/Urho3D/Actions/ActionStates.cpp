@@ -36,6 +36,144 @@ namespace Actions
 {
 namespace Detail
 {
+namespace 
+{
+    static PerlinNoise perlinNoiseInstance{RandomEngine::GetDefaultEngine()};
+
+}
+
+void ShakeByState::Vec3State::Init(const ShakeByState* state)
+{
+    positionDelta_ = state->GetDelta();
+    noiseSpeed_ = state->GetNoiseSpeed();
+    noiseOffset_ = RandomEngine::GetDefaultEngine().GetFloat(0.0f, 10.0f);
+    previousPosition_ = startPosition_ = state->Get<Vector3>();
+}
+
+void ShakeByState::Vec3State::Update(float time, Variant& value)
+{
+    const auto currentPos = value.GetVector3();
+    const auto diff = currentPos - previousPosition_;
+    startPosition_ = startPosition_ + diff;
+
+    const auto scale = Vector3{perlinNoiseInstance.Get(time * noiseSpeed_ + noiseOffset_),
+        perlinNoiseInstance.Get(time * noiseSpeed_ + 1 + noiseOffset_),
+        perlinNoiseInstance.Get(time * noiseSpeed_ + 2 + noiseOffset_)} - Vector3(0.5f, 0.5f, 0.5f);
+    value = previousPosition_ = startPosition_ + positionDelta_ * scale * (1.0f - time);
+}
+
+void ShakeByState::Vec2State::Init(const ShakeByState* state)
+{
+    positionDelta_ = state->GetDelta().ToVector2();
+    noiseSpeed_ = state->GetNoiseSpeed();
+    noiseOffset_ = RandomEngine::GetDefaultEngine().GetFloat(0.0f, 10.0f);
+    previousPosition_ = startPosition_ = state->Get<Vector2>();
+}
+
+void ShakeByState::Vec2State::Update(float time, Variant& value)
+{
+    const auto currentPos = value.GetVector2();
+    const auto diff = currentPos - previousPosition_;
+    startPosition_ = startPosition_ + diff;
+
+    const auto scale = Vector2{perlinNoiseInstance.Get(time * noiseSpeed_ + noiseOffset_),
+                           perlinNoiseInstance.Get(time * noiseSpeed_ + 1 + noiseOffset_)}
+        - Vector2(0.5f, 0.5f);
+    value = previousPosition_ = startPosition_ + positionDelta_ * scale * (1.0f - time);
+}
+
+void ShakeByState::IntVec3State::Init(const ShakeByState* state)
+{
+    positionDelta_ = state->GetDelta();
+    noiseSpeed_ = state->GetNoiseSpeed();
+    noiseOffset_ = RandomEngine::GetDefaultEngine().GetFloat(0.0f, 10.0f);
+    previousPosition_ = startPosition_ = state->Get<IntVector3>();
+}
+
+void ShakeByState::IntVec3State::Update(float time, Variant& value)
+{
+    const auto currentPos = value.GetIntVector3();
+    const auto diff = currentPos - previousPosition_;
+    startPosition_ = startPosition_ + diff;
+
+    const auto scale = Vector3{perlinNoiseInstance.Get(time * noiseSpeed_ + noiseOffset_),
+                           perlinNoiseInstance.Get(time * noiseSpeed_ + 1 + noiseOffset_),
+                           perlinNoiseInstance.Get(time * noiseSpeed_ + 2 + noiseOffset_)}
+        - Vector3(0.5f, 0.5f, 0.5f);
+    value = previousPosition_ = startPosition_ + (positionDelta_ * scale * (1.0f - time)).ToIntVector3();
+}
+
+void ShakeByState::IntVec2State::Init(const ShakeByState* state)
+{
+    positionDelta_ = state->GetDelta().ToVector2();
+    noiseSpeed_ = state->GetNoiseSpeed();
+    noiseOffset_ = RandomEngine::GetDefaultEngine().GetFloat(0.0f, 10.0f);
+    previousPosition_ = startPosition_ = state->Get<IntVector2>();
+}
+
+void ShakeByState::IntVec2State::Update(float time, Variant& value)
+{
+    const auto currentPos = value.GetIntVector2();
+    const auto diff = currentPos - previousPosition_;
+    startPosition_ = startPosition_ + diff;
+
+    const auto scale = Vector2{perlinNoiseInstance.Get(time * noiseSpeed_ + noiseOffset_),
+                           perlinNoiseInstance.Get(time * noiseSpeed_ + 1 + noiseOffset_)}
+        - Vector2(0.5f, 0.5f);
+    value = previousPosition_ = startPosition_ + (positionDelta_ * scale * (1.0f - time)).ToIntVector2();
+}
+
+
+void ShakeByState::QuaternionState::Init(const ShakeByState* state)
+{
+    rotationDelta_ = state->GetDelta();
+    noiseSpeed_ = state->GetNoiseSpeed();
+    noiseOffset_ = RandomEngine::GetDefaultEngine().GetFloat(0.0f, 10.0f);
+    previousRotation_ = startRotation_ = state->Get<Quaternion>();
+}
+
+void ShakeByState::QuaternionState::Update(float time, Variant& value)
+{
+
+    const auto scale = Vector3{perlinNoiseInstance.Get(time * noiseSpeed_ + noiseOffset_),
+                           perlinNoiseInstance.Get(time * noiseSpeed_ + 1 + noiseOffset_),
+                           perlinNoiseInstance.Get(time * noiseSpeed_ + 2 + noiseOffset_)}
+        - Vector3(0.5f, 0.5f, 0.5f);
+
+    const auto currentRotation = value.GetQuaternion();
+    const auto diff = previousRotation_.Inverse() * currentRotation;
+    startRotation_ = startRotation_ * diff;
+    value = previousRotation_ =
+        startRotation_ * Quaternion::IDENTITY.Slerp(Quaternion(rotationDelta_ * scale * (1.0f - time)), time);
+}
+
+ShakeByState::ShakeByState(ShakeBy* action, Object* target)
+    : AttributeActionState(action, target)
+{
+
+    if (const auto attribute = GetAttribute())
+    {
+        switch (attribute->type_)
+        {
+        case VAR_VECTOR2: state_.emplace<Vec2State>(); break;
+        case VAR_VECTOR3: state_.emplace<Vec3State>(); break;
+        case VAR_INTVECTOR2: state_.emplace<IntVec2State>(); break;
+        case VAR_INTVECTOR3: state_.emplace<IntVec3State>(); break;
+        case VAR_QUATERNION: state_.emplace<QuaternionState>(); break;
+        default: URHO3D_LOGERROR(Format("Attribute {} is not of valid type.", action->GetAttributeName())); break;
+        }
+        auto callInit = [=](auto& state) { state.Init(this); };
+        ea::visit(callInit, state_);
+    }
+}
+
+void ShakeByState::Update(float dt, Variant& value)
+{
+    auto callUpdate = [&](auto& state) { state.Update(dt, value); };
+    ea::visit(callUpdate, state_);
+}
+
+
 void MoveByState::Vec3State::Init(const MoveByState* state)
 {
     positionDelta_ = state->GetDelta();
@@ -104,7 +242,7 @@ MoveByState::MoveByState(MoveBy* action, Object* target)
     : AttributeActionState(action, target)
 {
 
-    if (auto attribute = GetAttribute())
+    if (const auto attribute = GetAttribute())
     {
         switch (attribute->type_)
         {
@@ -202,7 +340,7 @@ void MoveByQuadraticState::IntVec2State::Update(float time, Variant& value)
 MoveByQuadraticState::MoveByQuadraticState(MoveByQuadratic* action, Object* target)
     : AttributeActionState(action, target)
 {
-    if (auto attribute = GetAttribute())
+    if (const auto attribute = GetAttribute())
     {
         switch (attribute->type_)
         {
@@ -223,10 +361,30 @@ void MoveByQuadraticState::Update(float dt, Variant& value)
     ea::visit(callUpdate, state_);
 }
 
+template <> void JumpByState::State<Vector3>::Init(const JumpByState* state)
+{
+    positionDelta_ = state->GetDelta();
+}
+
+template <> void JumpByState::State<Vector2>::Init(const JumpByState* state)
+{
+    positionDelta_ = state->GetDelta().ToVector2();
+}
+
+template <> void JumpByState::State<IntVector3>::Init(const JumpByState* state)
+{
+    positionDelta_ = state->GetDelta().ToIntVector3();
+}
+
+template <> void JumpByState::State<IntVector2>::Init(const JumpByState* state)
+{
+    positionDelta_ = state->GetDelta().ToIntVector2();
+}
+
 JumpByState::JumpByState(JumpBy* action, Object* target)
     : AttributeActionState(action, target)
 {
-    if (auto attribute = GetAttribute())
+    if (const auto attribute = GetAttribute())
     {
         switch (attribute->type_)
         {
@@ -247,10 +405,22 @@ void JumpByState::Update(float dt, Variant& value)
     ea::visit(callUpdate, state_);
 }
 
+template <> void ScaleByState::State<Vector3>::Init(const ScaleByState* state)
+{
+    scaleDelta_ = state->GetDelta();
+    previousScale_ = startScale_ = state->Get<Vector3>();
+}
+
+template <> void ScaleByState::State<Vector2>::Init(const ScaleByState* state)
+{
+    scaleDelta_ = state->GetDelta().ToVector2();
+    previousScale_ = startScale_ = state->Get<Vector2>();
+}
+
 ScaleByState::ScaleByState(ScaleBy* action, Object* target)
     : AttributeActionState(action, target)
 {
-    if (auto attribute = GetAttribute())
+    if (const auto attribute = GetAttribute())
     {
         switch (attribute->type_)
         {
@@ -274,7 +444,7 @@ RotateByState::RotateByState(RotateBy* action, Object* target)
 {
     rotationDelta_ = action->GetDelta();
     previousRotation_ = startRotation_ = Get<Quaternion>();
-    if (auto attribute = GetAttribute())
+    if (const auto attribute = GetAttribute())
     {
         if (attribute->type_ != VAR_QUATERNION)
         {
@@ -286,7 +456,7 @@ RotateByState::RotateByState(RotateBy* action, Object* target)
 void RotateByState::Update(float time, Variant& value)
 {
     const auto currentRotation = value.GetQuaternion();
-    auto diff = previousRotation_.Inverse() * currentRotation;
+    const auto diff = previousRotation_.Inverse() * currentRotation;
     startRotation_ = startRotation_ * diff;
     const auto newRotation = startRotation_ * Quaternion::IDENTITY.Slerp(rotationDelta_, time);
     value = newRotation;
@@ -387,7 +557,7 @@ void RemoveSelfState::Update(float time)
         {
             node->Remove();
         }
-        else if (UIElement* element = target->Cast<UIElement>())
+        else if (auto* element = target->Cast<UIElement>())
         {
             element->Remove();
         }
@@ -583,17 +753,16 @@ Material* ShaderParameterFromToState::GetMaterial(Object* target)
 {
     if (!target)
         return nullptr;
-    auto* material = target->Cast<Material>();
-    if (material)
+    if (auto* material = target->Cast<Material>())
         return material;
-    if (auto* staticModel = target->Cast<StaticModel>())
+    if (const auto* staticModel = target->Cast<StaticModel>())
         return staticModel->GetMaterial(0);
 
-    if (auto* node = target->Cast<Node>())
+    if (const auto* node = target->Cast<Node>())
     {
-        if (auto* staticModel = node->GetComponent<StaticModel>())
+        if (const auto* staticModel = node->GetComponent<StaticModel>())
             return staticModel->GetMaterial(0);
-        if (auto* animatedModel = node->GetComponent<AnimatedModel>())
+        if (const auto* animatedModel = node->GetComponent<AnimatedModel>())
             return animatedModel->GetMaterial(0);
     }
     URHO3D_LOGERROR("Can't get matrial from {}", target->GetTypeName());
@@ -633,7 +802,7 @@ void ShaderParameterToState::Update(float time)
 
 
 AttributeBlinkState::AttributeBlinkState(
-    AttributeAction* action, Object* target, Variant from, Variant to, unsigned times)
+    AttributeAction* action, Object* target, const Variant& from, const Variant& to, unsigned times)
     : AttributeActionState(action, target)
     , from_(from)
     , to_(to)

@@ -24,8 +24,7 @@
 #include "../Core/IniHelpers.h"
 #include "../Foundation/ActionViewTab.h"
 
-#include "Urho3D/Actions/FiniteTimeAction.h"
-
+#include <Urho3D/Actions/FiniteTimeAction.h>
 #include <Urho3D/Actions/ActionManager.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/Resource/GraphNode.h>
@@ -125,9 +124,7 @@ void ActionViewTab::OnResourceLoaded(const ea::string& resourceName)
     Reset();
     if (!actionSet_)
         return;
-    auto* graphView = GetGraphView();
-    
-    graphView->Populate(actionSet_->ToGraph());
+    SetGraph(actionSet_->ToGraph());
 }
 
 void ActionViewTab::OnResourceUnloaded(const ea::string& resourceName)
@@ -141,7 +138,7 @@ void ActionViewTab::OnActiveResourceChanged(const ea::string& oldResourceName, c
 
 void ActionViewTab::OnResourceSaved(const ea::string& resourceName)
 {
-    const auto graph = graph_.BuildGraph(context_);
+    const auto graph = BuildGraph();
 
     VectorBuffer buffer;
     buffer.SetName(resourceName);

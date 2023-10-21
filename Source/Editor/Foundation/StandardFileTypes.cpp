@@ -81,6 +81,12 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
             desc.AddObjectType<Material>();
     });
 
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+        {
+        if (desc.HasExtension({".bipedal"}) || ctx.HasXMLRoot("bipedal"))
+            desc.AddObjectType<Bipedal>();
+    });
+
     #ifdef URHO3D_ACTIONS
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
     {
@@ -89,12 +95,6 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
     });
     #endif
 
-
-    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
-        {
-        if (desc.HasExtension({".bipedal"}) || ctx.HasXMLRoot("bipedal"))
-            desc.AddObjectType<Bipedal>();
-    });
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
     {

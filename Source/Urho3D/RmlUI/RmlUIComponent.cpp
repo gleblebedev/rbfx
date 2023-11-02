@@ -29,7 +29,6 @@
 #include "../IO/Log.h"
 #include "../Resource/BinaryFile.h"
 #include "../RmlUI/RmlCanvasComponent.h"
-#include "../RmlUI/RmlNavigationManager.h"
 #include "../RmlUI/RmlUIComponent.h"
 #include "../Scene/Node.h"
 #include "../Scene/Scene.h"
@@ -48,10 +47,8 @@ const Rml::String ComponentPtrAttribute = "__RmlUIComponentPtr__";
 
 RmlUIComponent::RmlUIComponent(Context* context)
     : LogicComponent(context)
-    , navigationManager_(MakeShared<RmlNavigationManager>(this))
 {
     SetUpdateEventMask(USE_UPDATE);
-    navigationManager_->OnGroupChanged.Subscribe(this, &RmlUIComponent::OnNavigableGroupChanged);
 }
 
 RmlUIComponent::~RmlUIComponent()
@@ -73,7 +70,6 @@ void RmlUIComponent::RegisterObject(Context* context)
 
 void RmlUIComponent::Update(float timeStep)
 {
-    navigationManager_->Update();
     // There should be only a few of RmlUIComponent enabled at a time, so this is not a performance issue.
     UpdateConnectedCanvas();
 }
@@ -346,41 +342,8 @@ void RmlUIComponent::SetDocument(Rml::ElementDocument* document)
         if (document_)
         {
             document_->SetAttribute(ComponentPtrAttribute, static_cast<void*>(this));
-            navigationManager_->Reset(document_);
         }
     }
-}
-
-void RmlUIComponent::OnNavigableGroupChanged()
-{
-    DirtyVariable("navigable_group");
-}
-
-void RmlUIComponent::DoNavigablePush(Rml::DataModelHandle model, Rml::Event& event, const Rml::VariantList& args)
-{
-    if (args.size() > 2)
-    {
-        URHO3D_LOGWARNING("RmlUIComponent::DoNavigablePush is called with unexpected arguments");
-        return;
-    }
-
-    const bool enabled = args.size() > 1 ? args[0].Get<bool>() : true;
-    const ea::string group = args.back().Get<Rml::String>();
-    if (enabled)
-        navigationManager_->PushCursorGroup(group);
-}
-
-void RmlUIComponent::DoNavigablePop(Rml::DataModelHandle model, Rml::Event& event, const Rml::VariantList& args)
-{
-    if (args.size() > 1)
-    {
-        URHO3D_LOGWARNING("RmlUIComponent::DoNavigablePop is called with unexpected arguments");
-        return;
-    }
-
-    const bool enabled = args.size() > 0 ? args[0].Get<bool>() : true;
-    if (enabled)
-        navigationManager_->PopCursorGroup();
 }
 
 void RmlUIComponent::CreateDataModel()
@@ -390,11 +353,6 @@ void RmlUIComponent::CreateDataModel()
 
     dataModelName_ = GetDataModelName();
     modelConstructor_ = ea::make_unique<Rml::DataModelConstructor>(context->CreateDataModel(dataModelName_, &typeRegister_));
-
-    modelConstructor_->BindFunc(
-        "navigable_group", [this](Rml::Variant& result) { result = navigationManager_->GetTopCursorGroup(); });
-    modelConstructor_->BindEventCallback("navigable_push", &RmlUIComponent::DoNavigablePush, this);
-    modelConstructor_->BindEventCallback("navigable_pop", &RmlUIComponent::DoNavigablePop, this);
 }
 
 void RmlUIComponent::RemoveDataModel()

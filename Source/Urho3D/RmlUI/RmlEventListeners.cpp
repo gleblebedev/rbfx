@@ -30,7 +30,6 @@
 #include "../IO/Log.h"
 #include "../Resource/JSONFile.h"
 #include "../Resource/ResourceCache.h"
-#include "../RmlUI/RmlNavigationManager.h"
 #include "../RmlUI/RmlUI.h"
 #include "../RmlUI/RmlUIComponent.h"
 #include "../Scene/Node.h"
@@ -236,11 +235,6 @@ void NavigateEventListener::ProcessEvent(Rml::Event& event)
         {
             if (auto component = RmlUIComponent::FromDocument(document))
             {
-                RmlNavigationManager& manager = component->GetNavigationManager();
-                if (!group_.empty())
-                    manager.PushCursorGroup(group_);
-                else
-                    manager.PopCursorGroup();
             }
         }
     }

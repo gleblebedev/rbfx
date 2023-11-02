@@ -253,7 +253,6 @@ URHO3D_REFCOUNTED(Urho3D::ParticleGraphNodes::Clamp);
 URHO3D_REFCOUNTED(Urho3D::ParticleGraphNodes::RenderMeshDrawable);
 URHO3D_REFCOUNTED(Urho3D::ParticleGraphSystem);
 URHO3D_REFCOUNTED(Urho3D::RmlCanvasComponent);
-URHO3D_REFCOUNTED(Urho3D::RmlNavigationManager);
 URHO3D_REFCOUNTED(Urho3D::Detail::RmlRenderer);
 URHO3D_REFCOUNTED(Urho3D::RmlUIComponent);
 URHO3D_REFCOUNTED(Urho3D::RmlSerializableInspector);

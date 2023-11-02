@@ -334,7 +334,7 @@ void WidgetDropDown::SetSelection(Element* select_option, bool force)
 	value_rml_dirty = true;
 }
 
-bool WidgetDropDown::SeekSelection(bool seek_forward)
+void WidgetDropDown::SeekSelection(bool seek_forward)
 {
 	const int selected_option = GetSelection();
 	const int num_options = selection_element->GetNumChildren();
@@ -347,12 +347,11 @@ bool WidgetDropDown::SeekSelection(bool seek_forward)
 		if (!element->HasAttribute("disabled") && element->IsVisible())
 		{
 			SetSelection(element);
-			return true;
+			return;
 		}
 	}
 
 	// No valid option found, leave selection unchanged.
-	return false;
 }
 
 int WidgetDropDown::GetSelection() const
@@ -553,15 +552,28 @@ void WidgetDropDown::ProcessEvent(Event& event)
 	{
 		Input::KeyIdentifier key_identifier = (Input::KeyIdentifier)event.GetParameter<int>("key_identifier", 0);
 
+		auto HasNavigation = [this](PropertyId id) {
+			if (const Property* p = parent_element->GetProperty(id))
+			{
+				if (p->unit != Unit::KEYWORD || static_cast<Style::Nav>(p->Get<int>()) != Style::Nav::None)
+					return true;
+			}
+			return false;
+		};
+
 		switch (key_identifier)
 		{
 		case Input::KI_UP:
-			if (SeekSelection(false))
-			    event.StopPropagation();
+			if (!box_visible && HasNavigation(PropertyId::NavUp))
+				break;
+			SeekSelection(false);
+			event.StopPropagation();
 			break;
 		case Input::KI_DOWN:
-			if (SeekSelection(true))
-			    event.StopPropagation();
+			if (!box_visible && HasNavigation(PropertyId::NavDown))
+				break;
+			SeekSelection(true);
+			event.StopPropagation();
 			break;
 		case Input::KI_RETURN:
 		case Input::KI_NUMPADENTER:

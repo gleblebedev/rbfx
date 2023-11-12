@@ -20,12 +20,12 @@
 // THE SOFTWARE.
 //
 
-#include "../Precompiled.h"
+#include "Urho3D/Precompiled.h"
 
-#include "../Physics/RaycastVehicleWheel.h"
+#include "Urho3D/Physics/RaycastVehicleWheel.h"
 
-#include "../Core/Context.h"
-#include "../Physics/RaycastVehicle.h"
+#include "Urho3D/Core/Context.h"
+#include "Urho3D/Physics/RaycastVehicle.h"
 #include "Urho3D/Scene/Node.h"
 
 namespace Urho3D
@@ -129,13 +129,13 @@ void RaycastVehicleWheel::UpdateWheelAtVehicle()
 
 void RaycastVehicleWheel::EvaluateConnection()
 {
-    if (!node_  || !vehicle_ || vehicle_->GetNode())
+    if (!node_  || !vehicle_ || !vehicle_->GetNode())
         return;
 
     const auto* vehicleNode = vehicle_->GetNode();
     const auto wheelToVehicle = vehicleNode->GetWorldTransform().Inverse() * node_->GetWorldTransform();
 
-    SetConnectionPoint((wheelToVehicle)*offset_);
+    SetConnectionPoint((wheelToVehicle)*offset_ + (direction_ * ( - radius_)));
     SetRotation((wheelToVehicle).Rotation());
 }
 

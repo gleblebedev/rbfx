@@ -282,7 +282,7 @@ bool EditResourceRef(StringHash& type, ea::string& name, const StringVector* all
     }
 
     ui::SetNextItemWidth(ui::GetContentRegionAvail().x);
-    if (ui::InputText("##Name", &name, ImGuiInputTextFlags_EnterReturnsTrue))
+    if (ui::InputText("##Name", &name, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_NoUndoRedo))
         modified = true;
 
     if (allowedTypes != nullptr)
@@ -329,7 +329,8 @@ bool EditResourceRef(StringHash& type, ea::string& name, const StringVector* all
     return modified;
 }
 
-bool EditResourceRefList(StringHash& type, StringVector& names, const StringVector* allowedTypes, bool resizable)
+bool EditResourceRefList(StringHash& type, StringVector& names, const StringVector* allowedTypes, bool resizable,
+    const StringVector* elementNames)
 {
     bool modified = false;
     ea::optional<unsigned> pendingRemove;
@@ -345,6 +346,13 @@ bool EditResourceRefList(StringHash& type, StringVector& names, const StringVect
             ui::SameLine();
             if (ui::IsItemHovered())
                 ui::SetTooltip("Remove item");
+        }
+        else if (elementNames && elementNames->size() > 0)
+        {
+            const unsigned wrappedIndex = index % elementNames->size();
+            if (wrappedIndex == 0)
+                ui::Separator();
+            Widgets::ItemLabel(StripSpaces((*elementNames)[wrappedIndex].c_str()));
         }
 
         if (EditResourceRef(type, name, allowedTypes))
@@ -521,7 +529,7 @@ bool EditStringVector(StringVector& value, bool resizable)
         }
 
         ui::SetNextItemWidth(ui::GetContentRegionAvail().x);
-        if (ui::InputText("", &element, ImGuiInputTextFlags_EnterReturnsTrue))
+        if (ui::InputText("", &element, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_NoUndoRedo))
             return true;
 
         ++index;
@@ -545,7 +553,8 @@ bool EditStringVector(StringVector& value, bool resizable)
 
         ui::SetNextItemWidth(ui::GetContentRegionAvail().x);
 
-        const bool isTextClicked = ui::InputText("", &newElement, ImGuiInputTextFlags_EnterReturnsTrue);
+        const bool isTextClicked =
+            ui::InputText("", &newElement, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_NoUndoRedo);
 
         if (isButtonClicked || isTextClicked)
         {
@@ -778,7 +787,7 @@ bool EditVariantString(Variant& var, const EditVariantOptions& options)
 {
     ea::string value = var.GetString();
     ui::SetNextItemWidth(ui::GetContentRegionAvail().x);
-    if (ui::InputText("", &value, ImGuiInputTextFlags_EnterReturnsTrue))
+    if (ui::InputText("", &value, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_NoUndoRedo))
     {
         var = value;
         return true;
@@ -832,12 +841,18 @@ bool EditVariantResourceRefList(Variant& var, const EditVariantOptions& options)
     ResourceRefList value = var.GetResourceRefList();
     const unsigned effectiveLines = value.names_.size() + (options.allowResize_ ? 1 : 0);
     if (effectiveLines > 1)
+    {
         ui::NewLine();
-    if (EditResourceRefList(value.type_, value.names_, options.resourceTypes_, options.allowResize_))
+        ui::Indent();
+    }
+    if (EditResourceRefList(value.type_, value.names_, options.resourceTypes_, options.allowResize_,
+            options.sizedStructVectorElements_))
     {
         var = value;
         return true;
     }
+    if (effectiveLines > 1)
+        ui::Unindent();
     return false;
 }
 

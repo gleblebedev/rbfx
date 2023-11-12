@@ -39,8 +39,11 @@ echo "ci_sdk_dir=$ci_sdk_dir"
 
 declare -A types=(
     [dbg]='Debug'
-    [rel]='Release'
+    [rel]='RelWithDebInfo'
 )
+
+# Web builds cannot handle RelWithDebInfo configuration.
+if [[ "$ci_platform" == "web" ]]; then types[rel]='Release'; fi
 
 declare -A android_types=(
     [dbg]='assembleDebug'
@@ -123,8 +126,34 @@ then
     MSBUILD="/$MSBUILD/MSBuild/Current/Bin/MSBuild.exe"
 fi
 
+copy-runtime-libraries-for-executables() {
+    local dir=$1
+    local executable_files=($(find "$dir" -type f -executable))
+    for file in "${executable_files[@]}"; do
+        echo "Copying dependencies for $file"
+        copy-runtime-libraries-for-file "$file"
+    done
+}
+
+copy-runtime-libraries-for-file() {
+    local file=$1
+    local dependencies=($(ldd "$file" | awk '{print $3}'))
+    local dir=$(dirname "$file")
+    local filename=$(basename "$file")
+    shopt -s nocasematch
+    for dep in "${dependencies[@]}"; do
+        if [[ "$dep" =~ (vcruntime.+dll)|(msvcp.+dll)|(D3DCOMPILER.*dll) ]]; then
+            local depName=$(basename "$dep")
+            if [ "$dep" != "$dir/$depName" ]  && [[ ! -f "$dir/$depName" ]]; then
+                echo "Depends on $dep, making a copy to $dir"
+                cp "$dep" "$dir"
+            fi
+        fi
+    done
+}
+
 function action-dependencies() {
-    # Make tools executable. 
+    # Make tools executable.
     # TODO: This should not be necessary, but for some reason installed tools lose executable flag.
     if [[ -e $ci_workspace_dir/host-sdk ]];
     then
@@ -227,6 +256,13 @@ function action-generate() {
         )
     fi
 
+    if [[ -n "${BUTLER_API_KEY}" ]]; then
+        echo "BUTLER_API_KEY detected. Enabling URHO3D_COPY_DATA_DIRS option."
+        ci_cmake_params+=(
+            "-DURHO3D_COPY_DATA_DIRS=ON"
+        )
+    fi
+
     ci_cmake_params+=(${ci_cmake_params_user[@]})
     ci_cmake_params+=(-B $ci_build_dir -S "$ci_source_dir")
 
@@ -295,6 +331,19 @@ function action-cstest() {
     if test -f "$test_file"; then
         dotnet test $test_file
     fi
+}
+
+function action-publish-to-itch() {
+    if [[ -z "${BUTLER_API_KEY}" ]]; then
+        echo "No BUTLER_API_KEY detected. Can't publish to itch.io."
+        return 0
+    fi
+
+    if [[ "$ci_platform" == "windows" ]]; then
+        copy-runtime-libraries-for-executables "$ci_build_dir/bin"
+    fi
+
+    butler push "$ci_build_dir/bin" "rebelfork/rebelfork:$ci_platform-$ci_arch-$ci_lib_type-$ci_compiler-$ci_build_type"
 }
 
 # Invoke requested action.

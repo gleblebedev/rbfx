@@ -874,6 +874,7 @@ public:
 %include "Urho3D/Physics/Constraint.h"
 %include "Urho3D/Physics/PhysicsWorld.h"
 %include "Urho3D/Physics/RaycastVehicle.h"
+%include "Urho3D/Physics/RaycastVehicleWheel.h"
 %include "Urho3D/Physics/RigidBody.h"
 %include "Urho3D/Physics/KinematicCharacterController.h"
 %include "Urho3D/Physics/TriggerAnimator.h"

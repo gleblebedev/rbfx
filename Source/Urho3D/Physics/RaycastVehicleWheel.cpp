@@ -51,7 +51,7 @@ void RaycastVehicleWheel::RegisterObject(Context* context)
         "Connection Point", GetConnectionPoint, SetConnectionPoint, Vector3, DefaultWheelDirection, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Offset", GetOffset, SetOffset, Vector3, Vector3::ZERO, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Rotation", GetRotation, SetRotation, Quaternion, Quaternion::IDENTITY, AM_DEFAULT);
-    URHO3D_ACTION_STATIC_LABEL("Set Connection", EvaluateConnection, "Update connection point and rotation");
+    URHO3D_ACTION_STATIC_LABEL("Set Connection", ConnectionPointFromTransform, "Update connection point and rotation");
     URHO3D_ACCESSOR_ATTRIBUTE("Direction", GetDirection, SetDirection, Vector3, Vector3::DOWN, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Axle", GetAxle, SetAxle, Vector3, DefaultWheelAxle, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE(
@@ -91,10 +91,23 @@ void RaycastVehicleWheel::RegisterObject(Context* context)
         "Contact Position", GetContactPosition, SetContactPosition, Vector3, Vector3::ZERO, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Contact Normal", GetContactNormal, SetContactNormal, Vector3, Vector3::ZERO, AM_DEFAULT);
 }
+
+
+void RaycastVehicleWheel::DrawDebugGeometry(DebugRenderer* debug, bool depthTest)
+{
+    depthTest = false;
+
+    if (!vehicle_)
+        return;
+
+    vehicle_->DrawWheelDebugGeometry(wheelIndex_, debug, depthTest);
+}
+
 void RaycastVehicleWheel::SetWheelIndex(unsigned index)
 {
     wheelIndex_ = index;
 }
+
 void RaycastVehicleWheel::OnNodeSet(Node* previousNode, Node* currentNode)
 {
     UpdateWheelAtVehicle();
@@ -104,6 +117,10 @@ void RaycastVehicleWheel::OnNodeSet(Node* previousNode, Node* currentNode)
 void RaycastVehicleWheel::ApplyAttributes()
 {
     UpdateWheelAtVehicle();
+    if (vehicle_)
+    {
+        vehicle_->ApplyWheelAttributes(wheelIndex_);
+    }
     Component::ApplyAttributes();
 }
 
@@ -127,16 +144,33 @@ void RaycastVehicleWheel::UpdateWheelAtVehicle()
     }
 }
 
-void RaycastVehicleWheel::EvaluateConnection()
+void RaycastVehicleWheel::ConnectionPointFromTransform()
 {
-    if (!node_  || !vehicle_ || !vehicle_->GetNode())
+    if (!node_  || !vehicle_)
         return;
 
     const auto* vehicleNode = vehicle_->GetNode();
-    const auto wheelToVehicle = vehicleNode->GetWorldTransform().Inverse() * node_->GetWorldTransform();
+    if (!vehicleNode)
+        return;
 
-    SetConnectionPoint((wheelToVehicle)*offset_ + (direction_ * ( - radius_)));
+    const auto* carBody = vehicleNode->GetComponent<RigidBody>();
+    if (!carBody)
+        return;
+
+    const auto centerOfMassTransform = Matrix3x4::FromTranslation(vehicleNode->GetWorldTransform()*carBody->GetCenterOfMass())
+        * Matrix3x4::FromRotation(vehicleNode->GetWorldRotation());
+    const auto worldToCarBody = centerOfMassTransform.Inverse();
+    const auto wheelToVehicle = worldToCarBody * node_->GetWorldTransform();
+
+    // Default wheel position is calculated as following
+    // wheel.m_raycastInfo.m_hardPointWS + wheel.m_raycastInfo.m_wheelDirectionWS * wheel.m_raycastInfo.m_suspensionLength
+    // where m_hardPointWS is connection point.
+
+    const Vector3 worldSpaceOffset = node_->GetWorldTransform() * offset_;
+    const Vector3 worldSpaceConnection = worldSpaceOffset - direction_ * suspensionRestLength_;
+    SetConnectionPoint(worldToCarBody * worldSpaceConnection);
     SetRotation((wheelToVehicle).Rotation());
+    UpdateWheelAtVehicle();
 }
 
 #define DEFINE_ACCESSOR(getter, setter, field, type) \

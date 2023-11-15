@@ -5,6 +5,8 @@
 #include "EditorApplication.h"
 
 #include "Assets/ModelImporter.h"
+#include "Foundation/ActionViewTab.h"
+#include "Foundation/BipedalViewTab.h"
 #include "Foundation/AnimationViewTab.h"
 #include "Foundation/ConcurrentAssetProcessing.h"
 #include "Foundation/ConsoleTab.h"
@@ -84,6 +86,8 @@ EditorApplication::EditorApplication(Context* context)
     editorPluginManager_->AddPlugin("Foundation.StandardFileTypes", &Foundation_StandardFileTypes);
     editorPluginManager_->AddPlugin("Foundation.ConcurrentAssetProcessing", &Foundation_ConcurrentAssetProcessing);
 
+    editorPluginManager_->AddPlugin("Foundation.ActionView", &Foundation_ActionViewTab);
+    editorPluginManager_->AddPlugin("Foundation.BipedalView", &Foundation_BipedalViewTab);
     editorPluginManager_->AddPlugin("Foundation.GameView", &Foundation_GameViewTab);
     editorPluginManager_->AddPlugin("Foundation.SceneView", &Foundation_SceneViewTab);
     editorPluginManager_->AddPlugin("Foundation.Texture2DView", &Foundation_Texture2DViewTab);
@@ -176,6 +180,7 @@ void EditorApplication::Setup()
     cmd.add_option("--command", command_, "Command to execute on startup.")->type_name("command");
     cmd.add_flag("--exit", exitAfterCommand_, "Forces Editor to exit after command execution.");
     cmd.add_option("project", pendingOpenProject_, "Project to open or create on startup.")->type_name("dir");
+    cmd.add_option("--plugin", implicitPlugin_, "Path to plugin file.");
 
     engineParameters_[EP_WINDOW_TITLE] = GetTypeName();
     engineParameters_[EP_APPLICATION_NAME] = GetWindowTitle();
@@ -617,7 +622,7 @@ void EditorApplication::UpdateProjectStatus()
         if (!isHeadless)
             InitializeUI();
 
-        project_ = MakeShared<Project>(context_, pendingOpenProject_, settingsJsonPath_, readOnly_);
+        project_ = MakeShared<Project>(context_, pendingOpenProject_, settingsJsonPath_, implicitPlugin_, readOnly_);
         project_->OnShallowSaved.Subscribe(this, &EditorApplication::SaveTempJson);
 
         recentProjects_.erase_first(pendingOpenProject_);

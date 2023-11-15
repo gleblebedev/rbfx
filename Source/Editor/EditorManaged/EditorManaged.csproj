@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>Editor</AssemblyName>
+    <AssemblyName>EditorManaged</AssemblyName>
     <OutputType>Exe</OutputType>
     <LangVersion>9.0</LangVersion>
     <PackAsTool>true</PackAsTool>

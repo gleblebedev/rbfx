@@ -54,7 +54,7 @@ namespace Editor
             new Program().Run(args);
         }
 
-        [DllImport("libEditor")]
+        [DllImport("libEditorWrapper")]
         private static extern IntPtr CreateApplication(HandleRef context);
     }
 }

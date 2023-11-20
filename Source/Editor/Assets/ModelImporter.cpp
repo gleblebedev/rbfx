@@ -488,6 +488,7 @@ ModelImporter::GLTFFileHandle ModelImporter::LoadDataFromFBX(
         URHO3D_LOGERROR("{}", commandOutput);
         return nullptr;
     }
+    URHO3D_LOGDEBUG("FBX2glTF output:\n{}", commandOutput);
 
     const auto deleter = [fs](GLTFFileInfo* handle)
     {
@@ -506,14 +507,14 @@ ModelImporter::GLTFFileHandle ModelImporter::LoadDataFromBlend(
     if (!fs->FileExists(fileName))
         return nullptr;
 
-    const ea::string tempGltfFile = tempPath + "model.gltf";
+    const ea::string tempGltfFile = tempPath + "model.glb";
 
     // This script is passed as command line argument, so it must be a single line and use single quotes
     const ea::string script = Format(
         "import bpy;"
         "bpy.ops.export_scene.gltf("
         "  filepath='{}', "
-        "  export_format='GLTF_EMBEDDED', "
+        "  export_format='GLB', "
         "  export_apply={}"
         ");",
         tempGltfFile, blenderApplyModifiers_ ? "True" : "False");
@@ -526,6 +527,7 @@ ModelImporter::GLTFFileHandle ModelImporter::LoadDataFromBlend(
         URHO3D_LOGERROR("{}", commandOutput);
         return nullptr;
     }
+    URHO3D_LOGDEBUG("Blender output:\n{}", commandOutput);
 
     const auto deleter = [fs](GLTFFileInfo* handle)
     {

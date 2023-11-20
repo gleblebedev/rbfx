@@ -74,6 +74,8 @@ protected:
 
     /// Whether the editor is launched in read-only mode.
     bool readOnly_{};
+    /// Whether the editor is launched in single process mode.
+    bool singleProcess_{};
     /// Launch command and command line parameters.
     ea::string command_;
     /// Implicit plugin dynamic library name.

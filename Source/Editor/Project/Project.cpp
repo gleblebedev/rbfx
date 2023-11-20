@@ -198,10 +198,11 @@ ImFont* Project::GetMonoFont()
     return monoFont;
 }
 
-Project::Project(Context* context, const ea::string& projectPath, const ea::string& settingsJsonPath, const ea::string&implicitPlugin, bool isReadOnly)
+Project::Project(
+    Context* context, const ea::string& projectPath, const ea::string& settingsJsonPath, const ea::string&implicitPlugin, ProjectFlags flags)
     : Object(context)
     , isHeadless_(context->GetSubsystem<Engine>()->IsHeadless())
-    , isReadOnly_(isReadOnly)
+    , flags_(flags)
     , isXR_(context->GetSubsystem<Engine>()->GetParameter(EP_XR).GetBool())
     , projectPath_(GetSanitizedPath(projectPath + "/"))
     , cachePath_(projectPath_ + "Cache/")
@@ -235,7 +236,7 @@ Project::Project(Context* context, const ea::string& projectPath, const ea::stri
 
     SubscribeToEvent(E_ENDPLUGINRELOAD, [this] { pluginReloadEndTime_ = std::chrono::steady_clock::now(); });
 
-    if (!isHeadless_ && !isReadOnly_)
+    if (!isHeadless_ && !flags_.Test(ProjectFlag::ReadOnly))
         ui::GetIO().IniFilename = uiIniPath_.c_str();
 
     InitializeHotkeys();
@@ -769,7 +770,7 @@ void Project::Render()
     if (!assetManagerInitialized_ && !pluginManager_->IsReloadPending())
     {
         assetManagerInitialized_ = true;
-        assetManager_->Initialize(isReadOnly_);
+        assetManager_->Initialize(flags_.Test(ProjectFlag::ReadOnly));
     }
 
     assetManager_->Update();
@@ -987,10 +988,11 @@ void Project::RenderMainMenu()
 
 void Project::SaveShallowOnly()
 {
-    if (isReadOnly_)
+    if (flags_.Test(ProjectFlag::ReadOnly))
         return;
 
-    ui::SaveIniSettingsToDisk(uiIniPath_.c_str());
+    if (!isHeadless_)
+        ui::SaveIniSettingsToDisk(uiIniPath_.c_str());
     settingsManager_->SaveFile(settingsJsonPath_);
     assetManager_->SaveFile(cacheJsonPath_);
 

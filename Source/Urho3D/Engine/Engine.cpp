@@ -267,8 +267,7 @@ bool Engine::Initialize(const StringVariantMap& applicationParameters, const Str
     auto* log = GetSubsystem<Log>();
     if (log)
     {
-        if (HasParameter(EP_LOG_LEVEL))
-            log->SetLevel(static_cast<LogLevel>(GetParameter(EP_LOG_LEVEL).GetInt()));
+        log->SetLevel(static_cast<LogLevel>(GetParameter(EP_LOG_LEVEL).GetInt()));
         log->SetQuiet(GetParameter(EP_LOG_QUIET).GetBool());
         const ea::string logFileName = GetLogFileName(GetParameter(EP_LOG_NAME).GetString());
         if (!logFileName.empty())
@@ -389,7 +388,9 @@ bool Engine::Initialize(const StringVariantMap& applicationParameters, const Str
         const int height = GetParameter(EP_WINDOW_HEIGHT).GetInt();
         if (width && height)
             windowSettings.size_ = {width, height};
-        if (GetParameter(EP_FULL_SCREEN).GetBool())
+        if (GetPlatform() == PlatformId::Web)
+            windowSettings.mode_ = WindowMode::Windowed;
+        else if (GetParameter(EP_FULL_SCREEN).GetBool())
             windowSettings.mode_ = WindowMode::Fullscreen;
         else if (GetParameter(EP_BORDERLESS).GetBool())
             windowSettings.mode_ = WindowMode::Borderless;
@@ -1173,7 +1174,7 @@ void Engine::PopulateDefaultParameters()
     engineParameters_->DefineVariable(EP_PLUGINS, EMPTY_STRING);
     engineParameters_->DefineVariable(EP_REFRESH_RATE, 0).Overridable();
     engineParameters_->DefineVariable(EP_RESOURCE_PACKAGES, EMPTY_STRING).CommandLinePriority();
-    engineParameters_->DefineVariable(EP_RESOURCE_PATHS, "Data;CoreData").CommandLinePriority();
+    engineParameters_->DefineVariable(EP_RESOURCE_PATHS, "Data;Cache;CoreData").CommandLinePriority();
     engineParameters_->DefineVariable(EP_RESOURCE_PREFIX_PATHS, EMPTY_STRING).CommandLinePriority();
     engineParameters_->DefineVariable(EP_SAVE_SHADER_CACHE, true);
     engineParameters_->DefineVariable(EP_SHADER_CACHE_DIR, "conf://ShaderCache");

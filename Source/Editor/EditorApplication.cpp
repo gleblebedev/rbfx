@@ -632,7 +632,7 @@ void EditorApplication::UpdateProjectStatus()
         if (singleProcess_)
             projectFlags |= ProjectFlag::SingleProcess;
 
-        project_ = MakeShared<Project>(context_, pendingOpenProject_, settingsJsonPath_, implicitPlugin_, readOnly_);
+        project_ = MakeShared<Project>(context_, pendingOpenProject_, settingsJsonPath_, implicitPlugin_, projectFlags);
         project_->OnShallowSaved.Subscribe(this, &EditorApplication::SaveTempJson);
 
         recentProjects_.erase_first(pendingOpenProject_);

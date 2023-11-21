@@ -552,10 +552,13 @@ void WidgetDropDown::ProcessEvent(Event& event)
 	{
 		Input::KeyIdentifier key_identifier = (Input::KeyIdentifier)event.GetParameter<int>("key_identifier", 0);
 
-		auto HasNavigation = [this](PropertyId id) {
+		auto HasVerticalNavigation = [this](PropertyId id) {
 			if (const Property* p = parent_element->GetProperty(id))
 			{
-				if (p->unit != Unit::KEYWORD || static_cast<Style::Nav>(p->Get<int>()) != Style::Nav::None)
+				if (p->unit != Unit::KEYWORD)
+					return true;
+				const Style::Nav nav = static_cast<Style::Nav>(p->Get<int>());
+				if (nav == Style::Nav::Auto || nav == Style::Nav::Vertical)
 					return true;
 			}
 			return false;
@@ -564,13 +567,13 @@ void WidgetDropDown::ProcessEvent(Event& event)
 		switch (key_identifier)
 		{
 		case Input::KI_UP:
-			if (!box_visible && HasNavigation(PropertyId::NavUp))
+			if (!box_visible && HasVerticalNavigation(PropertyId::NavUp))
 				break;
 			SeekSelection(false);
 			event.StopPropagation();
 			break;
 		case Input::KI_DOWN:
-			if (!box_visible && HasNavigation(PropertyId::NavDown))
+			if (!box_visible && HasVerticalNavigation(PropertyId::NavDown))
 				break;
 			SeekSelection(true);
 			event.StopPropagation();

@@ -406,7 +406,7 @@ void WidgetTextInput::ProcessEvent(Event& event)
 
 		switch (key_identifier)
 		{
-		// clang-format off
+			// clang-format off
 		case Input::KI_NUMPAD4: if (numlock) break; //-fallthrough
 		case Input::KI_LEFT:    selection_changed = MoveCursorHorizontal(ctrl ? CursorMovement::PreviousWord : CursorMovement::Left, shift, out_of_bounds); break;
 
@@ -502,7 +502,7 @@ void WidgetTextInput::ProcessEvent(Event& event)
 		}
 
 		if (!out_of_bounds || selection_changed)
-		    event.StopPropagation();
+			event.StopPropagation();
 		if (selection_changed)
 			FormatText();
 	}
@@ -642,7 +642,7 @@ void WidgetTextInput::CopySelection()
 
 bool WidgetTextInput::MoveCursorHorizontal(CursorMovement movement, bool select, bool& out_of_bounds)
 {
-    out_of_bounds = false;
+	out_of_bounds = false;
 
 	const String& value = GetValue();
 
@@ -723,9 +723,9 @@ bool WidgetTextInput::MoveCursorHorizontal(CursorMovement movement, bool select,
 	case CursorMovement::End: absolute_cursor_index = INT_MAX; break;
 	}
 
-    const int unclamped_absolute_cursor_index = absolute_cursor_index;
+	const int unclamped_absolute_cursor_index = absolute_cursor_index;
 	absolute_cursor_index = Math::Clamp(absolute_cursor_index, 0, (int)GetValue().size());
-    out_of_bounds = unclamped_absolute_cursor_index != absolute_cursor_index;
+	out_of_bounds = (unclamped_absolute_cursor_index != absolute_cursor_index);
 
 	MoveCursorToCharacterBoundaries(seek_forward);
 	UpdateCursorPosition(true);

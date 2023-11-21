@@ -789,25 +789,42 @@ Element* ElementDocument::FindNextNavigationElement(Element* current_element, Na
 	{
 	case Unit::STRING:
 	{
-		auto value = property.Get<String>();
-		if (value[0] == '#')
-		{
-			return GetElementById(String(value.begin() + 1, value.end()));
-		}
 		const PropertySource* source = property.source.get();
-		Log::Message(Log::LT_WARNING,
-			"Invalid navigation value '%s': Expected a keyword or a string with an element id prefixed with '#'. Declared at %s:%d", value.c_str(),
-			source ? source->path.c_str() : "", source ? source->line_number : -1);
-		return nullptr;
+		const String value = property.Get<String>();
+		if (value[0] != '#')
+		{
+			Log::Message(Log::LT_WARNING,
+				"Invalid navigation value '%s': Expected a keyword or a string with an element id prefixed with '#'. Declared at %s:%d",
+				value.c_str(), source ? source->path.c_str() : "", source ? source->line_number : -1);
+			return nullptr;
+		}
+
+		const String id = String(value.begin() + 1, value.end());
+		Element* result = GetElementById(id);
+		if (!result)
+		{
+			Log::Message(Log::LT_WARNING, "Trying to navigate to element with id '%s', but could not find element. Declared at %s:%d", id.c_str(),
+				source ? source->path.c_str() : "", source ? source->line_number : -1);
+		}
+		return result;
 	}
 	break;
 	case Unit::KEYWORD:
 	{
+		const bool direction_is_horizontal = (direction == NavigationSearchDirection::Left || direction == NavigationSearchDirection::Right);
+		const bool direction_is_vertical = (direction == NavigationSearchDirection::Up || direction == NavigationSearchDirection::Down);
 		switch (static_cast<Style::Nav>(property.value.Get<int>()))
 		{
-		case Style::Nav::Auto: break;
 		case Style::Nav::None: return nullptr;
-		default: RMLUI_ERROR; return nullptr;
+		case Style::Nav::Auto: break;
+		case Style::Nav::Horizontal:
+			if (!direction_is_horizontal)
+				return nullptr;
+			break;
+		case Style::Nav::Vertical:
+			if (!direction_is_vertical)
+				return nullptr;
+			break;
 		}
 	}
 	break;
@@ -816,8 +833,8 @@ Element* ElementDocument::FindNextNavigationElement(Element* current_element, Na
 
 	if (current_element == this)
 	{
-		const bool search_forward = (direction == NavigationSearchDirection::Down || direction == NavigationSearchDirection::Right);
-		return FindNextTabElement(this, search_forward);
+		const bool direction_is_forward = (direction == NavigationSearchDirection::Down || direction == NavigationSearchDirection::Right);
+		return FindNextTabElement(this, direction_is_forward);
 	}
 
 	const Vector2f position = current_element->GetAbsoluteOffset(BoxArea::Border);

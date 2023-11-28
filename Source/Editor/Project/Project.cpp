@@ -646,15 +646,17 @@ void Project::InitializeResourceCache()
 
     const auto vfs = GetSubsystem<VirtualFileSystem>();
     vfs->UnmountAll();
+    vfs->MountAliasRoot();
     vfs->MountRoot();
     vfs->MountDir(oldCacheState_.GetEditorData());
 
-    // C# gets CoreData from nuget.
-    //vfs->MountDir(coreDataPath_);
-    vfs->MountDir(oldCacheState_.GetCoreData());
+    MountPoint* coreDataMountPoint = vfs->MountDir(oldCacheState_.GetCoreData());
+    MountPoint* dataMountPoint = vfs->MountDir(dataPath_);
+    MountPoint* cacheMountPoint = vfs->MountDir(cachePath_);
+    vfs->MountAlias("res:CoreData", coreDataMountPoint);
+    vfs->MountAlias("res:Data", dataMountPoint);
+    vfs->MountAlias("res:Cache", cacheMountPoint);
 
-    vfs->MountDir(dataPath_);
-    vfs->MountDir(cachePath_);
     vfs->MountDir("conf" , engine->GetAppPreferencesDir());
 }
 

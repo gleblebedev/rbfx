@@ -134,8 +134,8 @@
 %ignore Urho3D::DOT_SCALE;
 %constant int MaxRendertargets = Urho3D::MAX_RENDERTARGETS;
 %ignore Urho3D::MAX_RENDERTARGETS;
-%constant int MaxVertexStreams = Urho3D::MAX_VERTEX_STREAMS;
-%ignore Urho3D::MAX_VERTEX_STREAMS;
+//%constant int MaxVertexStreams = Urho3D::MAX_VERTEX_STREAMS;
+//%ignore Urho3D::MAX_VERTEX_STREAMS;
 %ignore Urho3D::MAX_TEXTURE_QUALITY_LEVELS;
 %csconst(1) Urho3D::MAX_TEXTURE_QUALITY_LEVELS;
 %constant int MaxTextureQualityLevels = 3;

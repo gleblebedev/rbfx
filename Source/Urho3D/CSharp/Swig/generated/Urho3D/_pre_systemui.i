@@ -13,6 +13,16 @@
 using DebugHudModeFlags = Urho3D::DebugHudMode;
 %typemap(ctype) DebugHudModeFlags "size_t";
 %typemap(out) DebugHudModeFlags "$result = (size_t)$1.AsInteger();"
+%csconstvalue("0") Urho3D::TransformGizmoAxis::None;
+%csconstvalue("1") Urho3D::TransformGizmoAxis::X;
+%csconstvalue("2") Urho3D::TransformGizmoAxis::Y;
+%csconstvalue("4") Urho3D::TransformGizmoAxis::Z;
+%csconstvalue("8") Urho3D::TransformGizmoAxis::Screen;
+%csconstvalue("16") Urho3D::TransformGizmoAxis::Universal;
+%typemap(csattributes) Urho3D::TransformGizmoAxis "[global::System.Flags]";
+using TransformGizmoAxes = Urho3D::TransformGizmoAxis;
+%typemap(ctype) TransformGizmoAxes "size_t";
+%typemap(out) TransformGizmoAxes "$result = (size_t)$1.AsInteger();"
 %csattribute(Urho3D::ResourceInspectorWidget, %arg(Urho3D::ResourceInspectorWidget::ResourceVector), Resources, GetResources);
 %csattribute(Urho3D::Console, %arg(bool), IsVisible, IsVisible, SetVisible);
 %csattribute(Urho3D::Console, %arg(bool), IsAutoVisibleOnError, IsAutoVisibleOnError, SetAutoVisibleOnError);
@@ -22,7 +32,6 @@ using DebugHudModeFlags = Urho3D::DebugHudMode;
 %csattribute(Urho3D::SystemUI, %arg(Urho3D::Vector2), RelativeMouseMove, GetRelativeMouseMove);
 %csattribute(Urho3D::SystemUI, %arg(bool), PassThroughEvents, GetPassThroughEvents, SetPassThroughEvents);
 %csattribute(Urho3D::DebugHud, %arg(Urho3D::DebugHudModeFlags), Mode, GetMode, SetMode);
-%csattribute(Urho3D::DebugHud, %arg(bool), UseRendererStats, GetUseRendererStats, SetUseRendererStats);
 %csattribute(Urho3D::ResourceDragDropPayload, %arg(ea::string), DisplayString, GetDisplayString);
 %csattribute(Urho3D::MaterialInspectorWidget, %arg(Urho3D::MaterialInspectorWidget::MaterialVector), Materials, GetMaterials);
 %csattribute(Urho3D::SerializableInspectorWidget, %arg(ea::string), Title, GetTitle);

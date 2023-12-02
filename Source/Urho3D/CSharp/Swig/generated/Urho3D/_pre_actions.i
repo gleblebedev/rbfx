@@ -24,6 +24,8 @@
 %csattribute(Urho3D::Actions::FiniteTimeActionState, %arg(float), Elapsed, GetElapsed);
 %csattribute(Urho3D::Actions::ActionInstantState, %arg(bool), IsDone, IsDone);
 %csattribute(Urho3D::ActionSet, %arg(Actions::BaseAction *), Action, GetAction, SetAction);
+%csattribute(Urho3D::Actions::ShakeBy, %arg(Urho3D::Vector3), Delta, GetDelta, SetDelta);
+%csattribute(Urho3D::Actions::ShakeBy, %arg(float), NoiseSpeed, GetNoiseSpeed, SetNoiseSpeed);
 %csattribute(Urho3D::Actions::MoveBy, %arg(Urho3D::Vector3), Delta, GetDelta, SetDelta);
 %csattribute(Urho3D::Actions::MoveByQuadratic, %arg(Urho3D::Vector3), Control, GetControl, SetControl);
 %csattribute(Urho3D::Actions::JumpBy, %arg(Urho3D::Vector3), Delta, GetDelta, SetDelta);
@@ -46,6 +48,8 @@
 %csattribute(Urho3D::Actions::ShaderParameterFromTo, %arg(Urho3D::Variant), From, GetFrom, SetFrom);
 %csattribute(Urho3D::Actions::ShaderParameterFromTo, %arg(Urho3D::Variant), To, GetTo, SetTo);
 %csattribute(Urho3D::Actions::SetAttribute, %arg(Urho3D::Variant), Value, GetValue, SetValue);
+%csattribute(Urho3D::Actions::Detail::ShakeByState, %arg(Urho3D::Vector3), Delta, GetDelta);
+%csattribute(Urho3D::Actions::Detail::ShakeByState, %arg(float), NoiseSpeed, GetNoiseSpeed);
 %csattribute(Urho3D::Actions::Detail::MoveByState, %arg(Urho3D::Vector3), Delta, GetDelta);
 %csattribute(Urho3D::Actions::Detail::MoveByQuadraticState, %arg(Urho3D::Vector3), Delta, GetDelta);
 %csattribute(Urho3D::Actions::Detail::MoveByQuadraticState, %arg(Urho3D::Vector3), Control, GetControl);

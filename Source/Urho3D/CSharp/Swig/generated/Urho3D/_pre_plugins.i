@@ -14,6 +14,7 @@
 %csattribute(Urho3D::PluginStack, %arg(unsigned int), NumPlugins, GetNumPlugins);
 %csattribute(Urho3D::PluginStack, %arg(Urho3D::PluginApplication *), MainPlugin, GetMainPlugin);
 %csattribute(Urho3D::PluginManager, %arg(bool), IsStarted, IsStarted);
+%csattribute(Urho3D::PluginManager, %arg(ea::string), ImplicitPlugin, GetImplicitPlugin, SetImplicitPlugin);
 %csattribute(Urho3D::PluginManager, %arg(Urho3D::StringVector), LoadedPlugins, GetLoadedPlugins);
 %csattribute(Urho3D::PluginManager, %arg(unsigned int), Revision, GetRevision);
 %csattribute(Urho3D::PluginManager, %arg(bool), IsReloadPending, IsReloadPending);

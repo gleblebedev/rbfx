@@ -557,14 +557,6 @@ void Project::EnsureDirectoryInitialized()
         fs->CreateDirsRecursive(artifactsPath_);
     }
 
-    // C# gets CoreData from nuget.
-    //if (!fs->DirExists(coreDataPath_))
-    //{
-    //    if (fs->FileExists(coreDataPath_))
-    //        fs->Delete(coreDataPath_);
-    //    fs->CopyDir(oldCacheState_.GetCoreData(), coreDataPath_);
-    //}
-
     if (!fs->FileExists(settingsJsonPath_))
     {
         if (fs->DirExists(settingsJsonPath_))

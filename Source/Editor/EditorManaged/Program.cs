@@ -21,6 +21,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -30,6 +31,8 @@ namespace Editor
 {
     internal class Program
     {
+        private static List<string> _assemblyLookupPaths = new List<string>();
+
         private void Run(string[] args)
         {
             var executingAssembly = typeof(Program).Assembly;
@@ -48,9 +51,36 @@ namespace Editor
             }
         }
 
+        private static Assembly ResolveEditorAssembly(object sender, ResolveEventArgs args, string[] commandLineArgs)
+        {
+            foreach (var assemblyLookupPath in _assemblyLookupPaths)
+            {
+                string assemblyPath = Path.Combine(assemblyLookupPath, new AssemblyName(args.Name).Name + ".dll");
+                if (System.IO.File.Exists(assemblyPath))
+                {
+                    Assembly assembly = Assembly.LoadFrom(assemblyPath);
+                    return assembly;
+                }
+            }
+            return null;
+        }
+
         [STAThread]
         public static void Main(string[] args)
         {
+            for (var index = 0; index < args.Length; index++)
+            {
+                if (args[index] == "--plugin" && index+1<args.Length)
+                {
+                    _assemblyLookupPaths.Add(Path.GetDirectoryName(Path.GetFullPath(args[index+1])));
+                }
+            }
+
+            _assemblyLookupPaths.Add(Path.GetDirectoryName(typeof(Program).Assembly.Location));
+
+            AppDomain currentDomain = AppDomain.CurrentDomain;
+            currentDomain.AssemblyResolve += new ResolveEventHandler((sender, eventArgs) =>ResolveEditorAssembly(sender, eventArgs, args));
+
             new Program().Run(args);
         }
 

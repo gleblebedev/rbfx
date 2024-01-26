@@ -1,8 +1,10 @@
 using System;
+using System.Data.Common;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using ImGuiNet;
 
 namespace Urho3DNet
 {
@@ -15,10 +17,17 @@ namespace Urho3DNet
         static ScriptRuntimeApiImpl()
         {
             var assembly = Assembly.GetExecutingAssembly();
-            if (assembly?.CodeBase != null)
+            try
             {
-                ProgramFile = new Uri(assembly.CodeBase).LocalPath;
-                ProgramDirectory = Path.GetDirectoryName(ProgramFile);
+                if (assembly?.CodeBase != null)
+                {
+                    ProgramFile = new Uri(assembly.CodeBase).LocalPath;
+                    ProgramDirectory = Path.GetDirectoryName(ProgramFile);
+                }
+            }
+            // CodeBase is not available on UWP
+            catch (PlatformNotSupportedException exception)
+            {
             }
         }
 

@@ -16,9 +16,9 @@ namespace Urho3DNet
 
         static ScriptRuntimeApiImpl()
         {
-            var assembly = Assembly.GetExecutingAssembly();
             try
             {
+                var assembly = Assembly.GetExecutingAssembly();
                 if (assembly?.CodeBase != null)
                 {
                     ProgramFile = new Uri(assembly.CodeBase).LocalPath;
@@ -26,8 +26,9 @@ namespace Urho3DNet
                 }
             }
             // CodeBase is not available on UWP
-            catch (PlatformNotSupportedException exception)
+            catch (PlatformNotSupportedException)
             {
+                ProgramDirectory = Directory.GetCurrentDirectory();
             }
         }
 

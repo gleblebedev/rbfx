@@ -23,7 +23,7 @@
 #pragma once
 
 #include "GraphViewTab.h"
-#include "Core/UndoManager.h"
+#include "../../Core/UndoManager.h"
 #include <EASTL/fixed_vector.h>
 
 namespace Urho3D

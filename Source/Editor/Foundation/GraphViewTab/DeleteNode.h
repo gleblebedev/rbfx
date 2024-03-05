@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "Core/UndoManager.h"
+#include "../../Core/UndoManager.h"
 #include "GraphViewTab.h"
 
 #include <EASTL/fixed_vector.h>

@@ -34,10 +34,9 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <BindingsSourceCodeUrho3D Include="$(GeneratedCodePath)Urho3DCSharp/*.cs" />
-    <BindingsSourceCodeImGui Include="$(GeneratedCodePath)ImGuiCSharp/*.cs" />
+    <BindingsSourceCodeUrho3D Include="$(GeneratedCodePath)Urho3DCSharp_$(URHO3D_CSHARP_BIND_CONFIG)/*.cs" />
+    <BindingsSourceCodeImGui Include="$(GeneratedCodePath)ImGuiCSharp_$(URHO3D_CSHARP_BIND_CONFIG)/*.cs" />
     <Compile Include="Managed/**/*.cs" />
-    <Compile Include="$(RBFX_BINARY_DIR)Source/Urho3D/Urho3DCSharp/Managed/*.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Remove="bin\**" />
@@ -45,13 +44,13 @@
     <None Remove="bin\**" />
     <None Remove="obj\**" />
   </ItemGroup>
-  <Target Name="GatherBuildFilesUrho3D" BeforeTargets="BeforeCompile">
-    <CreateItem Include="$([System.IO.Directory]::GetFiles(&quot;$(GeneratedCodePath)Urho3DCSharp&quot;, &quot;*.cs&quot;))">
+  <Target Name="GatherBuildFilesUrho3D" BeforeTargets="BeforeCompile" Condition="Exists('$(GeneratedCodePath)Urho3DCSharp_$(URHO3D_CSHARP_BIND_CONFIG)')">
+    <CreateItem Include="$([System.IO.Directory]::GetFiles(&quot;$(GeneratedCodePath)Urho3DCSharp_$(URHO3D_CSHARP_BIND_CONFIG)&quot;, &quot;*.cs&quot;))">
       <Output TaskParameter="Include" ItemName="Compile" />
     </CreateItem>
   </Target>
-  <Target Name="GatherBuildFilesImGui" BeforeTargets="BeforeCompile" Condition="Exists('$(GeneratedCodePath)ImGuiCSharp')">
-    <CreateItem Include="$([System.IO.Directory]::GetFiles(&quot;$(GeneratedCodePath)ImGuiCSharp&quot;, &quot;*.cs&quot;))">
+  <Target Name="GatherBuildFilesImGui" BeforeTargets="BeforeCompile" Condition="Exists('$(GeneratedCodePath)ImGuiCSharp_$(URHO3D_CSHARP_BIND_CONFIG)')">
+    <CreateItem Include="$([System.IO.Directory]::GetFiles(&quot;$(GeneratedCodePath)ImGuiCSharp_$(URHO3D_CSHARP_BIND_CONFIG)&quot;, &quot;*.cs&quot;))">
       <Output TaskParameter="Include" ItemName="Compile" />
     </CreateItem>
   </Target>

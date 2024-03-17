@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>Urho3DNet</AssemblyName>
     <OutputType>Library</OutputType>
@@ -44,6 +44,11 @@
     <None Remove="bin\**" />
     <None Remove="obj\**" />
   </ItemGroup>
+    <Target Name="BeforeBuild">
+        <Message Importance="high" Text="RBFX_BINARY_DIR = $(RBFX_BINARY_DIR)" />
+        <Message Importance="high" Text="URHO3D_CSHARP_BIND_CONFIG = $(URHO3D_CSHARP_BIND_CONFIG)" />
+        <Message Importance="high" Text="GeneratedCodePath = $(GeneratedCodePath)" />
+    </Target>
   <Target Name="GatherBuildFilesUrho3D" BeforeTargets="BeforeCompile" Condition="Exists('$(GeneratedCodePath)Urho3DCSharp_$(URHO3D_CSHARP_BIND_CONFIG)')">
     <CreateItem Include="$([System.IO.Directory]::GetFiles(&quot;$(GeneratedCodePath)Urho3DCSharp_$(URHO3D_CSHARP_BIND_CONFIG)&quot;, &quot;*.cs&quot;))">
       <Output TaskParameter="Include" ItemName="Compile" />

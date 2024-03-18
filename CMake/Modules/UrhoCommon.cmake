@@ -79,13 +79,12 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
     else ()
         set (URHO3D_CSHARP_BIND_CONFIG "Release")
     endif ()
-elseif (GENERATOR_IS_MULTI_CONFIG)
-    set (URHO3D_CSHARP_BIND_CONFIG $<CONFIG>)
-elseif (CMAKE_BUILD_TYPE)
-    set (URHO3D_CSHARP_BIND_CONFIG "${CMAKE_BUILD_TYPE}")
 else ()
-    set (URHO3D_CSHARP_BIND_CONFIG "Release")
+    set (URHO3D_CSHARP_BIND_CONFIG $<CONFIG>)
 endif ()
+
+# Custom RBFX patch for RelWithDebugInfo. Don't merge it back!
+set (URHO3D_CSHARP_BIND_CONFIG "RelWithDebugInfo")
 
 if (EMSCRIPTEN)
     set (WEB ON)

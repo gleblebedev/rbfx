@@ -83,8 +83,7 @@ else ()
     set (URHO3D_CSHARP_BIND_CONFIG $<CONFIG>)
 endif ()
 
-# Custom RBFX patch for RelWithDebugInfo. Don't merge it back!
-set (URHO3D_CSHARP_BIND_CONFIG "RelWithDebugInfo")
+message(STATUS "URHO3D_CSHARP_BIND_CONFIG = ${URHO3D_CSHARP_BIND_CONFIG}")
 
 if (EMSCRIPTEN)
     set (WEB ON)

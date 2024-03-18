@@ -79,8 +79,12 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
     else ()
         set (URHO3D_CSHARP_BIND_CONFIG "Release")
     endif ()
-else ()
+elseif (GENERATOR_IS_MULTI_CONFIG)
     set (URHO3D_CSHARP_BIND_CONFIG $<CONFIG>)
+elseif (CMAKE_BUILD_TYPE)
+    set (URHO3D_CSHARP_BIND_CONFIG ${CMAKE_BUILD_TYPE})
+else ()
+    set (URHO3D_CSHARP_BIND_CONFIG Release)
 endif ()
 
 message(STATUS "URHO3D_CSHARP_BIND_CONFIG = ${URHO3D_CSHARP_BIND_CONFIG}")
@@ -99,11 +103,26 @@ if (NOT MULTI_CONFIG_PROJECT AND NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
 endif ()
 
-function (rbfx_configure_cmake_props props_out)
+# Generate CMake.props which will be included in .csproj files. This function should be called after all targets are
+# added to the project, because it depends on target properties.
+function (rbfx_configure_cmake_props)
+    if (NOT URHO3D_CSHARP)
+        return ()
+    endif ()
 
-    file(WRITE "${props_out}" "<Project>\n")
-    file(APPEND "${props_out}" "  <PropertyGroup>\n")
-    file(APPEND "${props_out}" "    <CMakePropsIncluded>true</CMakePropsIncluded>\n")
+    if (NOT PROJECT_IS_TOP_LEVEL)
+        return ()
+    endif ()
+
+    cmake_parse_arguments(PROPS "" "OUT" "" ${ARGN})
+
+    if (NOT DEFINED PROPS_OUT)
+        set(PROPS_OUT "${CMAKE_BINARY_DIR}/CMake.props")
+    endif ()
+
+    file(WRITE "${PROPS_OUT}" "<Project>\n")
+    file(APPEND "${PROPS_OUT}" "  <PropertyGroup>\n")
+    file(APPEND "${PROPS_OUT}" "    <CMakePropsIncluded>true</CMakePropsIncluded>\n")
 
     # Variables of interest
     foreach (var
@@ -117,7 +136,7 @@ function (rbfx_configure_cmake_props props_out)
         URHO3D_NETFX
         URHO3D_NETFX_RUNTIME_IDENTIFIER
         URHO3D_NETFX_RUNTIME)
-        file(APPEND "${props_out}" "    <${var}>${${var}}</${var}>\n")
+        file(APPEND "${PROPS_OUT}" "    <${var}>${${var}}</${var}>\n")
     endforeach ()
 
     # Binary/sourece dirs
@@ -131,17 +150,17 @@ function (rbfx_configure_cmake_props props_out)
                 if (NOT "${var_value}" MATCHES "/$")
                     set(var_value "${var_value}/")
                 endif ()
-                file(APPEND "${props_out}" "    <${var_name}>${var_value}</${var_name}>\n")
+                file(APPEND "${PROPS_OUT}" "    <${var_name}>${var_value}</${var_name}>\n")
             endif ()
         endif ()
     endforeach()
 
     # C# build config, translate CMake generator expression to MSBuild expression.
     string(REPLACE "$<CONFIG>" "$(Configuration)" URHO3D_CSHARP_BIND_CONFIG_PROP "${URHO3D_CSHARP_BIND_CONFIG}")
-    file(APPEND "${props_out}" "    <URHO3D_CSHARP_BIND_CONFIG>${URHO3D_CSHARP_BIND_CONFIG_PROP}</URHO3D_CSHARP_BIND_CONFIG>\n")
+    file(APPEND "${PROPS_OUT}" "    <URHO3D_CSHARP_BIND_CONFIG>${URHO3D_CSHARP_BIND_CONFIG_PROP}</URHO3D_CSHARP_BIND_CONFIG>\n")
 
-    file(APPEND "${props_out}" "  </PropertyGroup>\n")
-    file(APPEND "${props_out}" "</Project>\n")
+    file(APPEND "${PROPS_OUT}" "  </PropertyGroup>\n")
+    file(APPEND "${PROPS_OUT}" "</Project>\n")
 endfunction ()
 
 if (URHO3D_CSHARP)
@@ -186,12 +205,6 @@ if (URHO3D_CSHARP)
         set (URHO3D_NETFX_RUNTIME_IDENTIFIER linux-${URHO3D_PLATFORM})
     endif ()
 
-    # For .csproj that gets built by cmake invoking msbuild
-    set (ENV{CMAKE_GENERATOR} "${CMAKE_GENERATOR}")
-    set (ENV{CMAKE_BINARY_DIR} "${CMAKE_BINARY_DIR}/")
-    set (ENV{RBFX_BINARY_DIR} "${rbfx_BINARY_DIR}/")
-    set (ENV{CMAKE_RUNTIME_OUTPUT_DIRECTORY} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/")
-
     set (DOTNET_FRAMEWORK_TYPES net6 net7)
     set (DOTNET_FRAMEWORK_VERSIONS v6.0 v7.0)
     list (FIND DOTNET_FRAMEWORK_TYPES ${URHO3D_NETFX} DOTNET_FRAMEWORK_INDEX)
@@ -199,8 +212,6 @@ if (URHO3D_CSHARP)
         list (GET DOTNET_FRAMEWORK_VERSIONS ${DOTNET_FRAMEWORK_INDEX} CMAKE_DOTNET_TARGET_FRAMEWORK_VERSION)
     endif ()
     unset (DOTNET_FRAMEWORK_INDEX)
-
-    rbfx_configure_cmake_props("${CMAKE_BINARY_DIR}/CMake.props")
 
     # For .csproj embedded into visual studio solution
     if (NOT URHO3D_IS_SDK)

@@ -16,6 +16,7 @@
     <OutputPath>$(BaseOutputPath)$(TargetFramework)</OutputPath>
     <GeneratedMSBuildEditorConfigFile>$(OutputPath)\$(MSBuildProjectName).GeneratedMSBuildEditorConfig.editorconfig</GeneratedMSBuildEditorConfigFile>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+    <RootNamespace>Urho3DNet.Generated</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net8.0-ios' ">
     <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION;IOS</DefineConstants>
@@ -43,6 +44,7 @@
     <EmbeddedResource Remove="obj\**" />
     <None Remove="bin\**" />
     <None Remove="obj\**" />
+    <Complie Remove="obj\**" />
   </ItemGroup>
     <Target Name="BeforeBuild">
         <Message Importance="high" Text="RBFX_BINARY_DIR = $(RBFX_BINARY_DIR)" />

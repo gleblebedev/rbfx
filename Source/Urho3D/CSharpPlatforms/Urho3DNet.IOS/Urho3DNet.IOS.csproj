@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0-ios</TargetFramework>
+    <TargetFramework>net8.0-ios</TargetFramework>
     <ProjectGuid>{0EC0753C-EE15-494D-A139-8AA7631ADDA6}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>

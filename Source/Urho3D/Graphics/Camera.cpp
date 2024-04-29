@@ -763,4 +763,5 @@ float Camera::GetEffectiveFogEnd() const
 {
     return zone_ ? zone_->GetFogEnd() : M_LARGE_VALUE;
 }
+
 }

@@ -29,6 +29,7 @@
 #include "../Graphics/AnimationController.h"
 #include "../Graphics/Bipedal.h"
 #include "../Graphics/Camera.h"
+#include "../Graphics/CameraOperator.h"
 #include "../Graphics/Geometry.h"
 #include "../Graphics/CustomGeometry.h"
 #include "../Graphics/DebugRenderer.h"
@@ -707,6 +708,7 @@ void RegisterGraphicsLibrary(Context* context)
     Texture3D::RegisterObject(context);
     TextureCube::RegisterObject(context);
     Camera::RegisterObject(context);
+    CameraOperator::RegisterObject(context);
     Drawable::RegisterObject(context);
     Light::RegisterObject(context);
     LightBaker::RegisterObject(context);

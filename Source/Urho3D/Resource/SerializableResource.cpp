@@ -2,8 +2,6 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
-#ifdef URHO3D_CSHARP
-
 #include <Urho3D/Resource/SerializableResource.h>
 
 namespace Urho3D
@@ -65,5 +63,3 @@ void SerializableResource::SetValue(Serializable* serializable)
 }
 
 } // namespace Urho3D
-
-#endif

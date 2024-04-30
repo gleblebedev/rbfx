@@ -2,6 +2,8 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+#ifdef URHO3D_CSHARP
+
 #include "Urho3D/IO/VirtualFileSystem.h"
 
 #include <Urho3D/Resource/JSONResourceBase.h>
@@ -47,3 +49,5 @@ bool JSONResourceBase::Save(Serializer& dest) const
 }
 
 } // namespace Urho3D
+
+#endif

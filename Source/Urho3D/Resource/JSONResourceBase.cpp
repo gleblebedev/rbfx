@@ -45,7 +45,8 @@ bool JSONResourceBase::EndLoad()
 
 bool JSONResourceBase::Save(Serializer& dest) const
 {
-    return dest.WriteString(SerializeJson());
+    auto jsonString = SerializeJson();
+    return dest.Write(jsonString.data(), CStringLength(jsonString.data()));
 }
 
 } // namespace Urho3D

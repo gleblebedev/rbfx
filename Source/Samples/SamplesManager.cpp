@@ -162,6 +162,7 @@
 #if URHO3D_XR
 #include "120_HelloVR/HelloVR.h"
 #endif
+#include "121_CameraOperator/CameraOperator.h"
 
 #include "200_TextureCompression/TextureCompression.h"
 #include "Rotator.h"
@@ -429,6 +430,7 @@ void SamplesManager::Start()
 #if URHO3D_XR
     RegisterSample<HelloVR>();
 #endif
+    RegisterSample<CameraOperatorSample>();
 
 #if URHO3D_OCULUS_QUEST
     StartSample(HelloVR::GetTypeStatic());

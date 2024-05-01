@@ -31,6 +31,10 @@
 
 namespace Urho3D
 {
+namespace
+{
+static const StringVector instanceNodesStructureElementNames = {"Instance Count", "   NodeID"};
+}
 
 CameraOperator::CameraOperator(Context* context)
     : Component(context)
@@ -45,12 +49,15 @@ void CameraOperator::RegisterObject(Context* context)
     context->AddFactoryReflection<CameraOperator>(Category_Scene);
 
     URHO3D_ACCESSOR_ATTRIBUTE("Is Enabled", IsEnabled, SetEnabled, bool, true, AM_DEFAULT);
+    URHO3D_ACCESSOR_ATTRIBUTE("Padding", GetPadding, SetPadding, Vector4, Vector4::ZERO, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Track Bounding Box", bool, boundingBoxEnabled_, false, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Bounding Box Min", Vector3, boundingBox_.min_, -Vector3::ONE, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Bounding Box Max", Vector3, boundingBox_.max_, Vector3::ONE, AM_DEFAULT);
-    URHO3D_ACCESSOR_ATTRIBUTE("Nodes To Track", GetNodeIDsAttr, SetNodeIDsAttr, VariantVector,
-        Variant::emptyVariantVector, AM_DEFAULT | AM_NODEIDVECTOR);
-    URHO3D_ACTION_STATIC_LABEL("Update Camera", MoveCamera, "Move camera to keep tracked nodes and/or bounding box in frustum");
+    URHO3D_ACCESSOR_ATTRIBUTE("Tracked Nodes", GetNodeIDsAttr, SetNodeIDsAttr, VariantVector,
+        Variant::emptyVariantVector, AM_DEFAULT | AM_NODEIDVECTOR)
+        .SetMetadata(AttributeMetadata::VectorStructElements, instanceNodesStructureElementNames);
+    URHO3D_ACTION_STATIC_LABEL(
+        "Update Camera", MoveCamera, "Move camera to keep tracked nodes and/or bounding box in frustum");
 }
 
 void CameraOperator::ApplyAttributes()
@@ -58,7 +65,14 @@ void CameraOperator::ApplyAttributes()
     if (!nodesDirty_)
         return;
 
-    // Remove all old instance nodes before searching for new
+    // Remove all old nodes before searching for new
+    for (unsigned i = 0; i < trackedNodes_.size(); ++i)
+    {
+        Node* node = trackedNodes_[i];
+        if (node)
+            node->RemoveListener(this);
+    }
+
     trackedNodes_.clear();
 
     const Scene* scene = GetScene();
@@ -71,16 +85,14 @@ void CameraOperator::ApplyAttributes()
             if (node)
             {
                 WeakPtr<Node> instanceWeak(node);
+                node->AddListener(this);
                 trackedNodes_.push_back(instanceWeak);
             }
         }
     }
 
     nodesDirty_ = false;
-
-    OnMarkedDirty(GetNode());
 }
-
 
 void CameraOperator::SetNodeIDsAttr(const VariantVector& value)
 {
@@ -124,11 +136,21 @@ const VariantVector& CameraOperator::GetNodeIDsAttr() const
     return nodeIDsAttr_;
 }
 
+void CameraOperator::SetPadding(const Vector4& padding)
+{
+    padding_ = padding;
+}
+
+void CameraOperator::SetUniformPadding(float padding)
+{
+    auto vec4 = Vector4{padding, padding, padding, padding};
+    padding_ = vec4;
+}
+
 void CameraOperator::SetBoundingBox(const BoundingBox& box)
 {
     boundingBox_ = box;
 }
-
 
 void CameraOperator::SetBoundingBoxTrackingEnabled(bool enable)
 {
@@ -144,6 +166,9 @@ void CameraOperator::TrackNode(Node* node)
     if (trackedNodes_.contains(instanceWeak))
         return;
 
+    // Add as a listener for the node, so that we know to dirty the transforms when the node moves or is
+    // enabled/disabled
+    node->AddListener(this);
     trackedNodes_.push_back(instanceWeak);
 }
 
@@ -157,11 +182,19 @@ void CameraOperator::RemoveTrackedNode(Node* node)
     if (i == trackedNodes_.end())
         return;
 
+    node->RemoveListener(this);
     trackedNodes_.erase(i);
 }
 
 void CameraOperator::RemoveAllTrackedNodes()
 {
+    for (unsigned i = 0; i < trackedNodes_.size(); ++i)
+    {
+        Node* node = trackedNodes_[i];
+        if (node)
+            node->RemoveListener(this);
+    }
+
     trackedNodes_.clear();
     nodeIDsDirty_ = true;
 }
@@ -187,21 +220,21 @@ void CameraOperator::UpdateNodeIDs() const
     nodeIDsDirty_ = false;
 }
 
+void CameraOperator::OnSetEnabled()
+{
+    if (IsEnabledEffective())
+        MoveCamera();
+}
+
 void CameraOperator::OnSceneSet(Scene* scene)
 {
+    UnsubscribeFromEvent(E_SCENEDRAWABLEUPDATEFINISHED);
     if (scene)
-    {
         SubscribeToEvent(scene, E_SCENEDRAWABLEUPDATEFINISHED, &CameraOperator::HandleSceneDrawableUpdateFinished);
-    }
-    else
-    {
-        UnsubscribeFromEvent(E_SCENEDRAWABLEUPDATEFINISHED);
-    }
 }
 
 void CameraOperator::MoveCamera()
 {
-
     if (!node_)
         return;
 
@@ -241,7 +274,6 @@ void CameraOperator::MoveCamera()
     }
 }
 
-
 void CameraOperator::HandleSceneDrawableUpdateFinished(StringHash eventType, VariantMap& eventData)
 {
     if (!IsEnabledEffective())
@@ -250,6 +282,13 @@ void CameraOperator::HandleSceneDrawableUpdateFinished(StringHash eventType, Var
     MoveCamera();
 }
 
+void CameraOperator::OnNodeSet(Node* previousNode, Node* currentNode)
+{
+    if (previousNode)
+        previousNode->RemoveListener(this);
+    if (currentNode)
+        currentNode->AddListener(this);
+}
 
 void CameraOperator::FocusOn(const Vector3* begin, const Vector3* end, Camera* camera)
 {
@@ -283,6 +322,12 @@ void CameraOperator::FocusOn(const Vector3* begin, const Vector3* end, Camera* c
             plane.d_ = ea::max(plane.d_, -plane.normal_.DotProduct(*point));
         }
     }
+    planes[PLANE_UP].d_ += padding_.x_;
+    planes[PLANE_RIGHT].d_ += padding_.y_;
+    planes[PLANE_DOWN].d_ += padding_.z_;
+    planes[PLANE_LEFT].d_ += padding_.w_;
+
+    const auto oldPosition = node_->GetWorldPosition();
 
     if (camera->IsOrthographic())
     {
@@ -299,7 +344,9 @@ void CameraOperator::FocusOn(const Vector3* begin, const Vector3* end, Camera* c
             offset.z_ += n;
 
         // Move camera node.
-        node_->SetWorldPosition(node_->LocalToWorld(offset));
+        const auto newPosition = node_->LocalToWorld(offset);
+        if (!oldPosition.Equals(newPosition))
+            node_->SetWorldPosition(newPosition);
 
         // Adjust orthoSize_ to avoid any extra padding.
         const auto autoAspectRatio = camera->GetAutoAspectRatio();
@@ -317,7 +364,7 @@ void CameraOperator::FocusOn(const Vector3* begin, const Vector3* end, Camera* c
         }
         else
         {
-            camera->SetOrthoSize(Vector2(verticalOrthoSize*aspectRatio, verticalOrthoSize));
+            camera->SetOrthoSize(Vector2(verticalOrthoSize * aspectRatio, verticalOrthoSize));
         }
     }
     else
@@ -333,8 +380,9 @@ void CameraOperator::FocusOn(const Vector3* begin, const Vector3* end, Camera* c
         if (n > 0.0f)
             focalPoint -= planes[PLANE_NEAR].normal_ * n;
         // Move camera node.
-        node_->SetWorldPosition(focalPoint);
+        if (!oldPosition.Equals(focalPoint))
+            node_->SetWorldPosition(focalPoint);
     }
 }
 
-}
+} // namespace Urho3D

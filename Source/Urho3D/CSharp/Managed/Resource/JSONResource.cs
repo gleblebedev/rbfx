@@ -3,19 +3,22 @@
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Urho3DNet
 {
-    public abstract class JSONResource<T> : JSONResourceBase
+    /// <summary>
+    /// Base class for resource files. The file contains value serialized to json via .net serialization.
+    /// </summary>
+    /// <typeparam name="TValue">Resource value type.</typeparam>
+    public abstract class JSONResource<TValue> : JSONResourceBase where TValue : new()
     {
         /// <summary>
         /// Stored resource value.
         /// </summary>
-        private T value_;
+        private TValue value_;
 
         /// <summary>
         /// Cached Json Serializer Options.
@@ -29,13 +32,17 @@ namespace Urho3DNet
                 jsonSerializerOptions_ = new JsonSerializerOptions(JsonSerializerOptions.Default) { WriteIndented = true };
                 jsonSerializerOptions_.Converters.Add(new IntVector2JsonConverter());
                 jsonSerializerOptions_.Converters.Add(new IntVector3JsonConverter());
+                jsonSerializerOptions_.Converters.Add(new IntRectJsonConverter());
                 jsonSerializerOptions_.Converters.Add(new Vector2JsonConverter());
                 jsonSerializerOptions_.Converters.Add(new Vector3JsonConverter());
                 jsonSerializerOptions_.Converters.Add(new Vector4JsonConverter());
+                jsonSerializerOptions_.Converters.Add(new RectJsonConverter());
                 jsonSerializerOptions_.Converters.Add(new QuaternionJsonConverter());
                 jsonSerializerOptions_.Converters.Add(new BoundingBoxJsonConverter());
                 jsonSerializerOptions_.Converters.Add(new BoundingBoxJsonConverter());
                 jsonSerializerOptions_.Converters.Add(new ResourceJsonConverter(context));
+                jsonSerializerOptions_.Converters.Add(new ResourceRefJsonConverter(context));
+                jsonSerializerOptions_.Converters.Add(new ResourceRefListJsonConverter(context));
                 jsonSerializerOptions_.Converters.Add(new JsonStringEnumConverter());
             }
         }
@@ -43,13 +50,17 @@ namespace Urho3DNet
         /// <summary>
         /// Json Serializer Options.
         /// </summary>
-        private static JsonSerializerOptions JsonSerializerOptions => jsonSerializerOptions_;
+        public static JsonSerializerOptions JsonSerializerOptions => jsonSerializerOptions_;
 
         /// <summary>
         /// Stored resource value.
         /// </summary>
-        public T Value { get => value_; set => value_ = value; }
+        public TValue Value { get => value_; set => value_ = value; }
 
+        /// <summary>
+        /// Parses the text representing a single JSON value into a <typeparamref name="TValue"/>.
+        /// </summary>
+        /// <param name="jsonString">JSON text to parse.</param>
         public override bool DeserializeJson(string jsonString)
         {
             try
@@ -57,7 +68,7 @@ namespace Urho3DNet
                 if (string.IsNullOrWhiteSpace(jsonString))
                     value_ = default;
                 else
-                    value_ = JsonSerializer.Deserialize<T>(jsonString, JsonSerializerOptions);
+                    value_ = JsonSerializer.Deserialize<TValue>(jsonString, JsonSerializerOptions);
                 return true;
             }
             catch (Exception ex)
@@ -67,6 +78,10 @@ namespace Urho3DNet
             }
         }
 
+        /// <summary>
+        /// Converts the provided value into a <see cref="string"/>.
+        /// </summary>
+        /// <returns>A <see cref="string"/> representation of the value.</returns>
         public override string SerializeJson()
         {
             try
@@ -81,6 +96,24 @@ namespace Urho3DNet
                 Log.Error(ex.Message);
                 return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Load value from file or create new value if file is missing.
+        /// This is useful for config files.
+        /// </summary>
+        /// <param name="fileId">File identifier.</param>
+        public void LoadFileOrCreate(FileIdentifier fileId)
+        {
+            if (Context.VirtualFileSystem.Exists(fileId))
+            {
+                if (LoadFile(fileId) && value_ != null)
+                {
+                    return;
+                }
+            }
+
+            value_ = new TValue();
         }
 
         #region IntVector* Converters
@@ -114,6 +147,22 @@ namespace Urho3DNet
                 IntVector3 value,
                 JsonSerializerOptions options) =>
                 writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", value.X, value.Y, value.Z));
+        }
+
+        internal class IntRectJsonConverter : JsonConverter<IntRect>
+        {
+            public override IntRect Read(
+                ref Utf8JsonReader reader,
+                Type typeToConvert,
+                JsonSerializerOptions options) =>
+                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper => new IntRect(helper.ReadInt(), helper.ReadInt(), helper.ReadInt(), helper.ReadInt()));
+
+
+            public override void Write(
+                Utf8JsonWriter writer,
+                IntRect value,
+                JsonSerializerOptions options) =>
+                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.Left, value.Top, value.Right, value.Bottom));
         }
         #endregion
 
@@ -164,6 +213,22 @@ namespace Urho3DNet
                 Vector4 value,
                 JsonSerializerOptions options) =>
                 writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.X, value.Y, value.Z, value.W));
+        }
+
+        internal class RectJsonConverter : JsonConverter<Rect>
+        {
+            public override Rect Read(
+                ref Utf8JsonReader reader,
+                Type typeToConvert,
+                JsonSerializerOptions options) =>
+                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper =>
+                    new Rect(helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat()));
+
+            public override void Write(
+                Utf8JsonWriter writer,
+                Rect value,
+                JsonSerializerOptions options) =>
+                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.Left, value.Top, value.Right, value.Bottom));
         }
         #endregion
 
@@ -278,6 +343,51 @@ namespace Urho3DNet
                 writer.WriteEndObject();
             }
         }
+
+        internal class ResourceRefJsonConverter : JsonConverter<ResourceRef>
+        {
+            private readonly Context _context;
+
+            public ResourceRefJsonConverter(Context context)
+            {
+                _context = context;
+            }
+
+            public override ResourceRef Read(
+                ref Utf8JsonReader reader,
+                Type typeToConvert,
+                JsonSerializerOptions options) =>
+                ResourceRef.Parse(reader.GetString());
+
+            public override void Write(
+                Utf8JsonWriter writer,
+                ResourceRef value,
+                JsonSerializerOptions options) =>
+                writer.WriteStringValue(value.ToString(_context));
+        }
+
+        internal class ResourceRefListJsonConverter : JsonConverter<ResourceRefList>
+        {
+            private readonly Context _context;
+
+            public ResourceRefListJsonConverter(Context context)
+            {
+                _context = context;
+            }
+
+            public override ResourceRefList Read(
+                ref Utf8JsonReader reader,
+                Type typeToConvert,
+                JsonSerializerOptions options) =>
+                ResourceRefList.Parse(reader.GetString());
+
+            public override void Write(
+                Utf8JsonWriter writer,
+                ResourceRefList value,
+                JsonSerializerOptions options) =>
+                writer.WriteStringValue(value.ToString(_context));
+        }
+
         internal struct SpaceSeparatedVauleHelper
         {
             private int _position;

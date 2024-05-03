@@ -630,7 +630,7 @@ using SubscriptionFlags = Urho3D::DecalProjectionDetail::SubscriptionMask;
 %csattribute(Urho3D::Camera, %arg(float), EffectiveFogStart, GetEffectiveFogStart);
 %csattribute(Urho3D::Camera, %arg(float), EffectiveFogEnd, GetEffectiveFogEnd);
 %csattribute(Urho3D::CameraOperator, %arg(Urho3D::VariantVector), NodeIDsAttr, GetNodeIDsAttr, SetNodeIDsAttr);
-%csattribute(Urho3D::CameraOperator, %arg(Urho3D::Vector4), Padding, GetPadding, SetPadding);
+%csattribute(Urho3D::CameraOperator, %arg(Urho3D::Rect), Padding, GetPadding, SetPadding);
 %csattribute(Urho3D::CameraOperator, %arg(Urho3D::BoundingBox), BoundingBox, GetBoundingBox, SetBoundingBox);
 %csattribute(Urho3D::CameraOperator, %arg(bool), IsBoundingBoxTrackingEnabled, IsBoundingBoxTrackingEnabled, SetBoundingBoxTrackingEnabled);
 %csattribute(Urho3D::CameraOperator, %arg(unsigned int), NumTrackedNodes, GetNumTrackedNodes);

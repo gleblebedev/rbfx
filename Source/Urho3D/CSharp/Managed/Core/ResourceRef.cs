@@ -23,7 +23,7 @@ namespace Urho3DNet
 
         public string ToString(Context context)
         {
-            return $"{context.GetTypeName(this.Type)};{this.Name}";
+            return $"{context.GetUrhoTypeName(this.Type)};{this.Name}";
         }
     }
 }

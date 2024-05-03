@@ -98,140 +98,61 @@ namespace Urho3DNet
             }
         }
 
-        /// <summary>
-        /// Load value from file or create new value if file is missing.
-        /// This is useful for config files.
-        /// </summary>
-        /// <param name="fileId">File identifier.</param>
-        public void LoadFileOrCreate(FileIdentifier fileId)
-        {
-            if (Context.VirtualFileSystem.Exists(fileId))
-            {
-                if (LoadFile(fileId) && value_ != null)
-                {
-                    return;
-                }
-            }
-
-            value_ = new TValue();
-        }
-
         #region IntVector* Converters
         internal class IntVector2JsonConverter : JsonConverter<IntVector2>
         {
-            public override IntVector2 Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper => new IntVector2(helper.ReadInt(), helper.ReadInt()));
+            public override IntVector2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => IntVector2.Parse(reader.GetString()!);
 
-
-            public override void Write(
-                Utf8JsonWriter writer,
-                IntVector2 value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1}", value.X, value.Y));
+            public override void Write(Utf8JsonWriter writer, IntVector2 value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
 
         internal class IntVector3JsonConverter : JsonConverter<IntVector3>
         {
-            public override IntVector3 Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper =>
-                    new IntVector3(helper.ReadInt(), helper.ReadInt(), helper.ReadInt()));
+            public override IntVector3 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => IntVector3.Parse(reader.GetString()!);
 
-            public override void Write(
-                Utf8JsonWriter writer,
-                IntVector3 value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", value.X, value.Y, value.Z));
+            public override void Write(Utf8JsonWriter writer, IntVector3 value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
 
         internal class IntRectJsonConverter : JsonConverter<IntRect>
         {
-            public override IntRect Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper => new IntRect(helper.ReadInt(), helper.ReadInt(), helper.ReadInt(), helper.ReadInt()));
+            public override IntRect Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => IntRect.Parse(reader.GetString()!);
 
-
-            public override void Write(
-                Utf8JsonWriter writer,
-                IntRect value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.Left, value.Top, value.Right, value.Bottom));
+            public override void Write(Utf8JsonWriter writer, IntRect value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
+
         #endregion
 
-        #region IntVector* Converters
+        #region Vector* Converters
         internal class Vector2JsonConverter : JsonConverter<Vector2>
         {
-            public override Vector2 Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper => new Vector2(helper.ReadFloat(), helper.ReadFloat()));
+            public override Vector2 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Vector2.Parse(reader.GetString()!);
 
-
-            public override void Write(
-                Utf8JsonWriter writer,
-                Vector2 value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1}", value.X, value.Y));
+            public override void Write(Utf8JsonWriter writer, Vector2 value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
 
         internal class Vector3JsonConverter : JsonConverter<Vector3>
         {
-            public override Vector3 Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper =>
-                    new Vector3(helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat()));
+            public override Vector3 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Vector3.Parse(reader.GetString()!);
 
-            public override void Write(
-                Utf8JsonWriter writer,
-                Vector3 value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", value.X, value.Y, value.Z));
+            public override void Write(Utf8JsonWriter writer, Vector3 value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
 
         internal class Vector4JsonConverter : JsonConverter<Vector4>
         {
-            public override Vector4 Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper =>
-                    new Vector4(helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat()));
+            public override Vector4 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Vector4.Parse(reader.GetString()!);
 
-            public override void Write(
-                Utf8JsonWriter writer,
-                Vector4 value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.X, value.Y, value.Z, value.W));
+            public override void Write(Utf8JsonWriter writer, Vector4 value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
 
         internal class RectJsonConverter : JsonConverter<Rect>
         {
-            public override Rect Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper =>
-                    new Rect(helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat()));
+            public override Rect Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Rect.Parse(reader.GetString()!);
 
-            public override void Write(
-                Utf8JsonWriter writer,
-                Rect value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.Left, value.Top, value.Right, value.Bottom));
+            public override void Write(Utf8JsonWriter writer, Rect value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
         #endregion
 
+        #region Other Converters
         internal class ResourceJsonConverter : JsonConverter<Resource>
         {
             private readonly Context _context;
@@ -271,18 +192,9 @@ namespace Urho3DNet
 
         internal class QuaternionJsonConverter : JsonConverter<Quaternion>
         {
-            public override Quaternion Read(
-                ref Utf8JsonReader reader,
-                Type typeToConvert,
-                JsonSerializerOptions options) =>
-                new SpaceSeparatedVauleHelper(reader.GetString()!).Parse(helper =>
-                    new Quaternion(helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat(), helper.ReadFloat()));
+            public override Quaternion Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => Quaternion.Parse(reader.GetString()!);
 
-            public override void Write(
-                Utf8JsonWriter writer,
-                Quaternion value,
-                JsonSerializerOptions options) =>
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", value.W, value.X, value.Y, value.Z));
+            public override void Write(Utf8JsonWriter writer, Quaternion value, JsonSerializerOptions options) => writer.WriteStringValue(value.ToString());
         }
 
         internal class BoundingBoxJsonConverter : JsonConverter<BoundingBox>
@@ -387,63 +299,7 @@ namespace Urho3DNet
                 JsonSerializerOptions options) =>
                 writer.WriteStringValue(value.ToString(_context));
         }
+        #endregion
 
-        internal struct SpaceSeparatedVauleHelper
-        {
-            private int _position;
-            private string _string;
-
-            public SpaceSeparatedVauleHelper(string str)
-            {
-                _position = 0;
-                _string = str;
-            }
-
-            internal int ReadInt()
-            {
-                while (_position < _string.Length && Char.IsWhiteSpace(_string[_position]))
-                {
-                    ++_position;
-                }
-                var start = _position;
-                while (_position < _string.Length && !Char.IsWhiteSpace(_string[_position]) && _string[_position] != ' ')
-                {
-                    ++_position;
-                }
-                if (start != _position)
-                {
-                    if (int.TryParse(_string.Substring(start, _position - start), NumberStyles.Any,
-                            CultureInfo.InvariantCulture, out var value))
-                        return value;
-                }
-
-                return default;
-            }
-            internal float ReadFloat()
-            {
-                while (_position < _string.Length && Char.IsWhiteSpace(_string[_position]))
-                {
-                    ++_position;
-                }
-                var start = _position;
-                while (_position < _string.Length && !Char.IsWhiteSpace(_string[_position]) && _string[_position] != ' ')
-                {
-                    ++_position;
-                }
-                if (start != _position)
-                {
-                    if (float.TryParse(_string.Substring(start, _position - start), NumberStyles.Any,
-                            CultureInfo.InvariantCulture, out var value))
-                        return value;
-                }
-
-                return default;
-            }
-
-            internal T Parse<T>(Func<SpaceSeparatedVauleHelper, T> func)
-            {
-                return func(this);
-            }
-        }
     }
 }

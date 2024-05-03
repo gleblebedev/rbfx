@@ -42,7 +42,7 @@ namespace Urho3DNet
         public string ToString(Context context)
         {
             var sb = new StringBuilder();
-            sb.Append(context.GetTypeName(this.Type));
+            sb.Append(context.GetUrhoTypeName(this.Type));
             foreach (var name in this.Names)
             {
                 sb.Append(';');

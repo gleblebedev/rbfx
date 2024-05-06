@@ -519,4 +519,19 @@ ea::string Deserializer::ReadLine()
     return ret;
 }
 
+ea::string ReadStringData(Deserializer* deserializer)
+{
+    if (!deserializer)
+        return {};
+
+    ea::string ret;
+    ret.reserve(deserializer->GetSize() - deserializer->GetPosition());
+    while (!deserializer->IsEof())
+    {
+        ret += deserializer->ReadByte();
+    }
+
+    return ret;
+}
+
 }

@@ -160,4 +160,7 @@ protected:
     unsigned size_;
 };
 
+/// Read the rest of Deserializer content as a string. This should be last or the only read operation on Deserializer.
+ea::string ReadStringData(Deserializer* deserializer);
+
 }

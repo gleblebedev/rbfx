@@ -32,6 +32,7 @@
 #include <Urho3D/Graphics/Texture3D.h>
 #include <Urho3D/Graphics/TextureCube.h>
 #include <Urho3D/Resource/BinaryFile.h>
+#include <Urho3D/Resource/SerializableResource.h>
 #include <Urho3D/Resource/JSONFile.h>
 #include <Urho3D/Resource/XMLFile.h>
 #include <Urho3D/Scene/PrefabResource.h>
@@ -95,6 +96,12 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
     });
     #endif
 
+
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+    {
+        if (desc.HasExtension({".serializable"}))
+            desc.AddObjectType<SerializableResource>();
+    });
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
     {

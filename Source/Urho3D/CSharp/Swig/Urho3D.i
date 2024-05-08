@@ -492,12 +492,12 @@ public:
 %include "generated/Urho3D/_pre_resource.i"
 %include "Urho3D/Resource/Resource.h"
 %include "Urho3D/Resource/SerializableResource.h"
-%include "Urho3D/Resource/JSONResourceBase.h"
 #if defined(URHO3D_THREADING)
 %include "Urho3D/Resource/BackgroundLoader.h"
 #endif
 %include "Urho3D/Resource/Image.h"
 %include "Urho3D/Resource/ImageCube.h"
+%include "Urho3D/Resource/BinaryFile.h"
 %include "Urho3D/Resource/JSONValue.h"
 %include "Urho3D/Resource/JSONFile.h"
 %include "Urho3D/Resource/Localization.h"

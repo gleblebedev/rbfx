@@ -648,6 +648,9 @@ void Project::InitializeResourceCache()
     cache->ReleaseAllResources(true);
 
     const auto vfs = GetSubsystem<VirtualFileSystem>();
+
+    vfs->SetWatching(false);
+
     vfs->UnmountAll();
     vfs->MountAliasRoot();
     vfs->MountRoot();
@@ -661,6 +664,8 @@ void Project::InitializeResourceCache()
     vfs->MountAlias("res:Data", dataMountPoint);
 
     vfs->MountDir("conf" , engine->GetAppPreferencesDir());
+
+    vfs->SetWatching(true);
 }
 
 void Project::ResetLayout()
@@ -775,6 +780,7 @@ void Project::Render()
     if (!assetManagerInitialized_ && !pluginManager_->IsReloadPending())
     {
         assetManagerInitialized_ = true;
+        toolManager_->Update();
         assetManager_->Initialize(flags_.Test(ProjectFlag::ReadOnly));
     }
 

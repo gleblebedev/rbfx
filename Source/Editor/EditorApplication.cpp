@@ -23,6 +23,7 @@
 #include "Foundation/InspectorTab/ModelInspector.h"
 #include "Foundation/InspectorTab/NodeComponentInspector.h"
 #include "Foundation/InspectorTab/PlaceholderResourceInspector.h"
+#include "Foundation/InspectorTab/RenderPathInspector.h"
 #include "Foundation/InspectorTab/SerializableResourceInspector.h"
 #include "Foundation/InspectorTab/SoundInspector.h"
 #include "Foundation/InspectorTab/Texture2DInspector.h"
@@ -126,6 +127,7 @@ EditorApplication::EditorApplication(Context* context)
     editorPluginManager_->AddPlugin("Foundation.Inspector.Material", &Foundation_MaterialInspector);
     editorPluginManager_->AddPlugin("Foundation.Inspector.NodeComponent", &Foundation_NodeComponentInspector);
     editorPluginManager_->AddPlugin("Foundation.Inspector.PlaceholderResource", &Foundation_PlaceholderResourceInspector);
+    editorPluginManager_->AddPlugin("Foundation.Inspector.RenderPath", &Foundation_RenderPathInspector);
     editorPluginManager_->AddPlugin("Foundation.Inspector.SerializableResource", &Foundation_SerializableResourceInspector);
     editorPluginManager_->AddPlugin("Foundation.Inspector.Sound", &Foundation_SoundInspector);
 
@@ -713,6 +715,7 @@ void EditorApplication::InitializeSystemUI()
 
     ImGuiIO& io = ui::GetIO();
     io.FontDefault = defaultFont;
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
 
     ImFont* monoFont = systemUI->AddFont("Fonts/NotoMono-Regular.ttf", notoMonoRanges, 14.f);
     Project::SetMonoFont(monoFont);

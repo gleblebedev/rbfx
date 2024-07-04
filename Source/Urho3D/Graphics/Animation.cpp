@@ -335,6 +335,8 @@ bool Animation::BeginLoad(Deserializer& source)
         SharedPtr<XMLFile> file(cache->GetTempResource<XMLFile>(xmlName, false));
         if (file)
         {
+            cache->StoreResourceDependency(this, xmlName);
+
             XMLElement rootElem = file->GetRoot();
             LoadTracksFromXML(rootElem);
             LoadVariantTracksFromXML(rootElem);

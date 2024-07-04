@@ -49,7 +49,7 @@ constexpr ea::array<StringHash, N + 1> ArrayPushFront(const ea::array<StringHash
 {
     ea::array<StringHash, N + 1> result;
     result[0] = value;
-    for (size_t i = 0; i < N; ++i)
+    for (unsigned i = 0; i < static_cast<unsigned>(N); ++i)
         result[i + 1] = source[i];
     return result;
 }
@@ -67,27 +67,28 @@ class EventHandler;
             using ClassName = typeName; \
             using BaseClassName = baseTypeName; \
             using BaseClassName::IsInstanceOf; \
-            static inline constexpr StringHash TypeId{#typeName, Urho3D::StringHash::NoReverse{}}; \
+            static inline constexpr Urho3D::StringHash TypeId{#typeName, Urho3D::StringHash::NoReverse{}}; \
             static inline constexpr auto TypeHierarchy = Urho3D::Detail::ArrayPushFront(BaseClassName::TypeHierarchy, TypeId); \
             Urho3D::StringHash GetType() const override { return TypeId; } \
             const ea::string& GetTypeName() const override { return GetTypeInfoStatic()->GetTypeName(); } \
             const Urho3D::TypeInfo* GetTypeInfo() const override { return GetTypeInfoStatic(); } \
-            bool IsInstanceOf(StringHash type) const override { return ea::find(TypeHierarchy.begin(), TypeHierarchy.end(), type) != TypeHierarchy.end(); } \
+            bool IsInstanceOf(Urho3D::StringHash type) const override { return ea::find(TypeHierarchy.begin(), TypeHierarchy.end(), type) != TypeHierarchy.end(); } \
             static constexpr Urho3D::StringHash GetTypeStatic() { return TypeId; } \
             static const ea::string& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
             static const Urho3D::TypeInfo* GetTypeInfoStatic() { static const Urho3D::TypeInfo typeInfoStatic(#typeName, BaseClassName::GetTypeInfoStatic()); return &typeInfoStatic; }
 #else
+    // This is a special SWIG-only version of URHO3D_OBJECT that does not inject these methods to every type,
+    // essentially making C# wrapper use a virtual method from Object class. These functions are declare in
+    // a private section because removing them breaks SWIG in strangest ways.
     #define URHO3D_OBJECT(typeName, baseTypeName) \
-        public: \
-            using ClassName = typeName; \
-            using BaseClassName = baseTypeName; \
+        private: \
             Urho3D::StringHash GetType() const override; \
             const ea::string& GetTypeName() const override; \
             const Urho3D::TypeInfo* GetTypeInfo() const override; \
-            bool IsInstanceOf(StringHash type) const override; \
-            static constexpr Urho3D::StringHash GetTypeStatic(); \
-            static const ea::string& GetTypeNameStatic(); \
-            static const Urho3D::TypeInfo* GetTypeInfoStatic();
+            bool IsInstanceOf(Urho3D::StringHash type) const override; \
+        public: \
+            using ClassName = typeName; \
+            using BaseClassName = baseTypeName;
 #endif
 
 /// Base class for objects with type identification, subsystem access and event sending/receiving capability.

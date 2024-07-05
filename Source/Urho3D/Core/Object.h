@@ -77,18 +77,17 @@ class EventHandler;
             static const ea::string& GetTypeNameStatic() { return GetTypeInfoStatic()->GetTypeName(); } \
             static const Urho3D::TypeInfo* GetTypeInfoStatic() { static const Urho3D::TypeInfo typeInfoStatic(#typeName, BaseClassName::GetTypeInfoStatic()); return &typeInfoStatic; }
 #else
-    // This is a special SWIG-only version of URHO3D_OBJECT that does not inject these methods to every type,
-    // essentially making C# wrapper use a virtual method from Object class. These functions are declare in
-    // a private section because removing them breaks SWIG in strangest ways.
     #define URHO3D_OBJECT(typeName, baseTypeName) \
-        private: \
+        public: \
+            using ClassName = typeName; \
+            using BaseClassName = baseTypeName; \
             Urho3D::StringHash GetType() const override; \
             const ea::string& GetTypeName() const override; \
             const Urho3D::TypeInfo* GetTypeInfo() const override; \
-            bool IsInstanceOf(Urho3D::StringHash type) const override; \
-        public: \
-            using ClassName = typeName; \
-            using BaseClassName = baseTypeName;
+            bool IsInstanceOf(StringHash type) const override; \
+            static constexpr Urho3D::StringHash GetTypeStatic(); \
+            static const ea::string& GetTypeNameStatic(); \
+            static const Urho3D::TypeInfo* GetTypeInfoStatic();
 #endif
 
 /// Base class for objects with type identification, subsystem access and event sending/receiving capability.

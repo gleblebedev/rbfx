@@ -3,6 +3,7 @@
     <AssemblyName>Urho3DNet</AssemblyName>
     <OutputType>Library</OutputType>
     <LangVersion>9.0</LangVersion>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>
   </PropertyGroup>
   <PropertyGroup>
@@ -40,7 +41,10 @@
     <Compile Include="Managed/**/*.cs" />
   </ItemGroup>
   <ItemGroup>
-      <PackageReference Include="System.Text.Json" Version="8.0.3" />
+    <ProjectReference Include="Urho3DNet.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+      <PackageReference Include="System.Text.Json" Version="8.0.4" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Remove="bin\**" />

@@ -85,7 +85,7 @@ class EventHandler;
             const ea::string& GetTypeName() const override; \
             const Urho3D::TypeInfo* GetTypeInfo() const override; \
             bool IsInstanceOf(StringHash type) const override; \
-            static constexpr Urho3D::StringHash GetTypeStatic(); \
+        public: \
             static const ea::string& GetTypeNameStatic(); \
             static const Urho3D::TypeInfo* GetTypeInfoStatic();
 #endif

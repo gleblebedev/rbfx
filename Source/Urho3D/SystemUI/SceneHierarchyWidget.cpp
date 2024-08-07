@@ -217,7 +217,7 @@ void SceneHierarchyWidget::RenderNode(SceneSelection& selection, Node* node)
     if (pathToActiveObject_.contains(node))
         ui::SetNextItemOpen(true);
 
-    const IdScopeGuard guard(static_cast<void*>(node));
+    const IdScopeGuard guard(node->GetID());
     ui::PushStyleColor(ImGuiCol_Text, GetItemColor(itemFlags));
     const bool opened = ui::TreeNodeEx(GetNodeTitle(node).c_str(), flags);
     ui::PopStyleColor();
@@ -272,6 +272,7 @@ void SceneHierarchyWidget::RenderNode(SceneSelection& selection, Node* node)
     {
         if (settings_.showComponents_)
         {
+            const IdScopeGuard guard("Components");
             for (Component* component : node->GetComponents())
                 RenderComponent(selection, component);
         }
@@ -303,7 +304,7 @@ void SceneHierarchyWidget::RenderComponent(SceneSelection& selection, Component*
     if (component->IsEnabledEffective())
         itemFlags |= HierarchyItemFlag::Enabled;
 
-    const IdScopeGuard guard(static_cast<void*>(component));
+    const IdScopeGuard guard(component->GetID());
     ui::PushStyleColor(ImGuiCol_Text, GetItemColor(itemFlags));
     const bool opened = ui::TreeNodeEx(component->GetTypeName().c_str(), flags);
     ui::PopStyleColor();
@@ -368,10 +369,22 @@ SceneHierarchyWidget::OptionalReorderInfo SceneHierarchyWidget::RenderObjectReor
         const ImVec2 mousePos = ui::GetMousePos();
         unsigned newIndex = oldIndex;
 
-        if (mousePos.y < ui::GetItemRectMin().y && newIndex > 0)
+        // Prevent jitter by adding dead zone for reordering in the opposite direction.
+        const float decrementY = ea::min(ui::GetItemRectMin().y, info->decrementMaxY_.value_or(M_LARGE_VALUE));
+        const float incrementY = ea::max(ui::GetItemRectMax().y, info->incrementMinY_.value_or(-M_LARGE_VALUE));
+
+        if (mousePos.y < decrementY && newIndex > 0)
+        {
+            info->incrementMinY_ = decrementY;
+            info->decrementMaxY_ = ea::nullopt;
             --newIndex;
-        else if (mousePos.y > ui::GetItemRectMax().y)
+        }
+        else if (mousePos.y > incrementY)
+        {
+            info->incrementMinY_ = ea::nullopt;
+            info->decrementMaxY_ = incrementY;
             ++newIndex; // It's okay to overflow
+        }
 
         if (newIndex != oldIndex)
             return ReorderInfo{object->GetID(), oldIndex, newIndex};

@@ -29,6 +29,7 @@
 #include <Urho3D/Graphics/Technique.h>
 #include <Urho3D/Graphics/Octree.h>
 #include <Urho3D/Input/Input.h>
+#include <Urho3D/RenderPipeline/ShaderConsts.h>
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/RmlUI/RmlUI.h>
 #include <Urho3D/RmlUI/RmlCanvasComponent.h>
@@ -114,13 +115,6 @@ void HelloRmlUI::InitWindow()
 {
     auto* ui = context_->GetSubsystem<RmlUI>();
 
-    // Initialize fonts in backbuffer UI.
-    // This code is moved to SamplesManager
-    // ui->LoadFont("Fonts/NotoSans-Condensed.ttf", false);
-    // ui->LoadFont("Fonts/NotoSans-CondensedBold.ttf", false);
-    // ui->LoadFont("Fonts/NotoSans-CondensedBoldItalic.ttf", false);
-    // ui->LoadFont("Fonts/NotoSans-CondensedItalic.ttf", false);
-
     // Create a window rendered into backbuffer.
     window_ = scene_->CreateComponent<SimpleWindow>();
 
@@ -133,14 +127,10 @@ void HelloRmlUI::InitWindow()
     // Create a material that will display UI texture on a cube.
     material_ = MakeShared<Material>(context_);
     material_->SetTechnique(0, GetSubsystem<ResourceCache>()->GetResource<Technique>("Techniques/DiffUnlit.xml"));
-    material_->SetTexture(TU_DIFFUSE, texture_);
+    material_->SetTexture(ShaderResources::Albedo, texture_);
 
     // Create a component that sets up UI rendering.
     auto* renderer = boxNode->CreateComponent<RmlCanvasComponent>();
-    renderer->GetUI()->LoadFont("Fonts/NotoSans-Condensed.ttf", false);
-    renderer->GetUI()->LoadFont("Fonts/NotoSans-CondensedBold.ttf", false);
-    renderer->GetUI()->LoadFont("Fonts/NotoSans-CondensedBoldItalic.ttf", false);
-    renderer->GetUI()->LoadFont("Fonts/NotoSans-CondensedItalic.ttf", false);
     renderer->SetTexture(texture_);
     renderer->SetUISize({512, 512});
     renderer->SetRemapMousePos(true);

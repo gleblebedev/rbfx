@@ -114,12 +114,22 @@ bool Animation::LoadXML(const XMLElement& source)
     animationName_ = source.GetAttribute("name");
     length_ = source.GetFloat("length");
 
+    LoadTracksFromXML(source);
+    LoadVariantTracksFromXML(source);
+    LoadTriggersFromXML(source);
+    LoadMetadataFromXML(source);
+
+    return true;
+}
+
+void Animation::LoadTracksFromXML(const XMLElement& source)
+{
     for (XMLElement trackElem = source.GetChild("transform"); trackElem; trackElem = trackElem.GetNext("transform"))
     {
         if (!trackElem.HasAttribute("name"))
         {
             URHO3D_LOGERROR("Animation track name is missing");
-            return false;
+            continue;
         }
 
         AnimationTrack* newTrack = CreateTrack(trackElem.GetAttribute("name"));
@@ -129,6 +139,19 @@ bool Animation::LoadXML(const XMLElement& source)
             newTrack->channelMask_ |= CHANNEL_ROTATION;
         if (trackElem.GetBool("scale"))
             newTrack->channelMask_ |= CHANNEL_SCALE;
+        if (trackElem.HasAttribute("weight"))
+        {
+            const float weight = trackElem.GetFloat("weight");
+            newTrack->positionWeight_ = weight;
+            newTrack->rotationWeight_ = weight;
+            newTrack->scaleWeight_ = weight;
+        }
+        if (trackElem.HasAttribute("positionweight"))
+            newTrack->positionWeight_ = trackElem.GetFloat("positionweight");
+        if (trackElem.HasAttribute("rotationweight"))
+            newTrack->rotationWeight_ = trackElem.GetFloat("rotationweight");
+        if (trackElem.HasAttribute("scaleweight"))
+            newTrack->scaleWeight_ = trackElem.GetFloat("scaleweight");
 
         for (XMLElement keyFrameElem = trackElem.GetChild("keyframe"); keyFrameElem; keyFrameElem = keyFrameElem.GetNext("keyframe"))
         {
@@ -145,13 +168,16 @@ bool Animation::LoadXML(const XMLElement& source)
 
         newTrack->SortKeyFrames();
     }
+}
 
+void Animation::LoadVariantTracksFromXML(const XMLElement& source)
+{
     for (XMLElement trackElem = source.GetChild("variant"); trackElem; trackElem = trackElem.GetNext("variant"))
     {
         if (!trackElem.HasAttribute("name"))
         {
             URHO3D_LOGERROR("Animation track name is missing");
-            return false;
+            continue;
         }
 
         VariantAnimationTrack* newTrack = CreateVariantTrack(trackElem.GetAttribute("name"));
@@ -166,6 +192,8 @@ bool Animation::LoadXML(const XMLElement& source)
 
         if (trackElem.HasAttribute("tension"))
             newTrack->splineTension_ = trackElem.GetFloat("tension");
+        if (trackElem.HasAttribute("weight"))
+            newTrack->weight_ = trackElem.GetFloat("weight");
 
         for (XMLElement keyFrameElem = trackElem.GetChild("keyframe"); keyFrameElem; keyFrameElem = keyFrameElem.GetNext("keyframe"))
         {
@@ -184,11 +212,6 @@ bool Animation::LoadXML(const XMLElement& source)
         newTrack->SortKeyFrames();
         newTrack->Commit();
     }
-
-    LoadTriggersFromXML(source);
-    LoadMetadataFromXML(source);
-
-    return true;
 }
 
 bool Animation::BeginLoad(Deserializer& source)
@@ -232,6 +255,20 @@ bool Animation::BeginLoad(Deserializer& source)
         AnimationTrack* newTrack = CreateTrack(source.ReadString());
         newTrack->channelMask_ = AnimationChannelFlags(source.ReadUByte());
 
+        if (version >= channelWeightVersion)
+        {
+            newTrack->positionWeight_ = source.ReadFloat();
+            newTrack->rotationWeight_ = source.ReadFloat();
+            newTrack->scaleWeight_ = source.ReadFloat();
+        }
+        else if (version >= trackWeightVersion)
+        {
+            const float weight = source.ReadFloat();
+            newTrack->positionWeight_ = weight;
+            newTrack->rotationWeight_ = weight;
+            newTrack->scaleWeight_ = weight;
+        }
+
         const unsigned keyFrames = source.ReadUInt();
         newTrack->keyFrames_.resize(keyFrames);
         memoryUse += keyFrames * sizeof(AnimationKeyFrame);
@@ -258,6 +295,9 @@ bool Animation::BeginLoad(Deserializer& source)
 
             newTrack->interpolation_ = static_cast<KeyFrameInterpolation>(source.ReadUByte());
             newTrack->splineTension_ = source.ReadFloat();
+
+            if (version >= trackWeightVersion)
+                newTrack->weight_ = source.ReadFloat();
 
             const unsigned keyFrames = source.ReadUInt();
             newTrack->keyFrames_.resize(keyFrames);
@@ -293,7 +333,11 @@ bool Animation::BeginLoad(Deserializer& source)
     SharedPtr<XMLFile> file(cache->GetTempResource<XMLFile>(xmlName, false));
     if (file)
     {
+        cache->StoreResourceDependency(this, xmlName);
+
         XMLElement rootElem = file->GetRoot();
+        LoadTracksFromXML(rootElem);
+        LoadVariantTracksFromXML(rootElem);
         LoadTriggersFromXML(rootElem);
         LoadMetadataFromXML(rootElem);
 
@@ -332,6 +376,9 @@ bool Animation::Save(Serializer& dest) const
         const AnimationTrack& track = item.second;
         dest.WriteString(track.name_);
         dest.WriteUByte(track.channelMask_);
+        dest.WriteFloat(track.positionWeight_);
+        dest.WriteFloat(track.rotationWeight_);
+        dest.WriteFloat(track.scaleWeight_);
         dest.WriteUInt(track.keyFrames_.size());
 
         // Write keyframes of the track
@@ -355,6 +402,7 @@ bool Animation::Save(Serializer& dest) const
         dest.WriteUByte(static_cast<unsigned char>(trackType));
         dest.WriteUByte(static_cast<unsigned char>(track.interpolation_));
         dest.WriteFloat(track.splineTension_);
+        dest.WriteFloat(track.weight_);
         dest.WriteUInt(track.keyFrames_.size());
 
         // Write keyframes of the track

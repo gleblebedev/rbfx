@@ -26,7 +26,6 @@
 #include "../Core/Context.h"
 #include "../Core/Profiler.h"
 #include "../Graphics/AnimatedModel.h"
-#include "../Graphics/Batch.h"
 #include "../Graphics/Camera.h"
 #include "../Graphics/Geometry.h"
 #include "../Graphics/Material.h"
@@ -379,9 +378,13 @@ void StaticModel::SetModelAttr(const ResourceRef& value)
 void StaticModel::SetMaterialsAttr(const ResourceRefList& value)
 {
     auto* cache = GetSubsystem<ResourceCache>();
-    for (unsigned i = 0; i < value.names_.size(); ++i)
+
+    const unsigned numMaterials = batches_.size();
+    const unsigned numNames = value.names_.size();
+
+    for (unsigned i = 0; i < ea::min(numNames, numMaterials); ++i)
         SetMaterial(i, cache->GetResource<Material>(value.names_[i]));
-    for (unsigned i = value.names_.size(); i < batches_.size(); ++i)
+    for (unsigned i = numNames; i < numMaterials; ++i)
         batches_[i].material_ = nullptr;
 }
 

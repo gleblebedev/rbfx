@@ -46,6 +46,10 @@
 #include <Urho3D/SystemUI/Widgets.h>
 #include <Urho3D/Utility/SceneViewerApplication.h>
 
+#ifdef URHO3D_XR
+    #include <Urho3D/XR/VirtualReality.h>
+#endif
+
 #include <IconFontCppHeaders/IconsFontAwesome6.h>
 
 #include <string>
@@ -194,12 +198,13 @@ ImFont* Project::GetMonoFont()
     return monoFont;
 }
 
-Project::Project(Context* context, const ea::string& projectPath, const ea::string& settingsJsonPath, bool isReadOnly)
+Project::Project(
+    Context* context, const ea::string& projectPath, const ea::string& settingsJsonPath, ProjectFlags flags)
     : Object(context)
     , isHeadless_(context->GetSubsystem<Engine>()->IsHeadless())
-    , isReadOnly_(isReadOnly)
+    , flags_(flags)
+    , isXR_(context->GetSubsystem<Engine>()->GetParameter(EP_XR).GetBool())
     , projectPath_(GetSanitizedPath(projectPath + "/"))
-    , coreDataPath_(projectPath_ + "CoreData/")
     , cachePath_(projectPath_ + "Cache/")
     , tempPath_(projectPath_ + "Temp/")
     , artifactsPath_(projectPath_ + "Artifacts/")
@@ -231,7 +236,7 @@ Project::Project(Context* context, const ea::string& projectPath, const ea::stri
 
     SubscribeToEvent(E_ENDPLUGINRELOAD, [this] { pluginReloadEndTime_ = std::chrono::steady_clock::now(); });
 
-    if (!isHeadless_ && !isReadOnly_)
+    if (!isHeadless_ && !flags_.Test(ProjectFlag::ReadOnly))
         ui::GetIO().IniFilename = uiIniPath_.c_str();
 
     InitializeHotkeys();
@@ -259,6 +264,17 @@ Project::Project(Context* context, const ea::string& projectPath, const ea::stri
 
     if (firstInitialization_)
         InitializeDefaultProject();
+
+#ifdef URHO3D_XR
+    auto virtualReality = GetSubsystem<VirtualReality>();
+    if (virtualReality && isXR_)
+    {
+        // TODO: Configure this
+        VRSessionParameters sessionParams;
+        sessionParams.manifestPath_ = "XR/DefaultManifest.xml";
+        virtualReality->InitializeSession(sessionParams);
+    }
+#endif
 }
 
 void Project::SerializeInBlock(Archive& archive)
@@ -340,6 +356,12 @@ void Project::Destroy()
 
 Project::~Project()
 {
+#ifdef URHO3D_XR
+    auto virtualReality = GetSubsystem<VirtualReality>();
+    if (virtualReality && isXR_)
+        virtualReality->ShutdownSession();
+#endif
+
     auto cache = GetSubsystem<ResourceCache>();
     cache->ReleaseAllResources(true);
 
@@ -493,6 +515,17 @@ void Project::AddTab(SharedPtr<EditorTab> tab)
     sortedTabs_[tab->GetTitle()] = tab;
 }
 
+void Project::SetGlobalHotkeysEnabled(bool enabled)
+{
+    areGlobalHotkeysEnabled_ = enabled;
+
+    auto& io = ui::GetIO();
+    if (enabled)
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    else
+        io.ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
+}
+
 ea::string Project::GetRandomTemporaryPath() const
 {
     return Format("{}{}/", tempPath_, GenerateUUID());
@@ -531,13 +564,6 @@ void Project::EnsureDirectoryInitialized()
         if (fs->FileExists(artifactsPath_))
             fs->Delete(artifactsPath_);
         fs->CreateDirsRecursive(artifactsPath_);
-    }
-
-    if (!fs->DirExists(coreDataPath_))
-    {
-        if (fs->FileExists(coreDataPath_))
-            fs->Delete(coreDataPath_);
-        fs->CopyDir(oldCacheState_.GetCoreData(), coreDataPath_);
     }
 
     if (!fs->FileExists(settingsJsonPath_))
@@ -620,13 +646,24 @@ void Project::InitializeResourceCache()
     cache->ReleaseAllResources(true);
 
     const auto vfs = GetSubsystem<VirtualFileSystem>();
+
+    vfs->SetWatching(false);
+
     vfs->UnmountAll();
+    vfs->MountAliasRoot();
     vfs->MountRoot();
     vfs->MountDir(oldCacheState_.GetEditorData());
-    vfs->MountDir(coreDataPath_);
-    vfs->MountDir(dataPath_);
-    vfs->MountDir(cachePath_);
+
+    MountPoint* coreDataMountPoint = vfs->MountDir(oldCacheState_.GetCoreData());
+    MountPoint* cacheMountPoint = vfs->MountDir(cachePath_);
+    MountPoint* dataMountPoint = vfs->MountDir(dataPath_);
+    vfs->MountAlias("res:CoreData", coreDataMountPoint);
+    vfs->MountAlias("res:Cache", cacheMountPoint);
+    vfs->MountAlias("res:Data", dataMountPoint);
+
     vfs->MountDir("conf" , engine->GetAppPreferencesDir());
+
+    vfs->SetWatching(true);
 }
 
 void Project::ResetLayout()
@@ -741,7 +778,8 @@ void Project::Render()
     if (!assetManagerInitialized_ && !pluginManager_->IsReloadPending())
     {
         assetManagerInitialized_ = true;
-        assetManager_->Initialize(isReadOnly_);
+        toolManager_->Update();
+        assetManager_->Initialize(flags_.Test(ProjectFlag::ReadOnly));
     }
 
     assetManager_->Update();
@@ -959,10 +997,11 @@ void Project::RenderMainMenu()
 
 void Project::SaveShallowOnly()
 {
-    if (isReadOnly_)
+    if (flags_.Test(ProjectFlag::ReadOnly))
         return;
 
-    ui::SaveIniSettingsToDisk(uiIniPath_.c_str());
+    if (!isHeadless_)
+        ui::SaveIniSettingsToDisk(uiIniPath_.c_str());
     settingsManager_->SaveFile(settingsJsonPath_);
     assetManager_->SaveFile(cacheJsonPath_);
 
@@ -990,12 +1029,12 @@ void Project::SaveProjectOnly()
     hasUnsavedChanges_ = false;
 }
 
-void Project::SaveResourcesOnly()
+void Project::SaveResourcesOnly(bool forceSave)
 {
     for (EditorTab* tab : tabs_)
     {
         if (auto resourceTab = dynamic_cast<ResourceEditorTab*>(tab))
-            resourceTab->SaveAllResources(true);
+            resourceTab->SaveAllResources(forceSave);
     }
     ProcessDelayedSaves(true);
 }

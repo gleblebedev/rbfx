@@ -146,14 +146,18 @@ public:
     void SetTracks(const ea::vector<AnimationTrack>& tracks);
 
 private:
+    void LoadTracksFromXML(const XMLElement& source);
+    void LoadVariantTracksFromXML(const XMLElement& source);
     void LoadTriggersFromXML(const XMLElement& source);
 
     /// Class versions (used for serialization)
     /// @{
     static const unsigned legacyVersion = 1; // Fake version for legacy unversioned UANI file
     static const unsigned variantTrackVersion = 2; // VariantAnimationTrack support added here
+    static const unsigned trackWeightVersion = 3; // Per-track weights added here
+    static const unsigned channelWeightVersion = 4; // Per-channel weights added here
 
-    static const unsigned currentVersion = variantTrackVersion;
+    static const unsigned currentVersion = channelWeightVersion;
     /// @}
 
     /// Animation name.

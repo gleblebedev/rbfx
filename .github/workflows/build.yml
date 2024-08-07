@@ -12,7 +12,7 @@ env:
   URHO3D_SAMPLES: ON
   URHO3D_TESTING: ON
   URHO3D_PROFILING_FALLBACK: ON
-  DOTNET_VERSION: '6.0'
+  DOTNET_VERSION: '8.0'
   CMAKE_VERSION: 3.21.x
   # ccache configuration
   ccache_prefix: ${{ secrets.CACHE_VERSION }}-master
@@ -31,6 +31,8 @@ env:
   ci_build_script: ./source-code/script/ci_build.sh
   ci_build_dir: ${{ github.workspace }}/cmake-build
   ci_sdk_dir: ${{ github.workspace }}/SDK
+  ci_latest_release_url: https://uploads.github.com/repos/rbfx/rbfx/releases/129063815/assets{?name,label}
+  ci_latest_release_id: 129063815
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -46,8 +48,8 @@ jobs:
     steps:
       - run: exit 0
 
-  notifications:
-    name: Discord Commits
+  WebHooks:
+    name: Web Hooks
     runs-on: ubuntu-20.04
     continue-on-error: true
     if: github.repository == 'rbfx/rbfx' && github.ref == 'refs/heads/master'
@@ -59,6 +61,19 @@ jobs:
           github-token: ${{ github.token }}
           action-task: discord-commits
           discord-username: GitHub
+
+  Release-Latest:
+    name: Release 'latest'
+    runs-on: ubuntu-20.04
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create and Push Tag
+        run: |
+          git tag -f latest
+          git push -f origin latest
 
   Windows-Tools:
     if: github.event.pull_request.draft == false
@@ -75,20 +90,20 @@ jobs:
       URHO3D_TOOLS: "swig;PackageTool"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
           restore-keys: ${{ env.ccache_prefix }}-${{ github.job }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -124,20 +139,20 @@ jobs:
       URHO3D_TOOLS: "swig;PackageTool"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
           restore-keys: ${{ env.ccache_prefix }}-${{ github.job }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -167,7 +182,7 @@ jobs:
 
   MacOS-Tools:
     if: github.event.pull_request.draft == false
-    runs-on: macos-11
+    runs-on: macos-12
     needs: [CheckSkipCI]
     env:
       BUILD_SHARED_LIBS: ON
@@ -180,20 +195,20 @@ jobs:
       URHO3D_TOOLS: "swig;PackageTool"
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
           restore-keys: ${{ env.ccache_prefix }}-${{ github.job }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -233,8 +248,12 @@ jobs:
           - rel
         ci_compiler:
           - msvc
-          - mingw
-
+          # TODO: Enable MinGW when the issue with crnlib is fixed
+          # - mingw
+        # MinGW debug builds require too much memory
+        exclude:
+          - ci_compiler: mingw
+            ci_build_type: dbg
     env:
       ci_platform: windows
       ci_arch: ${{ matrix.ci_arch }}
@@ -251,15 +270,34 @@ jobs:
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'msvc')
                     }}
+      ci_release_sdk: ${{
+                        (matrix.ci_arch == 'x64')           &&
+                        (matrix.ci_lib_type == 'dll')       &&
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
+      ci_release_bin: ${{
+                        (matrix.ci_arch == 'x64')           &&
+                        (matrix.ci_lib_type == 'dll')       &&
+                        (matrix.ci_build_type == 'rel')     &&
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
+      ci_itch: ${{ (matrix.ci_build_type == 'rel') && (github.ref == 'refs/heads/master') }}
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
+      - name: Set up butler
+        if: ${{ env.ci_itch == 'true' }}
+        uses: jdno/setup-butler@v1
+
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
@@ -267,7 +305,7 @@ jobs:
             ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         if: matrix.ci_lib_type == 'dll'
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -275,7 +313,7 @@ jobs:
       - name: Setup cmake
         # FIXME: CMake installed by this action fails with MinGW because it can find 'C:/Program Files/Git/usr/bin/sh.exe' on PATH.
         if: matrix.ci_compiler != 'mingw'
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -311,6 +349,50 @@ jobs:
           name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
+      - name: Zip SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}
+          filename: ${{ github.workspace }}/SDK.zip
+          path: 'SDK'
+          exclusions: 'SDK/cmake-build SDK/SDK'
+
+      - name: Release SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ github.workspace }}/SDK.zip
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Zip binaries
+        if: ${{ env.ci_release_bin == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}/SDK/bin/RelWithDebInfo/
+          filename: ${{ github.workspace }}/SDK-bin.zip
+          path: '.'
+
+      - name: Release binaries
+        if: ${{ env.ci_release_bin == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ github.workspace }}/SDK-bin.zip
+          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Publish to itch.io
+        if: ${{ env.ci_itch == 'true' }}
+        shell: bash
+        run: ${{ env.ci_build_script }} publish-to-itch
+
   UWP:
     if: github.event.pull_request.draft == false
     runs-on: windows-2022
@@ -321,7 +403,6 @@ jobs:
       matrix:
         ci_arch:
           - x64
-          - arm
           - arm64
         ci_lib_type:
           - dll
@@ -351,13 +432,13 @@ jobs:
       URHO3D_SDK: ${{ github.workspace }}/host-sdk
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
@@ -370,13 +451,13 @@ jobs:
           path: host-sdk/
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         if: matrix.ci_lib_type == 'dll'
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -439,15 +520,34 @@ jobs:
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'gcc')
                     }}
+      ci_release_sdk: ${{
+                        (matrix.ci_arch == 'x64')           &&
+                        (matrix.ci_lib_type == 'dll')       &&
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
+      ci_release_bin: ${{
+                        (matrix.ci_arch == 'x64')           &&
+                        (matrix.ci_lib_type == 'dll')       &&
+                        (matrix.ci_build_type == 'rel')     &&
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
+      ci_itch: ${{ (matrix.ci_build_type == 'rel') && (github.ref == 'refs/heads/master') }}
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
+      - name: Set up butler
+        if: ${{ env.ci_itch == 'true' }}
+        uses: jdno/setup-butler@v1
+
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
@@ -455,13 +555,13 @@ jobs:
             ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         if: matrix.ci_lib_type == 'dll'
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -491,9 +591,54 @@ jobs:
           name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
+      - name: Zip SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}
+          filename: ${{ github.workspace }}/SDK.zip
+          path: 'SDK'
+          exclusions: '/SDK/cmake-build/* /SDK/SDK/*'
+
+      - name: Release SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ github.workspace }}/SDK.zip
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Zip binaries
+        if: ${{ env.ci_release_bin == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}/SDK/bin/
+          filename: ${{ github.workspace }}/SDK-bin.zip
+          path: '.'
+          exclusions: '/Autoload/* /CoreData/* /Data/* /EditorData/* /shell.html'
+
+      - name: Release binaries
+        if: ${{ env.ci_release_bin == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ env.ci_sdk_dir }}-bin.zip
+          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Publish to itch.io
+        if: ${{ env.ci_itch == 'true' }}
+        shell: bash
+        run: ${{ env.ci_build_script }} publish-to-itch
+
   MacOS:
     if: github.event.pull_request.draft == false
-    runs-on: macos-11
+    runs-on: macos-12
     needs: [CheckSkipCI]
 
     strategy:
@@ -527,15 +672,34 @@ jobs:
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'clang')
                     }}
+      ci_release_sdk: ${{
+                        (matrix.ci_arch == 'x64')           &&
+                        (matrix.ci_lib_type == 'dll')       &&
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
+      ci_release_bin: ${{
+                        (matrix.ci_arch == 'x64')           &&
+                        (matrix.ci_lib_type == 'dll')       &&
+                        (matrix.ci_build_type == 'rel')     &&
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
+      ci_itch: ${{ (matrix.ci_build_type == 'rel') && (github.ref == 'refs/heads/master') }}
+      BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
+      - name: Set up butler
+        if: ${{ env.ci_itch == 'true' }}
+        uses: jdno/setup-butler@v1
+
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
@@ -547,13 +711,13 @@ jobs:
         run: brew install bash
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         if: matrix.ci_lib_type == 'dll'
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -578,6 +742,51 @@ jobs:
         with:
           name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
+
+      - name: Zip SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}
+          filename: ${{ github.workspace }}/SDK.zip
+          path: 'SDK'
+          exclusions: '/SDK/cmake-build/* /SDK/obj/*'
+
+      - name: Release SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ env.ci_sdk_dir }}.zip
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Zip binaries
+        if: ${{ env.ci_release_bin == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}/SDK/bin/
+          filename: ${{ github.workspace }}/SDK-bin.zip
+          path: '.'
+          exclusions: '/Autoload/* /CoreData/* /Data/* /EditorData/* /shell.html'
+
+      - name: Release binaries
+        if: ${{ env.ci_release_bin == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ env.ci_sdk_dir }}-bin.zip
+          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Publish to itch.io
+        if: ${{ env.ci_itch == 'true' }}
+        shell: bash
+        run: ${{ env.ci_build_script }} publish-to-itch
 
   Android:
     if: github.event.pull_request.draft == false
@@ -604,13 +813,13 @@ jobs:
       URHO3D_SDK: ${{ github.workspace }}/host-sdk
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}-${{ github.sha }}
@@ -623,12 +832,12 @@ jobs:
           path: host-sdk/
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -653,7 +862,7 @@ jobs:
 
   iOS:
     if: github.event.pull_request.draft == false
-    runs-on: macos-11
+    runs-on: macos-12
     needs: [CheckSkipCI, MacOS-Tools]
 
     strategy:
@@ -680,13 +889,13 @@ jobs:
       URHO3D_SDK: ${{ github.workspace }}/host-sdk
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
@@ -699,13 +908,13 @@ jobs:
           path: host-sdk/
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         if: matrix.ci_lib_type == 'dll'
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -760,6 +969,10 @@ jobs:
                         )                                             &&
                         (matrix.ci_build_type == 'rel')
                     }}
+      ci_release_sdk: ${{
+                        (github.repository == 'rbfx/rbfx')  &&
+                        (github.ref == 'refs/heads/master')
+                      }}
       URHO3D_SDK: ${{ github.workspace }}/host-sdk
 
     steps:
@@ -767,13 +980,13 @@ jobs:
         with:
           version: ${{ matrix.ci_emsdk_version }}
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: ${{ env.ci_source_dir }}
           fetch-depth: 1
 
       - name: Build Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
@@ -786,7 +999,7 @@ jobs:
           path: host-sdk/
 
       - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '${{ env.CMAKE_VERSION }}'
 
@@ -823,6 +1036,26 @@ jobs:
           name: 'rbfx-${{ github.job }}-${{ env.ci_build_type }}-${{ env.ci_lib_type }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
+      - name: Zip SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: TheDoctor0/zip-release@0.7.6
+        with:
+          directory: ${{ github.workspace }}
+          filename: ${{ github.workspace }}/SDK.zip
+          path: 'SDK'
+          exclusions: 'SDK/cmake-build SDK/SDK'
+
+      - name: Release SDK
+        if: ${{ env.ci_release_sdk == 'true' }}
+        uses: WebFreak001/deploy-nightly@v3.0.0
+        with:
+          upload_url: ${{ env.ci_latest_release_url }}
+          release_id: ${{ env.ci_latest_release_id }}
+          asset_path: ${{ github.workspace }}/SDK.zip
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-latest.zip'
+          asset_content_type: application/zip
+          max_releases: 1
+
   NuGet:
     runs-on: ubuntu-20.04
     if: ${{ startsWith(github.ref, 'refs/tags/nuget/') || startsWith(github.ref, 'refs/heads/nuget/') }}
@@ -835,7 +1068,7 @@ jobs:
       - Web
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           path: source-code
           fetch-depth: 1

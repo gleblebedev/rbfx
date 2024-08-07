@@ -23,6 +23,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -64,9 +65,9 @@ namespace Urho3DNet
 
         /// Add a vector.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static IntVector3 operator +(in IntVector3 rhs)
+        public static IntVector3 operator +(in IntVector3 lhs, in IntVector3 rhs)
         {
-            return new IntVector3(rhs.X + rhs.X, rhs.Y + rhs.Y, rhs.Z + rhs.Z);
+            return new IntVector3(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
         }
 
         /// Return negation.
@@ -118,10 +119,18 @@ namespace Urho3DNet
         /// Return integer data.
         public int[] Data => new int[] {X, Y, Z};
 
-        /// Return as string.
+        /// <inheritdoc/>
         public override string ToString()
         {
-            return $"{X} {Y} {Z}";
+            return string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", X, Y, Z);
+        }
+
+        /// <summary>
+        /// Converts the string representation of a IntVector3 into value.
+        /// </summary>
+        public static IntVector3 Parse(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? default : Urho3D.ToIntVector3(value);
         }
 
         /// <summary>Returns the hash code for this instance.</summary>

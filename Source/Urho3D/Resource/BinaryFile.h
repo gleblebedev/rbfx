@@ -66,6 +66,8 @@ public:
     void Clear();
     /// Set data.
     void SetData(const ByteVector& data);
+    /// Set data from text.
+    void SetText(ea::string_view text);
     /// Return immutable data.
     const ByteVector& GetData() const;
     /// Return immutable data as string view.
@@ -73,6 +75,8 @@ public:
     /// Return data as text lines.
     StringVector ReadLines() const;
 
+    /// Return mutable internal buffer.
+    VectorBuffer& GetMutableBuffer() { return buffer_; }
     /// Cast to Serializer.
     Serializer& AsSerializer() { return buffer_; }
     /// Cast to Deserializer.

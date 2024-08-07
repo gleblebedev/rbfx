@@ -64,7 +64,7 @@ void MoveAndOrbitController::OnSetEnabled()
 
 void MoveAndOrbitController::LoadInputMap(const ea::string& name)
 {
-    SetInputMapAttr(ResourceRef(InputMap::GetTypeStatic(), "Input/MoveAndOrbit.inputmap"));
+    SetInputMapAttr(ResourceRef(InputMap::GetTypeStatic(), name));
 }
 
 void MoveAndOrbitController::SetInputMap(InputMap* inputMap)
@@ -246,7 +246,7 @@ void MoveAndOrbitController::EvaluateTouchRects(IntRect& movementRect, IntRect& 
     {
         if (const auto graphics = GetSubsystem<Graphics>())
         {
-            screenRect = graphics->GetViewport();
+            screenRect = {IntVector2::ZERO, graphics->GetSwapChainSize()};
         }
     }
 

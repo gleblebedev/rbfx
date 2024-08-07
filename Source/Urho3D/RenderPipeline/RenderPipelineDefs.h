@@ -32,6 +32,7 @@
 namespace Urho3D
 {
 
+class Camera;
 class Light;
 class PipelineState;
 class RenderPipelineDebugger;
@@ -40,11 +41,15 @@ class Texture2D;
 class Viewport;
 struct BatchStateCreateKey;
 struct BatchStateCreateContext;
+struct PipelineStateOutputDesc;
 struct UIBatchStateKey;
 struct UIBatchStateCreateContext;
 
 /// Macro to define shader constant name. Group name doesn't serve any functional purpose.
 #define URHO3D_SHADER_CONST(group, name) URHO3D_GLOBAL_CONSTANT(ConstString group##_##name{#name})
+
+/// Macro to define shader resource name.
+#define URHO3D_SHADER_RESOURCE(name) URHO3D_GLOBAL_CONSTANT(ConstString name{#name})
 
 /// Common parameters of rendered frame.
 struct CommonFrameInfo
@@ -57,6 +62,8 @@ struct CommonFrameInfo
 
     Viewport* viewport_{};
     RenderSurface* renderTarget_{};
+
+    ea::array<Camera*, 2> cameras_{};
 };
 
 /// Traits of scene pass.
@@ -70,9 +77,11 @@ enum class DrawableProcessorPassFlag
     NeedReadableDepth = 1 << 3,
     RefractionPass = 1 << 4,
     DepthOnlyPass = 1 << 5,
+    ReadOnlyDepth = 1 << 6,
+    StereoInstancing = 1 << 7,
 
-    BatchCallback = 1 << 6,
-    PipelineStateCallback = 1 << 7,
+    BatchCallback = 1 << 8,
+    PipelineStateCallback = 1 << 9,
 };
 
 URHO3D_FLAGSET(DrawableProcessorPassFlag, DrawableProcessorPassFlags);
@@ -99,6 +108,8 @@ enum class BatchRenderFlag
     EnablePixelLights = 1 << 2,
     EnableInstancingForStaticGeometry = 1 << 3,
     DisableColorOutput = 1 << 4,
+    LightMaskToStencil = 1 << 5,
+    LinearColorSpace = 1 << 6,
 
     EnableAmbientAndVertexLighting = EnableAmbientLighting | EnableVertexLights,
 };
@@ -111,10 +122,9 @@ enum class RenderBufferFlag
     /// Texture content is preserved between frames.
     Persistent = 1 << 0,
     FixedTextureSize = 1 << 1,
-    sRGB = 1 << 2,
-    BilinearFiltering = 1 << 3,
-    CubeMap = 1 << 4,
-    NoMultiSampledAutoResolve = 1 << 5
+    BilinearFiltering = 1 << 2,
+    CubeMap = 1 << 3,
+    NoMultiSampledAutoResolve = 1 << 4
 };
 
 URHO3D_FLAGSET(RenderBufferFlag, RenderBufferFlags);
@@ -122,7 +132,7 @@ URHO3D_FLAGSET(RenderBufferFlag, RenderBufferFlags);
 /// Render buffer parameters. Actual render buffer size is controlled externally.
 struct RenderBufferParams
 {
-    unsigned textureFormat_{};
+    TextureFormat textureFormat_{};
     int multiSampleLevel_{ 1 };
     RenderBufferFlags flags_;
 
@@ -145,7 +155,9 @@ enum class RenderPipelineColorSpace
     /// Low dynamic range lighting in Linear space, trimmed to [0, 1].
     LinearLDR,
     /// High dynamic range lighting in Linear space. Should be tone mapped before frame end.
-    LinearHDR
+    LinearHDR,
+    /// Use the color space that matches output render texture.
+    Optimized,
 };
 
 /// Rarely-changing settings of render buffer manager.
@@ -206,14 +218,14 @@ struct RenderBufferManagerFrameSettings
 };
 
 /// Traits of post-processing pass
-enum class PostProcessPassFlag
+enum class RenderOutputFlag
 {
     None = 0,
     NeedColorOutputReadAndWrite = 1 << 0,
     NeedColorOutputBilinear = 1 << 1,
 };
 
-URHO3D_FLAGSET(PostProcessPassFlag, PostProcessPassFlags);
+URHO3D_FLAGSET(RenderOutputFlag, RenderOutputFlags);
 
 /// Pipeline state cache callback used to create actual pipeline state.
 class BatchStateCacheCallback
@@ -222,9 +234,12 @@ public:
     /// Destruct.
     virtual ~BatchStateCacheCallback();
     /// Create pipeline state for given context and key.
-    /// Only attributes that constribute to pipeline state hashes are safe to use.
-    virtual SharedPtr<PipelineState> CreateBatchPipelineState(
-        const BatchStateCreateKey& key, const BatchStateCreateContext& ctx) = 0;
+    /// Only attributes that contribute to pipeline state hashes are safe to use.
+    virtual SharedPtr<PipelineState> CreateBatchPipelineState(const BatchStateCreateKey& key,
+        const BatchStateCreateContext& ctx, const PipelineStateOutputDesc& outputDesc) = 0;
+    /// Create placeholder pipeline state when actual pipeline state creation fails.
+    virtual SharedPtr<PipelineState> CreateBatchPipelineStatePlaceholder(
+        unsigned vertexStride, const PipelineStateOutputDesc& outputDesc) = 0;
 };
 
 /// Pipeline state cache callback used to create actual pipeline state for UI batches.
@@ -245,6 +260,8 @@ struct RenderPipelineStats
     unsigned numLights_{};
     /// Total number of lights with shadows processed.
     unsigned numShadowedLights_{};
+    /// Total number of geometries in the frame (excluding shadow casters).
+    unsigned numGeometries_{};
     /// Number of occluders rendered.
     unsigned numOccluders_{};
 };
@@ -256,6 +273,7 @@ public:
     virtual ~RenderPipelineInterface();
     virtual Context* GetContext() const = 0;
     virtual RenderPipelineDebugger* GetDebugger() = 0;
+    virtual bool IsLinearColorSpace() const = 0;
 
     /// Callbacks
     /// @{
@@ -324,6 +342,7 @@ struct DrawableProcessorSettings
     unsigned maxVertexLights_{ 4 };
     unsigned maxPixelLights_{ 4 };
     unsigned pcfKernelSize_{ 1 };
+    float normalOffsetScale_{1.0f};
     LightProcessorCacheSettings lightProcessorCache_;
 
     /// Utility operators
@@ -333,6 +352,7 @@ struct DrawableProcessorSettings
         unsigned hash = 0;
         CombineHash(hash, maxVertexLights_);
         CombineHash(hash, pcfKernelSize_);
+        CombineHash(hash, MakeHash(normalOffsetScale_));
         return hash;
     }
 
@@ -341,6 +361,7 @@ struct DrawableProcessorSettings
         maxVertexLights_ = Clamp(maxVertexLights_, 0u, 4u);
         maxPixelLights_ = Clamp(maxPixelLights_, 0u, 256u);
         pcfKernelSize_ = Clamp(pcfKernelSize_, 1u, 5u);
+        normalOffsetScale_ = ea::max(0.0f, normalOffsetScale_);
 
         // Kernel size of 4 is not supported
         if (pcfKernelSize_ == 4)
@@ -353,7 +374,8 @@ struct DrawableProcessorSettings
             && maxVertexLights_ == rhs.maxVertexLights_
             && maxPixelLights_ == rhs.maxPixelLights_
             && pcfKernelSize_ == rhs.pcfKernelSize_
-            && lightProcessorCache_ == rhs.lightProcessorCache_;
+            && lightProcessorCache_ == rhs.lightProcessorCache_
+            && normalOffsetScale_ == rhs.normalOffsetScale_;
     }
 
     bool operator!=(const DrawableProcessorSettings& rhs) const { return !(*this == rhs); }
@@ -365,6 +387,7 @@ struct InstancingBufferSettings
     bool enableInstancing_{};
     unsigned firstInstancingTexCoord_{};
     unsigned numInstancingTexCoords_{};
+    unsigned stepRate_{ 1 };
 
     /// Utility operators
     /// @{
@@ -374,6 +397,7 @@ struct InstancingBufferSettings
         CombineHash(hash, enableInstancing_);
         CombineHash(hash, firstInstancingTexCoord_);
         CombineHash(hash, numInstancingTexCoords_);
+        CombineHash(hash, stepRate_);
         return hash;
     }
 
@@ -385,7 +409,8 @@ struct InstancingBufferSettings
     {
         return enableInstancing_ == rhs.enableInstancing_
             && firstInstancingTexCoord_ == rhs.firstInstancingTexCoord_
-            && numInstancingTexCoords_ == rhs.numInstancingTexCoords_;
+            && numInstancingTexCoords_ == rhs.numInstancingTexCoords_
+            && stepRate_ == rhs.stepRate_;
     }
 
     bool operator!=(const InstancingBufferSettings& rhs) const { return !(*this == rhs); }
@@ -401,7 +426,6 @@ enum class DrawableAmbientMode
 
 struct BatchRendererSettings
 {
-    bool linearSpaceLighting_{};
     bool cubemapBoxProjection_{};
     DrawableAmbientMode ambientMode_{ DrawableAmbientMode::Directional };
     Vector2 varianceShadowMapParams_{ 0.0000001f, 0.9f };
@@ -411,7 +435,6 @@ struct BatchRendererSettings
     unsigned CalculatePipelineStateHash() const
     {
         unsigned hash = 0;
-        CombineHash(hash, linearSpaceLighting_);
         CombineHash(hash, cubemapBoxProjection_);
         CombineHash(hash, MakeHash(ambientMode_));
         return hash;
@@ -423,8 +446,7 @@ struct BatchRendererSettings
 
     bool operator==(const BatchRendererSettings& rhs) const
     {
-        return linearSpaceLighting_ == rhs.linearSpaceLighting_
-            && cubemapBoxProjection_ == rhs.cubemapBoxProjection_
+        return cubemapBoxProjection_ == rhs.cubemapBoxProjection_
             && ambientMode_ == rhs.ambientMode_
             && varianceShadowMapParams_ == rhs.varianceShadowMapParams_;
     }
@@ -440,6 +462,9 @@ struct ShadowMapAllocatorSettings
     bool use16bitShadowMaps_{};
     unsigned shadowAtlasPageSize_{ 2048 };
 
+    float depthBiasScale_{1.0f};
+    float depthBiasOffset_{0.0f};
+
     /// Utility operators
     /// @{
     unsigned CalculatePipelineStateHash() const
@@ -447,6 +472,8 @@ struct ShadowMapAllocatorSettings
         unsigned hash = 0;
         CombineHash(hash, enableVarianceShadowMaps_);
         CombineHash(hash, use16bitShadowMaps_);
+        CombineHash(hash, MakeHash(depthBiasScale_));
+        CombineHash(hash, MakeHash(depthBiasOffset_));
         return hash;
     }
 
@@ -454,6 +481,7 @@ struct ShadowMapAllocatorSettings
     {
         varianceShadowMapMultiSample_ = Clamp(ClosestPowerOfTwo(varianceShadowMapMultiSample_), 1u, 16u);
         shadowAtlasPageSize_ = Clamp(ClosestPowerOfTwo(shadowAtlasPageSize_), 128u, 16 * 1024u);
+        depthBiasScale_ = ea::max(0.0f, depthBiasScale_);
     }
 
     bool operator==(const ShadowMapAllocatorSettings& rhs) const
@@ -461,7 +489,9 @@ struct ShadowMapAllocatorSettings
         return enableVarianceShadowMaps_ == rhs.enableVarianceShadowMaps_
             && varianceShadowMapMultiSample_ == rhs.varianceShadowMapMultiSample_
             && use16bitShadowMaps_ == rhs.use16bitShadowMaps_
-            && shadowAtlasPageSize_ == rhs.shadowAtlasPageSize_;
+            && shadowAtlasPageSize_ == rhs.shadowAtlasPageSize_
+            && depthBiasScale_ == rhs.depthBiasScale_
+            && depthBiasOffset_ == rhs.depthBiasOffset_;
     }
 
     bool operator!=(const ShadowMapAllocatorSettings& rhs) const { return !(*this == rhs); }
@@ -629,136 +659,6 @@ struct ShaderProgramCompositorSettings
     /// @}
 };
 
-enum class ToneMappingMode
-{
-    None,
-    Reinhard,
-    ReinhardWhite,
-    Uncharted2,
-};
-
-struct AutoExposurePassSettings
-{
-    bool autoExposure_{};
-    float minExposure_{ 1.0f };
-    float maxExposure_{ 3.0f };
-    float adaptRate_{ 0.6f };
-
-    /// Utility operators
-    /// @{
-    void Validate()
-    {
-    }
-
-    bool operator==(const AutoExposurePassSettings& rhs) const
-    {
-        return autoExposure_ == rhs.autoExposure_
-            && minExposure_ == rhs.minExposure_
-            && maxExposure_ == rhs.maxExposure_
-            && adaptRate_ == rhs.adaptRate_;
-    }
-
-    bool operator!=(const AutoExposurePassSettings& rhs) const { return !(*this == rhs); }
-    /// @}
-};
-
-enum class AmbientOcclusionMode
-{
-    Combine,
-    Preview
-};
-
-struct AmbientOcclusionPassSettings
-{
-    bool enabled_{};
-
-    unsigned downscale_{0};
-    float strength_{0.7f};
-    float exponent_{1.5f};
-
-    float radiusNear_{0.05f};
-    float distanceNear_{1.0f};
-    float radiusFar_{1.0f};
-    float distanceFar_{100.0f};
-
-    float fadeDistanceBegin_{100.0f};
-    float fadeDistanceEnd_{200.0f};
-
-    float blurDepthThreshold_{0.1f};
-    float blurNormalThreshold_{0.2f};
-
-    AmbientOcclusionMode ambientOcclusionMode_{AmbientOcclusionMode::Combine};
-
-    /// Utility operators
-    /// @{
-    void Validate() { }
-
-    bool operator==(const AmbientOcclusionPassSettings& rhs) const
-    {
-        return enabled_ == rhs.enabled_
-
-            && downscale_ == rhs.downscale_
-            && strength_ == rhs.strength_
-            && exponent_ == rhs.exponent_
-
-            && radiusNear_ == rhs.radiusNear_
-            && distanceNear_ == rhs.distanceNear_
-            && radiusFar_ == rhs.radiusFar_
-            && distanceFar_ == rhs.distanceFar_
-
-            && fadeDistanceBegin_ == rhs.fadeDistanceBegin_
-            && fadeDistanceEnd_ == rhs.fadeDistanceEnd_
-
-            && blurDepthThreshold_ == rhs.blurDepthThreshold_
-            && blurNormalThreshold_ == rhs.blurNormalThreshold_
-
-            && ambientOcclusionMode_ == rhs.ambientOcclusionMode_;
-    }
-
-    bool operator!=(const AmbientOcclusionPassSettings& rhs) const { return !(*this == rhs); }
-    /// @}
-};
-
-struct BloomPassSettings
-{
-    bool enabled_{};
-    bool hdr_{};
-    unsigned numIterations_{ 5 };
-    float threshold_{ 0.8f };
-    float thresholdMax_{ 1.0f };
-    float intensity_{ 1.0f };
-    float iterationFactor_{ 1.0f };
-
-    /// Utility operators
-    /// @{
-    void Validate()
-    {
-        numIterations_ = Clamp(numIterations_, 1u, 16u);
-    }
-
-    bool operator==(const BloomPassSettings& rhs) const
-    {
-        return enabled_ == rhs.enabled_
-            && hdr_ == rhs.hdr_
-            && numIterations_ == rhs.numIterations_
-            && threshold_ == rhs.threshold_
-            && thresholdMax_ == rhs.thresholdMax_
-            && intensity_ == rhs.intensity_
-            && iterationFactor_ == rhs.iterationFactor_;
-    }
-
-    bool operator!=(const BloomPassSettings& rhs) const { return !(*this == rhs); }
-    /// @}
-};
-
-/// Post-processing antialiasing mode.
-enum class PostProcessAntialiasing
-{
-    None,
-    FXAA2,
-    FXAA3
-};
-
 /// Settings of default render pipeline.
 struct RenderPipelineSettings : public ShaderProgramCompositorSettings
 {
@@ -767,48 +667,12 @@ struct RenderPipelineSettings : public ShaderProgramCompositorSettings
     bool drawDebugGeometry_{true};
     /// @}
 
-    /// Post-processing settings
-    /// @{
-    AutoExposurePassSettings autoExposure_;
-    BloomPassSettings bloom_;
-    AmbientOcclusionPassSettings ssao_;
-    ToneMappingMode toneMapping_{};
-    PostProcessAntialiasing antialiasing_{};
-    float hueShift_{1.0f};
-    float saturation_{1.0f};
-    float brightness_{1.0f};
-    float contrast_{1.0f};
-    /// @}
-
     /// Utility operators
     /// @{
-    unsigned CalculatePipelineStateHash() const
-    {
-        unsigned hash = 0;
-        CombineHash(hash, ShaderProgramCompositorSettings::CalculatePipelineStateHash());
-        return hash;
-    }
-
-    void Validate()
-    {
-        ShaderProgramCompositorSettings::Validate();
-
-        autoExposure_.Validate();
-        bloom_.Validate();
-    }
-
     bool operator==(const RenderPipelineSettings& rhs) const
     {
         return ShaderProgramCompositorSettings::operator==(rhs)
-            && drawDebugGeometry_ == rhs.drawDebugGeometry_
-            && autoExposure_ == rhs.autoExposure_
-            && bloom_ == rhs.bloom_
-            && toneMapping_ == rhs.toneMapping_
-            && antialiasing_ == rhs.antialiasing_
-            && hueShift_ == rhs.hueShift_
-            && saturation_ == rhs.saturation_
-            && brightness_ == rhs.brightness_
-            && contrast_ == rhs.contrast_;
+            && drawDebugGeometry_ == rhs.drawDebugGeometry_;
     }
 
     bool operator!=(const RenderPipelineSettings& rhs) const { return !(*this == rhs); }
@@ -820,8 +684,33 @@ struct RenderPipelineSettings : public ShaderProgramCompositorSettings
     /// Don't modify settings inplace after these calls! Always restore settings from external source.
     /// @{
     void PropagateImpliedSettings();
-    void AdjustForPostProcessing(PostProcessPassFlags flags);
+    void AdjustForRenderPath(RenderOutputFlags flags);
     /// @}
+};
+
+/// ID of static pipeline state.
+enum class StaticPipelineStateId : unsigned
+{
+    Invalid,
+};
+
+/// Helper for pipeline state creation.
+/// Keep entire string because it should be used only on startup.
+using NamedSamplerStateDesc = ea::pair<ea::string, SamplerStateDesc>;
+
+/// Reference to input shader resource. Only textures are supported now.
+struct ShaderResourceDesc
+{
+    StringHash name_{};
+    RawTexture* texture_{};
+};
+
+/// Generic description of shader parameter.
+/// Beware of Variant allocations for types larger than Vector4!
+struct ShaderParameterDesc
+{
+    StringHash name_;
+    Variant value_;
 };
 
 }

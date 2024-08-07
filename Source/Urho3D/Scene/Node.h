@@ -46,6 +46,7 @@ class Scene;
 class NodePrefab;
 class SceneResolver;
 class SerializablePrefab;
+class PrefabResource;
 
 enum SceneLookupFlag
 {
@@ -107,7 +108,8 @@ public:
 
     /// Serialize content from/to archive. May throw ArchiveException.
     void SerializeInBlock(Archive& archive) override;
-    void SerializeInBlock(Archive& archive, bool serializeTemporary, PrefabSaveFlags saveFlags);
+    void SerializeInBlock(Archive& archive, bool serializeTemporary, PrefabSaveFlags saveFlags,
+        PrefabLoadFlags loadFlags = PrefabLoadFlag::None);
 
     /// Load from prefab without resolving IDs and applying attributes. May throw ArchiveException.
     void LoadInternal(const SerializablePrefab& nodePrefab, PrefabReader& reader, SceneResolver& resolver,
@@ -118,6 +120,10 @@ public:
     void SaveInternal(PrefabWriter& writer) const;
     /// Write to prefab. Return true on success. Discard PrefabWriter after calling this.
     bool Save(PrefabWriter& writer) const;
+
+    /// Instantiate scene content from prefab. Return root node if successful.
+    Node* InstantiatePrefab(const PrefabResource* prefabResource, const Vector3& position = Vector3::ZERO,
+        const Quaternion& rotation = Quaternion::IDENTITY);
 
     /// Instantiate scene content from prefab. Return root node if successful.
     Node* InstantiatePrefab(const NodePrefab& prefab, const Vector3& position = Vector3::ZERO,
@@ -712,6 +718,20 @@ public:
     /// This function is optimized for the case when the component is expected to be found.
     template <class T> bool GetNthComponentLazy(WeakPtr<T>& childComponent, unsigned index = 0) const;
 
+    /// Traverse all components and child nodes recursively depth-first.
+    /// Return `false` from `nodeCallback` to prevent traversal of the node.
+    template <class T, class U> void TraverseDepthFirst(const T& nodeCallback, const U& componentCallback)
+    {
+        for (const auto& component : components_)
+            componentCallback(component);
+
+        for (const auto& child : children_)
+        {
+            if (nodeCallback(child))
+                child->TraverseDepthFirst(nodeCallback, componentCallback);
+        }
+    }
+
     /// Set ID. Called by Scene.
     /// @property{set_id}
     void SetID(unsigned id);
@@ -877,41 +897,12 @@ template <class T> bool Node::HasComponent() const { return HasComponent(T::GetT
 
 template <class T> T* Node::GetDerivedComponent(bool recursive) const
 {
-    for (auto i = components_.begin(); i != components_.end(); ++i)
-    {
-        auto* component = dynamic_cast<T*>(i->Get());
-        if (component)
-            return component;
-    }
-
-    if (recursive)
-    {
-        for (auto i = children_.begin(); i != children_.end(); ++i)
-        {
-            T* component = (*i)->GetDerivedComponent<T>(true);
-            if (component)
-                return component;
-        }
-    }
-
-    return nullptr;
+    return static_cast<T*>(GetDerivedComponent(T::GetTypeStatic(), recursive));
 }
 
 template <class T> T* Node::GetParentDerivedComponent(bool fullTraversal) const
 {
-    Node* current = GetParent();
-    while (current)
-    {
-        T* soughtComponent = current->GetDerivedComponent<T>();
-        if (soughtComponent)
-            return soughtComponent;
-
-        if (fullTraversal)
-            current = current->GetParent();
-        else
-            break;
-    }
-    return 0;
+    return static_cast<T*>(GetParentDerivedComponent(T::GetTypeStatic(), fullTraversal));
 }
 
 template <class T, class U> void Node::GetDerivedComponents(U& destVector, bool recursive, bool clearVector) const
@@ -923,7 +914,7 @@ template <class T, class U> void Node::GetDerivedComponents(U& destVector, bool 
 
     for (const auto& component : components_)
     {
-        if (auto derivedComponent = dynamic_cast<T*>(component.Get()))
+        if (auto derivedComponent = component->Cast<T>())
             destVector.push_back(PointerType{derivedComponent});
     }
 

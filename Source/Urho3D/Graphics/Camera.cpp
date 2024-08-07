@@ -26,6 +26,7 @@
 #include "../Graphics/Camera.h"
 #include "../Graphics/DebugRenderer.h"
 #include "../Graphics/Drawable.h"
+#include "../Graphics/Graphics.h"
 #include "../Graphics/Zone.h"
 #include "../Scene/Node.h"
 
@@ -59,7 +60,8 @@ Camera::Camera(Context* context) :
     aspectRatio_(1.0f),
     zoom_(1.0f),
     lodBias_(1.0f),
-    viewMask_(DEFAULT_VIEWMASK),
+    primaryViewMask_(DEFAULT_VIEWMASK),
+    shadowViewMask_(DEFAULT_VIEWMASK),
     zoneMask_(DEFAULT_ZONEMASK),
     viewOverrideFlags_(VO_NONE),
     fillMode_(FILL_SOLID),
@@ -72,6 +74,7 @@ Camera::Camera(Context* context) :
     useClipping_(false)
 {
     reflectionMatrix_ = reflectionPlane_.ReflectionMatrix();
+    graphics_ = GetSubsystem<Graphics>();
 }
 
 Camera::~Camera() = default;
@@ -91,7 +94,9 @@ void Camera::RegisterObject(Context* context)
     URHO3D_ACCESSOR_ATTRIBUTE("Orthographic Size", GetOrthoSize, SetOrthoSizeAttr, float, DEFAULT_ORTHOSIZE, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Zoom", GetZoom, SetZoom, float, 1.0f, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("LOD Bias", GetLodBias, SetLodBias, float, 1.0f, AM_DEFAULT);
-    URHO3D_ATTRIBUTE("View Mask", int, viewMask_, DEFAULT_VIEWMASK, AM_DEFAULT);
+    URHO3D_ACCESSOR_ATTRIBUTE("View Mask", GetViewMask, SetViewMask, int, DEFAULT_VIEWMASK, AM_DEFAULT | AM_READONLY);
+    URHO3D_ATTRIBUTE("Primary View Mask", int, primaryViewMask_, DEFAULT_VIEWMASK, AM_DEFAULT);
+    URHO3D_ATTRIBUTE("Shadow View Mask", int, shadowViewMask_, DEFAULT_VIEWMASK, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Zone Mask", int, zoneMask_, DEFAULT_ZONEMASK, AM_DEFAULT);
     URHO3D_ATTRIBUTE("View Override Flags", unsigned, viewOverrideFlags_.AsInteger(), VO_NONE, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Projection Offset", GetProjectionOffset, SetProjectionOffset, Vector2, Vector2::ZERO, AM_DEFAULT);
@@ -176,7 +181,8 @@ void Camera::SetLodBias(float bias)
 
 void Camera::SetViewMask(unsigned mask)
 {
-    viewMask_ = mask;
+    primaryViewMask_ = mask;
+    shadowViewMask_ = mask;
 }
 
 void Camera::SetZoneMask(unsigned mask)
@@ -463,30 +469,33 @@ Matrix4 Camera::GetProjection(bool ignoreFlip) const
 
 Matrix4 Camera::GetGPUProjection(bool ignoreFlip) const
 {
-#ifndef URHO3D_OPENGL
-    return GetProjection(ignoreFlip); // Already matches API-specific format
-#else
-    // See formulation for depth range conversion at http://www.ogre3d.org/forums/viewtopic.php?f=4&t=13357
     Matrix4 ret = GetProjection(ignoreFlip);
 
-    ret.m20_ = 2.0f * ret.m20_ - ret.m30_;
-    ret.m21_ = 2.0f * ret.m21_ - ret.m31_;
-    ret.m22_ = 2.0f * ret.m22_ - ret.m32_;
-    ret.m23_ = 2.0f * ret.m23_ - ret.m33_;
+    const bool isOpenGL = graphics_ && graphics_->GetRenderBackend() == RenderBackend::OpenGL;
+    if (isOpenGL)
+    {
+        ret.m20_ = 2.0f * ret.m20_ - ret.m30_;
+        ret.m21_ = 2.0f * ret.m21_ - ret.m31_;
+        ret.m22_ = 2.0f * ret.m22_ - ret.m32_;
+        ret.m23_ = 2.0f * ret.m23_ - ret.m33_;
+    }
 
     return ret;
-#endif
 }
 
 Matrix4 Camera::GetEffectiveGPUViewProjection(float constantDepthBias) const
 {
     Matrix4 projection = GetGPUProjection();
-    // glPolygonOffset is not supported in GL ES 2.0
-#ifdef URHO3D_OPENGL
-    const float constantBias = 2.0f * constantDepthBias;
-    projection.m22_ += projection.m32_ * constantBias;
-    projection.m23_ += projection.m33_ * constantBias;
-#endif
+
+    // OpenGL depth offset is weird, emulate it here.
+    const bool isOpenGL = graphics_ && graphics_->GetRenderBackend() == RenderBackend::OpenGL;
+    if (isOpenGL)
+    {
+        const float constantBias = 2.0f * constantDepthBias;
+        projection.m22_ += projection.m32_ * constantBias;
+        projection.m23_ += projection.m33_ * constantBias;
+    }
+
     return projection * GetView();
 }
 
@@ -775,4 +784,5 @@ float Camera::GetEffectiveFogEnd() const
 {
     return zone_ ? zone_->GetFogEnd() : M_LARGE_VALUE;
 }
+
 }

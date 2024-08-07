@@ -56,23 +56,26 @@ namespace Urho3DNet
         // This method may be overriden in partial class in order to attach extra logic to object constructor
         internal void OnSetupInstance()
         {
+            Instance = this;
+
             using (var script = new Script(this))
-                RegisterSubsystem(script);
-
-            Urho3DRegisterDirectorFactories(swigCPtr);
-
-            // Register factories marked with attributes
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                // Exclude system libraries and UWP HiddenScope assembly.
-                var assemblyName = assembly.GetName().Name;
-                if (!assemblyName.StartsWith("System.") && assemblyName != "HiddenScope")
-                {
-                    RegisterFactories(assembly);
-                }
+                RegisterSubsystem(script);
+                script.SubscribeToEvent(E.EngineInitialized, (StringHash e, VariantMap args) => {
+                    // Register factories marked with attributes
+                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        // Exclude system libraries and UWP HiddenScope assembly.
+                        var assemblyName = assembly.GetName().Name;
+                        if (!assemblyName.StartsWith("System.") && assemblyName != "HiddenScope")
+                        {
+                            RegisterFactories(assembly);
+                        }
+                    }
+                });
             }
 
-            Instance = this;
+            Urho3DRegisterDirectorFactories(swigCPtr);
         }
 
         public void RegisterFactories(Assembly assembly)

@@ -31,7 +31,9 @@
 #include <Urho3D/Graphics/Texture2DArray.h>
 #include <Urho3D/Graphics/Texture3D.h>
 #include <Urho3D/Graphics/TextureCube.h>
+#include <Urho3D/RenderPipeline/RenderPath.h>
 #include <Urho3D/Resource/BinaryFile.h>
+#include <Urho3D/Resource/SerializableResource.h>
 #include <Urho3D/Resource/JSONFile.h>
 #include <Urho3D/Resource/XMLFile.h>
 #include <Urho3D/Scene/PrefabResource.h>
@@ -81,6 +83,18 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
         {
         if (desc.HasExtension({".bipedal"}) || ctx.HasXMLRoot("bipedal"))
             desc.AddObjectType<Bipedal>();
+    });
+
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+    {
+        if (desc.HasExtension({".serializable"}))
+            desc.AddObjectType<SerializableResource>();
+    });
+
+    project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)
+    {
+        if (desc.HasExtension({".renderpath"}))
+            desc.AddObjectType<RenderPath>();
     });
 
     project->AddAnalyzeFileCallback([](ResourceFileDescriptor& desc, const AnalyzeFileContext& ctx)

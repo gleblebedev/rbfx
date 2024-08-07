@@ -20,9 +20,10 @@
 // THE SOFTWARE.
 //
 
+#include "../Foundation/SceneViewTab.h"
+
 #include "../Core/CommonEditorActions.h"
 #include "../Core/IniHelpers.h"
-#include "../Foundation/SceneViewTab.h"
 #include "../Project/CreateComponentMenu.h"
 
 #include <Urho3D/Engine/Engine.h>
@@ -31,10 +32,10 @@
 #include <Urho3D/Graphics/Camera.h>
 #include <Urho3D/Graphics/DebugRenderer.h>
 #include <Urho3D/Graphics/Texture2D.h>
-#include <Urho3D/Input/Input.h>
 #include <Urho3D/IO/ArchiveSerialization.h>
 #include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/Log.h>
+#include <Urho3D/Input/Input.h>
 #include <Urho3D/Plugins/PluginManager.h>
 #include <Urho3D/Resource/JSONFile.h>
 #include <Urho3D/Resource/ResourceCache.h>
@@ -67,9 +68,40 @@ const auto Hotkey_MoveToLatest = EditorHotkey{"SceneViewTab.MoveToLatest"};
 const auto Hotkey_MovePositionToLatest = EditorHotkey{"SceneViewTab.MovePositionToLatest"};
 const auto Hotkey_MoveRotationToLatest = EditorHotkey{"SceneViewTab.MoveRotationToLatest"};
 const auto Hotkey_MoveScaleToLatest = EditorHotkey{"SceneViewTab.MoveScaleToLatest"};
+const auto Hotkey_MakePersistent = EditorHotkey{"SceneViewTab.MakePersistent"};
 
 const auto Hotkey_CreateSiblingNode = EditorHotkey{"SceneViewTab.CreateSiblingNode"}.Ctrl().Press(KEY_N);
 const auto Hotkey_CreateChildNode = EditorHotkey{"SceneViewTab.CreateChildNode"}.Ctrl().Shift().Press(KEY_N);
+
+void SetSceneNextIds(Scene* scene, unsigned nextNodeId, unsigned nextComponentId)
+{
+    scene->SetAttribute("Next Node ID", nextNodeId);
+    scene->SetAttribute("Next Component ID", nextComponentId);
+}
+
+void RecalculateSceneNextIds(Scene* scene)
+{
+    unsigned nextNodeId = 0;
+    unsigned nextComponentId = 0;
+
+    const auto nodeCallback = [&](Node* node)
+    {
+        if (node->IsTemporary())
+            return false;
+
+        nextNodeId = ea::max(nextNodeId, node->GetID() + 1);
+        return true;
+    };
+
+    const auto componentCallback = [&](Component* component)
+    {
+        if (!component->IsTemporary())
+            nextComponentId = ea::max(nextComponentId, component->GetID() + 1);
+    };
+
+    scene->TraverseDepthFirst(nodeCallback, componentCallback);
+    SetSceneNextIds(scene, nextNodeId, nextComponentId);
+}
 
 }
 
@@ -214,6 +246,7 @@ SceneViewTab::SceneViewTab(Context* context)
     BindHotkey(Hotkey_MovePositionToLatest, &SceneViewTab::MoveSelectionPositionToLatest);
     BindHotkey(Hotkey_MoveRotationToLatest, &SceneViewTab::MoveSelectionRotationToLatest);
     BindHotkey(Hotkey_MoveScaleToLatest, &SceneViewTab::MoveSelectionScaleToLatest);
+    BindHotkey(Hotkey_MakePersistent, &SceneViewTab::MakePersistent);
     BindHotkey(Hotkey_CreateSiblingNode, &SceneViewTab::CreateNodeNextToSelection);
     BindHotkey(Hotkey_CreateChildNode, &SceneViewTab::CreateNodeInSelection);
 
@@ -254,7 +287,8 @@ void SceneViewTab::SetupPluginContext()
 
 void SceneViewTab::RenderEditMenu(Scene* scene, SceneSelection& selection)
 {
-    const bool hasSelection = !selection.GetNodes().empty() || !selection.GetComponents().empty();
+    const bool hasNodeSelection = !selection.GetNodes().empty();
+    const bool hasSelection = hasNodeSelection || !selection.GetComponents().empty();
     const bool hasClipboard = clipboard_.HasNodesOrComponents();
 
     if (ui::MenuItem("Cut", GetHotkeyLabel(Hotkey_Cut).c_str(), false, hasSelection))
@@ -275,18 +309,24 @@ void SceneViewTab::RenderEditMenu(Scene* scene, SceneSelection& selection)
     if (ui::MenuItem("Focus", GetHotkeyLabel(Hotkey_Focus).c_str(), false, hasSelection))
         FocusSelection(selection);
 
-    if (ui::MenuItem("Move to Latest", GetHotkeyLabel(Hotkey_MoveToLatest).c_str(), false, hasSelection))
-        MoveSelectionToLatest(selection);
-    if (ui::BeginMenu("Move Attribute to Latest...", hasSelection))
+    if (hasNodeSelection)
     {
-        if (ui::MenuItem("Position", GetHotkeyLabel(Hotkey_MovePositionToLatest).c_str(), false, hasSelection))
-            MoveSelectionPositionToLatest(selection);
-        if (ui::MenuItem("Rotation", GetHotkeyLabel(Hotkey_MoveRotationToLatest).c_str(), false, hasSelection))
-            MoveSelectionRotationToLatest(selection);
-        if (ui::MenuItem("Scale", GetHotkeyLabel(Hotkey_MoveScaleToLatest).c_str(), false, hasSelection))
-            MoveSelectionScaleToLatest(selection);
-        ui::EndMenu();
+        if (ui::MenuItem("Move to Latest", GetHotkeyLabel(Hotkey_MoveToLatest).c_str(), false))
+            MoveSelectionToLatest(selection);
+        if (ui::BeginMenu("Move Attribute to Latest..."))
+        {
+            if (ui::MenuItem("Position", GetHotkeyLabel(Hotkey_MovePositionToLatest).c_str(), false))
+                MoveSelectionPositionToLatest(selection);
+            if (ui::MenuItem("Rotation", GetHotkeyLabel(Hotkey_MoveRotationToLatest).c_str(), false))
+                MoveSelectionRotationToLatest(selection);
+            if (ui::MenuItem("Scale", GetHotkeyLabel(Hotkey_MoveScaleToLatest).c_str(), false))
+                MoveSelectionScaleToLatest(selection);
+            ui::EndMenu();
+        }
     }
+
+    if (ui::MenuItem("Make Persistent", GetHotkeyLabel(Hotkey_MakePersistent).c_str(), false, hasSelection))
+        MakePersistent(selection);
 
     if (SceneViewPage* activePage = GetActivePage())
     {
@@ -353,6 +393,28 @@ void SceneViewTab::RewindSimulation()
     // Simulation is stored as EditorAction, so we can just undo it
     UndoManager* undoManager = GetUndoManager();
     undoManager->Undo();
+}
+
+void SceneViewTab::CompactObjectIds()
+{
+    SceneViewPage* activePage = GetActivePage();
+    if (!activePage)
+        return;
+
+    // Preserve and clear selection
+    PackedSceneSelection oldSelectionData;
+    activePage->selection_.Save(oldSelectionData);
+    PushAction(MakeShared<ChangeSceneSelectionAction>(activePage, oldSelectionData, PackedSceneSelection{}));
+    activePage->selection_.Clear();
+
+    // Preserve and remap scene;
+    const PackedSceneData oldSceneData = PackedSceneData::FromScene(activePage->scene_);
+
+    SetSceneNextIds(activePage->scene_, 0, 0);
+    PackedSceneData sceneData = PackedSceneData::FromScene(activePage->scene_);
+    sceneData.ToScene(activePage->scene_, PrefabLoadFlag::DiscardIds);
+
+    PushAction(MakeShared<ChangeSceneAction>(activePage->scene_, oldSceneData));
 }
 
 void SceneViewTab::CutSelection(SceneSelection& selection)
@@ -635,6 +697,21 @@ void SceneViewTab::MoveSelectionScaleToLatest(SceneSelection& selection)
     }
 }
 
+void SceneViewTab::MakePersistent(SceneSelection& selection)
+{
+    for (Node* node : selection.GetNodes())
+    {
+        if (node)
+            node->SetTemporary(false);
+    }
+
+    for (Component* component : selection.GetComponents())
+    {
+        if (component)
+            component->SetTemporary(false);
+    }
+}
+
 void SceneViewTab::CutSelection()
 {
     if (SceneViewPage* activePage = GetActivePage())
@@ -711,6 +788,12 @@ void SceneViewTab::MoveSelectionScaleToLatest()
 {
     if (SceneViewPage* activePage = GetActivePage())
         MoveSelectionScaleToLatest(activePage->selection_);
+}
+
+void SceneViewTab::MakePersistent()
+{
+    if (SceneViewPage* activePage = GetActivePage())
+        MakePersistent(activePage->selection_);
 }
 
 void SceneViewTab::RenderMenu()
@@ -824,6 +907,9 @@ void SceneViewTab::RenderContextMenuItems()
             : ICON_FA_CIRCLE_PAUSE " Pause Scene Simulation";
         if (ui::MenuItem(pauseTitle, GetHotkeyLabel(Hotkey_TogglePaused).c_str()))
             ToggleSimulationPaused();
+
+        if (ui::MenuItem("Compact object IDs"))
+            CompactObjectIds();
     }
 
     contextMenuSeparator_.Add();
@@ -907,6 +993,7 @@ void SceneViewTab::SavePageScene(SceneViewPage& page) const
     const bool isLegacyScene = page.resource_->GetName().ends_with(".xml");
 
     page.scene_->SetUpdateEnabled(false);
+    RecalculateSceneNextIds(page.scene_);
 
     VectorBuffer buffer;
     if (isLegacyScene)

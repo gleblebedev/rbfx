@@ -50,6 +50,8 @@ public:
 
     /// Perform post-load after deserialization. Acquire the components from the scene nodes.
     void ApplyAttributes() override;
+    /// Handle enabled/disabled state change.
+    void OnSetEnabled() override;
 
     /// Return character position in world space without interpolation.
     Vector3 GetRawPosition() const;
@@ -66,6 +68,11 @@ public:
     unsigned GetCollisionMask() const { return colMask_; }
     /// Set collision group and mask.
     void SetCollisionLayerAndMask(unsigned layer, unsigned mask);
+
+    /// Set rigid body trigger mode. In trigger mode kinematic characters don't affect rigid bodies and don't collide with each other.
+    void SetTrigger(bool enable);
+    /// Return whether this RigidBody is acting as a trigger.
+    bool IsTrigger() const;
 
     /// Set gravity.
     void SetGravity(const Vector3 &gravity);
@@ -143,8 +150,10 @@ protected:
     void ApplySettings(bool readdToWorld);
     void OnNodeSet(Node* previousNode, Node* currentNode) override;
     void OnSceneSet(Scene* scene) override;
+    void ActivateIfEnabled();
     void AddKinematicToWorld();
     void RemoveKinematicFromWorld();
+    bool IsAddedToWorld() const;
 
     /// Instantly reset character position to new value.
     void WarpKinematic(const Vector3& position);

@@ -261,6 +261,17 @@ const ea::vector<ea::string>& ParseArguments(const ea::string& cmdLine, bool ski
             arguments.pop_front();
     }
 
+    // Special case for win32 console argument.
+    // This should be initialized before logging, otherwise logs won't appear in the console.
+#if defined(_WIN32) && !defined(UWP)
+    auto it = std::find(arguments.begin(), arguments.end(), "--win32-console");
+    if (it != arguments.end())
+    {
+        arguments.erase(it);
+        OpenConsoleWindow();
+    }
+#endif
+
     return arguments;
 }
 
@@ -788,6 +799,16 @@ URHO3D_API unsigned GetCurrentProcessID()
 #else
     return getpid();
 #endif
+}
+
+URHO3D_API bool OpenURL(const ea::string& url)
+{
+    const int error = SDL_OpenURL(url.c_str());
+    if (error != 0)
+    {
+        URHO3D_LOGERROR(SDL_GetError());
+    }
+    return !error;
 }
 
 }

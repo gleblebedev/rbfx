@@ -22,9 +22,12 @@
 
 #include <Urho3D/Precompiled.h>
 
+#include <Urho3D/IO/FileSystem.h>
 #include <Urho3D/IO/Log.h>
+#include <Urho3D/Scene/PrefabReference.h>
 #include <Urho3D/Scene/PrefabResource.h>
 #include <Urho3D/Scene/Scene.h>
+#include <Urho3D/Resource/ResourceCache.h>
 
 #include <EASTL/unordered_set.h>
 
@@ -43,6 +46,21 @@ PrefabResource::~PrefabResource()
 void PrefabResource::RegisterObject(Context* context)
 {
     context->AddFactoryReflection<PrefabResource>();
+}
+
+Node* PrefabResource::InstantiateReference(Node* parentNode, bool inplace)
+{
+    Node* instanceNode = inplace ? parentNode : parentNode->CreateChild();
+    instanceNode->SetName(GetFileName(GetName()));
+
+    auto prefabReference = instanceNode->GetOrCreateComponent<PrefabReference>();
+    prefabReference->SetPrefab(this);
+
+    const NodePrefab& nodePrefab = GetNodePrefab();
+    if (!nodePrefab.IsEmpty())
+        nodePrefab.GetNode().Export(instanceNode);
+
+    return instanceNode;
 }
 
 void PrefabResource::NormalizeIds()
@@ -74,6 +92,54 @@ const NodePrefab& PrefabResource::GetNodePrefabSlice(ea::string_view path) const
 {
     const NodePrefab& nodePrefab = GetNodePrefab();
     return nodePrefab.FindChild(path);
+}
+
+bool PrefabResource::BeginLoad(Deserializer& source)
+{
+    if (!SimpleResource::BeginLoad(source))
+        return false;
+
+    if (GetAsyncLoadState() == ASYNC_LOADING)
+    {
+        BackgroundLoadResources(prefab_);
+    }
+
+    return true;
+}
+
+void PrefabResource::BackgroundLoadResources(const NodePrefab& prefab)
+{
+    for (const SerializablePrefab& component : prefab.GetComponents())
+    {
+        for (const AttributePrefab& attribute : component.GetAttributes())
+        {
+            auto& value = attribute.GetValue();
+            switch (value.GetType())
+            {
+            case VAR_RESOURCEREF:
+            {
+                const auto& resourceRef = value.GetResourceRef();
+                GetSubsystem<ResourceCache>()->BackgroundLoadResource(resourceRef.type_, resourceRef.name_, true, this);
+                break;
+            }
+            case VAR_RESOURCEREFLIST:
+            {
+                const auto& resourceRefList = value.GetResourceRefList();
+                for (auto& name : resourceRefList.names_)
+                {
+                    GetSubsystem<ResourceCache>()->BackgroundLoadResource(resourceRefList.type_, name, true, this);
+                }
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        
+    }
+
+    for (const NodePrefab& child : prefab.GetChildren())
+        BackgroundLoadResources(child);
 }
 
 NodePrefab& PrefabResource::GetMutableNodePrefab()

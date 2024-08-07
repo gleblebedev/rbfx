@@ -3,13 +3,16 @@
 #include "_VertexLayout.glsl"
 #include "_VertexTransform.glsl"
 #include "_VertexScreenPos.glsl"
-#include "_Samplers.glsl"
+#include "_DefaultSamplers.glsl"
+#include "_SamplerUtils.glsl"
 
 VERTEX_OUTPUT_HIGHP(vec2 vScreenPos)
 
 #ifdef URHO3D_PIXEL_SHADER
     UNIFORM_BUFFER_BEGIN(6, Custom)
         UNIFORM(mediump vec4 cHSVParams)
+        UNIFORM(mediump vec4 cColorFilter)
+        UNIFORM(mediump vec4 cColorOffset)
     UNIFORM_BUFFER_END(6, Custom)
 #endif
 
@@ -47,10 +50,10 @@ half3 HSVToRGB(half3 c)
 
 void main()
 {
-    half3 rgb = texture2D(sDiffMap, vScreenPos).rgb;
+    half3 rgb = texture(sAlbedo, vScreenPos).rgb;
     half3 hsv = RGBToHSV(rgb);
     half3 correctedHsv = vec3(fract(hsv.x+cHSVParams.x), hsv.y*cHSVParams.y, ((hsv.z*cHSVParams.z)-0.5)*cHSVParams.w+0.5);
-    half3 correctedRgb = HSVToRGB(correctedHsv); 
+    half3 correctedRgb = HSVToRGB(correctedHsv) * cColorFilter.rgb + cColorOffset.rgb;
     gl_FragColor = vec4(correctedRgb.r, correctedRgb.g, correctedRgb.b, 1.0);
 }
 #endif

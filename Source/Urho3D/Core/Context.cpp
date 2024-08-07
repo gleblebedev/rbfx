@@ -151,6 +151,7 @@ Context::~Context()
 
     // Remove subsystems that use SDL in reverse order of construction, so that Graphics can shut down SDL last
     /// \todo Context should not need to know about subsystems
+    RemoveSubsystem("VirtualReality");
     RemoveSubsystem("PluginManager");
     RemoveSubsystem("Audio");
     RemoveSubsystem("UI");
@@ -158,7 +159,6 @@ Context::~Context()
     RemoveSubsystem("ResourceCache");
     RemoveSubsystem("Input");
     RemoveSubsystem("Renderer");
-    RemoveSubsystem("ComputeDevice");
     RemoveSubsystem("Graphics");
     RemoveSubsystem("StateManager");
 
@@ -184,11 +184,7 @@ void Context::RegisterSubsystem(Object* object, StringHash type)
     if (!object)
         return;
 
-    bool isTypeValid = false;
-    for (const TypeInfo* typeInfo = object->GetTypeInfo(); typeInfo != nullptr && !isTypeValid; typeInfo = typeInfo->GetBaseTypeInfo())
-        isTypeValid = typeInfo->GetType() == type;
-
-    if (isTypeValid)
+    if (object->IsInstanceOf(type))
         subsystems_.Add(type, object);
     else
         URHO3D_LOGERROR("Type supplied to RegisterSubsystem() does not belong to object inheritance hierarchy.");

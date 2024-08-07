@@ -1,30 +1,14 @@
-//
-// Copyright (c) 2017-2020 the rbfx project.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
+// Copyright (c) 2017-2023 the rbfx project.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 #pragma once
 
-#include "../Core/Signal.h"
-#include "../Graphics/Material.h"
-#include "../SystemUI/Widgets.h"
+#include "Urho3D/Core/Signal.h"
+#include "Urho3D/Graphics/Material.h"
+#include "Urho3D/Scene/Scene.h"
+#include "Urho3D/SystemUI/Widgets.h"
+#include "Urho3D/Utility/SceneRendererToTexture.h"
 
 #include <EASTL/fixed_set.h>
 
@@ -74,11 +58,11 @@ private:
         Widgets::EditVariantOptions options_;
     };
     static const ea::vector<PropertyDesc> properties;
+    static const PropertyDesc vertexDefinesProperty;
+    static const PropertyDesc pixelDefinesProperty;
 
     struct TextureUnitDesc
     {
-        bool desktop_{};
-        TextureUnit unit_;
         ea::string name_;
         ea::string hint_;
     };
@@ -86,7 +70,11 @@ private:
 
     using ShaderParameterNames = ea::fixed_set<ea::string, 128>;
 
+    void InitializePreviewScene();
+    void ApplyPreviewSettings();
+
     void UpdateCachedTechniques();
+    void RenderPreview();
     void RenderTechniques();
     void RenderProperties();
     void RenderTextures();
@@ -98,8 +86,14 @@ private:
     bool EditQualityInEntry(TechniqueEntry& entry);
 
     void RenderProperty(const PropertyDesc& desc);
+    void RenderShaderDefines();
 
     void RenderTextureUnit(const TextureUnitDesc& desc);
+
+    bool IsDefaultTextureUnit(const ea::string& unit) const;
+    ea::set<ea::string> GetCustomTextureUnits() const;
+    void RenderCustomTextureUnit(const ea::string& unit);
+    void RenderAddCustomTextureUnit(const ea::set<ea::string>& customTextureUnits);
 
     ea::string GetTechniqueDisplayName(const ea::string& resourceName) const;
     bool IsTechniqueDeprecated(const ea::string& resourceName) const;
@@ -109,6 +103,9 @@ private:
     void RenderNewShaderParameter();
 
     const ea::string defaultTechniqueName_{"Techniques/LitOpaque.xml"};
+
+    SharedPtr<Scene> previewScene_;
+    SharedPtr<SceneRendererToTexture> previewWidget_;
 
     ea::unordered_map<ea::string, TechniqueDescPtr> techniques_;
     ea::vector<TechniqueDescPtr> sortedTechniques_;
@@ -122,13 +119,14 @@ private:
 
     ea::vector<ea::pair<const PropertyDesc*, Variant>> pendingSetProperties_;
 
-    ea::vector<ea::pair<TextureUnit, Texture*>> pendingSetTextures_;
+    ea::vector<ea::pair<ea::string, Texture*>> pendingSetTextures_;
 
     ShaderParameterNames shaderParameterNames_;
     ea::vector<ea::pair<ea::string, Variant>> pendingSetShaderParameters_;
 
     ea::string newParameterName_;
     unsigned newParameterType_{};
+    ea::optional<bool> separateShaderDefines_;
 };
 
 }

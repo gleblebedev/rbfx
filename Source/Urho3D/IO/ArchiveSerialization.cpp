@@ -97,14 +97,12 @@ struct ResourceRefStringCaster
 {
     ea::string ToArchive(Archive& archive, const char* name, const ResourceRef& value) const
     {
-        Context* context = archive.GetContext();
-        const ea::string typeName = context->GetTypeName(value.type_);
-        return Format("{};{}", typeName, value.name_);
+        return value.ToString(archive.GetContext());
     }
 
     ResourceRef FromArchive(Archive& archive, const char* name, const ea::string& value) const
     {
-        const ea::vector<ea::string> chunks = value.split(';');
+        const ea::vector<ea::string> chunks = value.split(';', true);
         if (chunks.size() != 2)
             throw ArchiveException("Unexpected format of ResourceRef '{}/{}'", archive.GetCurrentBlockPath(), name);
 
@@ -117,19 +115,22 @@ struct ResourceRefListStringCaster
 {
     ea::string ToArchive(Archive& archive, const char* name, const ResourceRefList& value) const
     {
-        Context* context = archive.GetContext();
-        const ea::string typeName = context->GetTypeName(value.type_);
-        return Format("{};{}", typeName, ea::string::joined(value.names_, ";"));
+        return value.ToString(archive.GetContext());
     }
 
     ResourceRefList FromArchive(Archive& archive, const char* name, const ea::string& value) const
     {
-        ea::vector<ea::string> chunks = value.split(';');
+        ea::vector<ea::string> chunks = value.split(';', true);
         if (chunks.empty())
             throw ArchiveException("Unexpected format of ResourceRefList '{}/{}'", archive.GetCurrentBlockPath(), name);
 
         const ea::string typeName = ea::move(chunks[0]);
         chunks.pop_front();
+
+        // Treat ";" as empty list
+        if (chunks.size() == 1 && chunks[0].empty())
+            chunks.clear();
+
         return { StringHash{typeName}, chunks };
     }
 };

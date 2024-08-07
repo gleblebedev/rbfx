@@ -30,9 +30,11 @@
 #include "../Graphics/Technique.h"
 #include "../Graphics/VertexBuffer.h"
 #include "../IO/Log.h"
+#include "../RenderPipeline/ShaderConsts.h"
 #include "../Resource/ResourceCache.h"
 #include "../Scene/Node.h"
 #include "../UI/Font.h"
+#include "../UI/FontFace.h"
 #include "../UI/Text.h"
 #include "../UI/Text3D.h"
 
@@ -60,6 +62,8 @@ Text3D::Text3D(Context* context) :
     usingSDFShader_(false),
     fontDataLost_(false)
 {
+    vertexBuffer_->SetDebugName("Text3D Geometry");
+
     text_.SetEffectDepthBias(DEFAULT_EFFECT_DEPTH_BIAS);
 }
 
@@ -83,6 +87,7 @@ void Text3D::RegisterObject(Context* context)
     URHO3D_ACCESSOR_ATTRIBUTE("Snap to Pixels", GetSnapToPixels, SetSnapToPixels, bool, false, AM_DEFAULT);
     URHO3D_ENUM_ATTRIBUTE("Face Camera Mode", faceCameraMode_, faceCameraModeNames, FC_NONE, AM_DEFAULT);
     URHO3D_ATTRIBUTE("Min Angle", float, minAngle_, 0.0f, AM_DEFAULT);
+    URHO3D_ATTRIBUTE("Depth Test", bool, depthTest_, true, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Draw Distance", GetDrawDistance, SetDrawDistance, float, 0.0f, AM_DEFAULT);
     URHO3D_ACCESSOR_ATTRIBUTE("Width", GetWidth, SetWidth, int, 0, AM_DEFAULT);
     URHO3D_ENUM_ACCESSOR_ATTRIBUTE("Horiz Alignment", GetHorizontalAlignment, SetHorizontalAlignment, HorizontalAlignment,
@@ -163,7 +168,7 @@ void Text3D::UpdateBatchesDelayed(const FrameInfo& frame)
         unsigned vertexCount = uiVertexData_.size() / UI_VERTEX_SIZE;
         if (vertexBuffer_->GetVertexCount() != vertexCount)
             vertexBuffer_->SetSize(vertexCount, MASK_POSITION | MASK_COLOR | MASK_TEXCOORD1);
-        vertexBuffer_->SetData(&uiVertexData_[0]);
+        vertexBuffer_->Update(&uiVertexData_[0]);
     }
 
     geometryDirty_ = false;
@@ -392,6 +397,16 @@ void Text3D::SetFaceCameraMode(FaceCameraMode mode)
 
         // Bounding box must be recalculated
         OnMarkedDirty(node_);
+    }
+}
+
+void Text3D::SetDepthTest(bool enable)
+{
+    if (enable != depthTest_)
+    {
+        depthTest_ = enable;
+
+        UpdateTextMaterials();
     }
 }
 
@@ -633,11 +648,18 @@ void Text3D::UpdateTextBatches()
     {
         boundingBox_.Clear();
 
+        // SDF fonts may be scaled by font size
+        Font* font = GetFont();
+        const float fontSize = GetFontSize();
+        const bool isSDFFont = font ? font->IsSDFFont() : false;
+        const FontFace* currentFace = font ? font->GetFace(fontSize) : nullptr;
+        const float textScale = isSDFFont && currentFace ? fontSize / currentFace->GetPointSize() : 1.0f;
+
         for (unsigned i = 0; i < uiVertexData_.size(); i += UI_VERTEX_SIZE)
         {
             Vector3& position = *(reinterpret_cast<Vector3*>(&uiVertexData_[i]));
             position += offset;
-            position *= TEXT_SCALING;
+            position *= TEXT_SCALING * textScale;
             position.y_ = -position.y_;
             boundingBox_.Merge(position);
         }
@@ -690,7 +712,7 @@ void Text3D::UpdateTextMaterials(bool forceUpdate)
 
         Material* material = batches_[i].material_;
         Texture* texture = uiBatches_[i].texture_;
-        material->SetTexture(TU_DIFFUSE, texture);
+        material->SetTexture(ShaderResources::Albedo, texture);
 
         if (isSDFFont)
         {
@@ -701,6 +723,7 @@ void Text3D::UpdateTextMaterials(bool forceUpdate)
                 Pass* pass = tech ? tech->GetPass("alpha") : nullptr;
                 if (pass)
                 {
+                    pass->SetDepthTestMode(depthTest_ ? CMP_LESSEQUAL : CMP_ALWAYS);
                     switch (GetTextEffect())
                     {
                     case TE_NONE:
@@ -747,7 +770,8 @@ void Text3D::UpdateTextMaterials(bool forceUpdate)
                 Pass* pass = tech ? tech->GetPass("alpha") : nullptr;
                 if (pass)
                 {
-                    if (texture && texture->GetFormat() == Graphics::GetAlphaFormat())
+                    pass->SetDepthTestMode(depthTest_ ? CMP_LESSEQUAL : CMP_ALWAYS);
+                    if (texture && texture->GetFormat() == TextureFormat::TEX_FORMAT_R8_UNORM)
                         pass->SetPixelShaderDefines("ALPHAMAP");
                     else
                         pass->SetPixelShaderDefines("");

@@ -52,6 +52,8 @@
 #include "../RmlUI/RmlNavigable.h"
 #include "../RmlUI/RmlSerializableInspector.h"
 #include "../RmlUI/RmlUIComponent.h"
+#include "Urho3D/RenderAPI/RenderContext.h"
+#include "Urho3D/RenderAPI/RenderDevice.h"
 
 #include <atomic>
 #include <EASTL/fixed_vector.h>
@@ -350,6 +352,18 @@ bool RmlUI::LoadFont(const ea::string& resourceName, bool fallback)
     return Rml::LoadFontFace(resourceName, fallback);
 }
 
+void RmlUI::ReloadFonts()
+{
+    auto cache = GetSubsystem<ResourceCache>();
+
+    ea::vector<ea::string> fonts;
+    for (const char* pattern : {"*.ttf", "*.otf"})
+        cache->Scan(fonts, "Fonts/", pattern, SCAN_FILES | SCAN_RECURSIVE | SCAN_APPEND);
+
+    for (const ea::string& font : fonts)
+        LoadFont(Format("Fonts/{}", font));
+}
+
 Rml::Context* RmlUI::GetRmlContext() const
 {
     return rmlContext_;
@@ -518,6 +532,11 @@ void RmlUI::SetScale(float scale)
     rmlContext_->SetDensityIndependentPixelRatio(scale);
 }
 
+float RmlUI::GetScale() const
+{
+    return rmlContext_->GetDensityIndependentPixelRatio();
+}
+
 void RmlUI::SetRenderTarget(RenderSurface* target, const Color& clearColor)
 {
     renderSurface_ = target;
@@ -655,24 +674,25 @@ bool RmlUI::IsInputCapturedInternal() const
 
 void RmlUI::Render()
 {
-    Graphics* graphics = GetSubsystem<Graphics>();
-    Renderer* renderer = GetSubsystem<Renderer>();
-    if (!graphics || !graphics->IsInitialized())
+    auto renderDevice = GetSubsystem<RenderDevice>();
+    if (!renderDevice)
         return;
 
     URHO3D_PROFILE("RenderUI");
-    graphics->ResetRenderTargets();
-    if (renderSurface_)
-    {
-        graphics->SetDepthStencil(renderer->GetDepthStencil(renderSurface_));
-        graphics->SetRenderTarget(0, renderSurface_);
-        graphics->SetViewport(IntRect(0, 0, renderSurface_->GetWidth(), renderSurface_->GetHeight()));
 
-        if (clearColor_.a_ > 0)
-            graphics->Clear(CLEAR_COLOR, clearColor_);
+    RenderContext* renderContext = renderDevice->GetRenderContext();
+    if (!renderSurface_)
+    {
+        renderContext->SetSwapChainRenderTargets();
     }
     else
-        graphics->SetRenderTarget(0, (RenderSurface*)nullptr);
+    {
+        const RenderTargetView renderTargets[] = {renderSurface_->GetView()};
+        renderContext->SetRenderTargets(ea::nullopt, renderTargets);
+        if (clearColor_.a_ > 0)
+            renderContext->ClearRenderTarget(0, clearColor_);
+    }
+    renderContext->SetFullViewport();
 
     if (auto rmlRenderer = dynamic_cast<Detail::RmlRenderer*>(Rml::GetRenderInterface()))
     {
@@ -734,7 +754,9 @@ Rml::ElementDocument* RmlUI::ReloadDocument(Rml::ElementDocument* document)
     const bool oldVisible = document->IsVisible();
 
     const Rml::Element* oldFocusedElement = rmlContext_->GetFocusElement();
-    const Rml::FocusFlag focus = oldFocusedElement->GetOwnerDocument() == document ? Rml::FocusFlag::Document : Rml::FocusFlag::Auto;
+    const Rml::FocusFlag focus = oldFocusedElement && oldFocusedElement->GetOwnerDocument() == document
+        ? Rml::FocusFlag::Document
+        : Rml::FocusFlag::Auto;
 
     const Rml::Property* oldLeftProperty = document->GetProperty(Rml::PropertyId::Left);
     const Rml::Property* oldTopProperty = document->GetProperty(Rml::PropertyId::Top);

@@ -29,7 +29,6 @@
 #include "../Graphics/AnimatedModel.h"
 #include "../Graphics/Animation.h"
 #include "../Graphics/AnimationState.h"
-#include "../Graphics/Batch.h"
 #include "../Graphics/Camera.h"
 #include "../Graphics/DebugRenderer.h"
 #include "../Graphics/DrawableEvents.h"
@@ -584,6 +583,7 @@ void AnimatedModel::ResetMorphWeights()
 void AnimatedModel::ResetBones()
 {
     skeleton_.Reset();
+    MarkAnimationDirty();
 }
 
 const ea::vector<SharedPtr<VertexBuffer> >& AnimatedModel::GetMorphVertexBuffers() const
@@ -1016,7 +1016,8 @@ void AnimatedModel::SetGeometryBoneMappings()
 bool AnimatedModel::UpdateAndCheckAnimationTimers(float timeStep)
 {
     // If using animation LOD, accumulate time and see if it is time to update
-    if (animationLodBias_ > 0.0f && animationLodDistance_ > 0.0f)
+    const bool throttlingAllowed = !animationStateSource_ || animationStateSource_->IsAnimationThrottlingAllowed();
+    if (throttlingAllowed && animationLodBias_ > 0.0f && animationLodDistance_ > 0.0f)
     {
         // Perform the first update always regardless of LOD timer
         if (animationLodTimer_ >= 0.0f)

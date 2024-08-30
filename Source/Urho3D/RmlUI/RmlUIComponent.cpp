@@ -76,10 +76,9 @@ void RmlUIComponent::Update(float timeStep)
 
 bool RmlUIComponent::BindDataModelProperty(const ea::string& name, GetterFunc getter, SetterFunc setter)
 {
-    const auto constructor = GetDataModelConstructor();
+    const auto constructor = ExpectDataModelConstructor();
     if (!constructor)
     {
-        URHO3D_LOGERROR("BindDataModelProperty can only be executed from OnDataModelInitialized");
         return false;
     }
     return constructor->BindFunc(
@@ -100,12 +99,41 @@ bool RmlUIComponent::BindDataModelProperty(const ea::string& name, GetterFunc ge
     });
 }
 
-bool RmlUIComponent::BindDataModelEvent(const ea::string& name, EventFunc eventCallback)
+bool RmlUIComponent::BindDataModelVariant(const ea::string& name, Variant* value)
 {
-    auto constructor = GetDataModelConstructor();
+    const auto constructor = ExpectDataModelConstructor();
     if (!constructor)
     {
-        URHO3D_LOGERROR("BindDataModelProperty can only be executed from OnDataModelInitialized");
+        return false;
+    }
+    return constructor->BindCustomDataVariable(name, {typeRegister_.GetDefinition<Variant>(), value});
+}
+
+bool RmlUIComponent::BindDataModelVariantVector(const ea::string& name, VariantVector* value)
+{
+    const auto constructor = ExpectDataModelConstructor();
+    if (!constructor)
+    {
+        return false;
+    }
+    return constructor->BindCustomDataVariable(name, {typeRegister_.GetDefinition<VariantVector>(), value});
+}
+
+bool RmlUIComponent::BindDataModelVariantMap(const ea::string& name, VariantMap* value)
+{
+    const auto constructor = ExpectDataModelConstructor();
+    if (!constructor)
+    {
+        return false;
+    }
+    return constructor->BindCustomDataVariable(name, {typeRegister_.GetDefinition<VariantMap>(), value});
+}
+
+bool RmlUIComponent::BindDataModelEvent(const ea::string& name, EventFunc eventCallback)
+{
+    const auto constructor = ExpectDataModelConstructor();
+    if (!constructor)
+    {
         return false;
     }
     return constructor->BindEventCallback(
@@ -119,6 +147,16 @@ bool RmlUIComponent::BindDataModelEvent(const ea::string& name, EventFunc eventC
         }
         eventCallback(urhoArgs);
     });
+}
+
+Rml::DataModelConstructor* RmlUIComponent::ExpectDataModelConstructor() const
+{
+    const auto constructor = GetDataModelConstructor();
+    if (!constructor)
+    {
+        URHO3D_LOGERROR("BindDataModelProperty can only be executed from OnDataModelInitialized");
+    }
+    return constructor;
 }
 
 void RmlUIComponent::OnSetEnabled()
@@ -353,6 +391,7 @@ void RmlUIComponent::CreateDataModel()
 
     dataModelName_ = GetDataModelName();
     modelConstructor_ = ea::make_unique<Rml::DataModelConstructor>(context->CreateDataModel(dataModelName_, &typeRegister_));
+    RegisterVariantDefinition(&typeRegister_);
 }
 
 void RmlUIComponent::RemoveDataModel()

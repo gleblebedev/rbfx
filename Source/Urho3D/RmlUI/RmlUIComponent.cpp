@@ -47,6 +47,7 @@ const Rml::String ComponentPtrAttribute = "__RmlUIComponentPtr__";
 
 RmlUIComponent::RmlUIComponent(Context* context)
     : LogicComponent(context)
+    , resource_{BinaryFile::GetTypeStatic()}
 {
     SetUpdateEventMask(USE_UPDATE);
 }

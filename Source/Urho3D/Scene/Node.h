@@ -71,7 +71,7 @@ enum class ComponentSearchFlag
     Children = 0x8,
     ChildrenRecursive = 0x8 | 0x10,
     Derived = 0x100,
-    Disabled = 0x200,
+    EnabledOnly = 0x200,
 
     SelfOrParentRecursive = Self | ParentRecursive,
     SelfOrChildrenRecursive = Self | ChildrenRecursive,
@@ -714,8 +714,8 @@ public:
     /// Template version of returning a parent's component by type.
     template <class T> T* GetParentComponent() const;
     /// Template version of returning all components of type.
-    template <class T, class U> void GetComponents(U& destVector, bool clearVector = true) const;
-    template <class U> void GetComponents(U& destVector, bool clearVector = true) const;
+    template <class T, class U> void GetComponents(U& destVector) const;
+    template <class U> void GetComponents(U& destVector) const;
     /// Template version of checking whether has a specific component.
     template <class T> bool HasComponent() const;
 
@@ -891,13 +891,11 @@ template <class T> T* Node::GetNthComponent(unsigned index) const { return stati
 
 template <class T> T* Node::GetParentComponent() const { return static_cast<T*>(GetParentComponent(T::GetTypeStatic())); }
 
-template <class T, class U> void Node::GetComponents(U& destVector, bool clearVector) const
+template <class T, class U> void Node::GetComponents(U& destVector) const
 {
     using PointerType = ea::remove_reference_t<decltype(destVector[0])>;
 
-    if (clearVector)
-        destVector.clear();
-
+    destVector.clear();
     for (const auto& component : components_)
     {
         if constexpr (ea::is_same_v<T, Component>)
@@ -907,10 +905,10 @@ template <class T, class U> void Node::GetComponents(U& destVector, bool clearVe
     }
 }
 
-template <class U> void Node::GetComponents(U& destVector, bool clearVector) const
+template <class U> void Node::GetComponents(U& destVector) const
 {
     using ComponentType = ea::remove_reference_t<decltype(*destVector[0])>;
-    GetComponents<ComponentType>(destVector, clearVector);
+    GetComponents<ComponentType>(destVector);
 }
 
 template <class T> T* Node::FindComponent(ComponentSearchFlags flags) const
@@ -920,7 +918,7 @@ template <class T> T* Node::FindComponent(ComponentSearchFlags flags) const
 
 template <typename Callback> bool Node::FindComponents(ComponentSearchFlags flags, StringHash typeId, const Callback& callback) const
 {
-    const bool includeDisabled = flags.Test(ComponentSearchFlag::Disabled);
+    const bool includeDisabled = !flags.Test(ComponentSearchFlag::EnabledOnly);
     const bool includeDerived = flags.Test(ComponentSearchFlag::Derived);
 
     if (flags.Test(ComponentSearchFlag::Self))

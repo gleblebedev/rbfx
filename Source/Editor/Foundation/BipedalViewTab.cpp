@@ -120,12 +120,12 @@ void BipedalViewTab::RenderTitle()
 void BipedalViewTab::RenderDebugGeometry(DebugRenderer* debugRenderer)
 {
 #ifdef URHO3D_PHYSICS
-    GetScene()->FindComponents(shapeVec_, ComponentSearchFlag::SelfOrChildrenRecursive | ComponentSearchFlag::Disabled, true);
+    GetScene()->FindComponents(shapeVec_, ComponentSearchFlag::SelfOrChildrenRecursive, true);
     for (CollisionShape* shape: shapeVec_)
     {
         shape->DrawDebugGeometry(debugRenderer, true);
     }
-    GetScene()->FindComponents(constraintVec_, ComponentSearchFlag::SelfOrChildrenRecursive | ComponentSearchFlag::Disabled, true);
+    GetScene()->FindComponents(constraintVec_, ComponentSearchFlag::SelfOrChildrenRecursive, true);
     for (Constraint* constraint : constraintVec_)
     {
         constraint->DrawDebugGeometry(debugRenderer, false);

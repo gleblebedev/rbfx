@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2020 the rbfx project.
+// Copyright (c) 2017-2024 the rbfx project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,8 @@ class URHO3D_API Microphone : public Object
 {
     URHO3D_OBJECT(Microphone, Object);
     friend class Audio;
+
+    using DataCallbackFunc = eastl::function<void(void*, unsigned length)>;
 public:
     /// Construct.
     Microphone(Context*);
@@ -92,6 +94,9 @@ public:
     /// Unlinks the stream object, typically do this in E_RECORDINGENDED.
     void Unlink();
 
+    // Set data callback.
+    void SetDataCallback(DataCallbackFunc dataCallback);
+
 private:
     /// Initializes the SDL audio device.
     void Init(const ea::string& name, SDL_AudioDeviceID id, int bufferSize, unsigned frequency, unsigned which);
@@ -100,6 +105,8 @@ private:
 
     /// Target to auto-copy data into.
     SharedPtr<BufferedSoundStream> linkedStream_;
+    /// Data callback function.
+    DataCallbackFunc dataCallback_;
     /// Named identifier of the microphone.
     ea::string name_;
     /// Stored copy of data contained.

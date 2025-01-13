@@ -440,6 +440,8 @@ RmlUI::RmlUI(Context* context, const char* name)
     SubscribeToEvent(input, E_TOUCHMOVE, &RmlUI::HandleTouchMove);
     SubscribeToEvent(input, E_KEYDOWN, &RmlUI::HandleKeyDown);
     SubscribeToEvent(input, E_KEYUP, &RmlUI::HandleKeyUp);
+    SubscribeToEvent(input, E_JOYSTICKBUTTONDOWN, &RmlUI::HandleJoystickButtonDown);
+    SubscribeToEvent(input, E_JOYSTICKBUTTONUP, &RmlUI::HandleJoystickButtonUp);
     SubscribeToEvent(E_TEXTINPUT, &RmlUI::HandleTextInput);
     SubscribeToEvent(E_DROPFILE, &RmlUI::HandleDropFile);
 
@@ -636,6 +638,22 @@ void RmlUI::HandleKeyUp(StringHash, VariantMap& eventData)
     Rml::Input::KeyIdentifier key = static_cast<Rml::Input::KeyIdentifier>(it->second);
     int modifiers = ModifiersUrho3DToRml((QualifierFlags)eventData[P_QUALIFIERS].GetInt());
     rmlContext_->ProcessKeyUp(key, modifiers);
+}
+
+void RmlUI::HandleJoystickButtonDown(StringHash eventType, VariantMap& eventData)
+{
+    using namespace JoystickButtonDown;
+    if (eventData[P_BUTTON] != 0)
+        return;
+    rmlContext_->ProcessKeyDown(Rml::Input::KI_RETURN, 0);
+}
+
+void RmlUI::HandleJoystickButtonUp(StringHash eventType, VariantMap& eventData)
+{
+    using namespace JoystickButtonUp;
+    if (eventData[P_BUTTON] != 0)
+        return;
+    rmlContext_->ProcessKeyUp(Rml::Input::KI_RETURN, 0);
 }
 
 void RmlUI::HandleTextInput(StringHash, VariantMap& eventData)

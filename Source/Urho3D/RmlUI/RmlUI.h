@@ -142,6 +142,10 @@ private:
     void HandleKeyDown(StringHash eventType, VariantMap& eventData);
     /// Handle release event.
     void HandleKeyUp(StringHash eventType, VariantMap& eventData);
+    /// Handle press event.
+    void HandleJoystickButtonDown(StringHash eventType, VariantMap& eventData);
+    /// Handle release event.
+    void HandleJoystickButtonUp(StringHash eventType, VariantMap& eventData);
     /// Handle text input event.
     void HandleTextInput(StringHash eventType, VariantMap& eventData);
     /// Handle logic post-update event.

@@ -638,6 +638,8 @@ public:
 %ignore Urho3D::RawTexture::GetHandles;
 %ignore Urho3D::RawTextureHandles;
 
+%interface_custom("%s", "I%s", Urho3D::RawTexture)
+
 %include "Urho3D/RenderAPI/RawBuffer.h"
 %include "Urho3D/RenderAPI/RawShader.h"
 %include "Urho3D/RenderAPI/RawTexture.h"

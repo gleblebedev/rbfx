@@ -47,7 +47,7 @@
     <ProjectReference Include="Urho3DNet.CodeGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
-      <PackageReference Include="System.Text.Json" Version="8.0.4" />
+      <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Remove="bin\**" />

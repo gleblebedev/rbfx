@@ -481,7 +481,8 @@ void SDL_audioRecordingCallback(void* userdata, Uint8* stream, int len)
     mic->Update(stream, len);
 }
 
-SharedPtr<Microphone> Audio::CreateMicrophone(const ea::string& name, bool forSpeechRecog, unsigned wantedFreq, unsigned silenceLevelLimit)
+SharedPtr<Microphone> Audio::CreateMicrophone(const ea::string& name, bool forSpeechRecog, unsigned wantedFreq,
+    unsigned silenceLevelLimit, unsigned bufferSize)
 {
     const int recordingDeviceCt = SDL_GetNumAudioDevices(SDL_TRUE);
 
@@ -512,10 +513,10 @@ SharedPtr<Microphone> Audio::CreateMicrophone(const ea::string& name, bool forSp
             // For proper recording we want as good as we can get,
             // but for speech the models aren't trained for that (ie. Sphinx/PocketSphinx), need to check DeepSpeech
             // as well as size sent over network.
-            static const int FREQ_COUNT = 3;
+            static const int FREQ_COUNT = 4;
             int recordingFreq[][FREQ_COUNT] = {
-                { 44100, 22050, 16000 },
-                { 16000, 22050, 44100 }
+                { 48000, 44100, 22050, 16000 },
+                { 16000, 22050, 44100, 48000 }
             };
 
             int iters = wantedFreq == 0 ? FREQ_COUNT : 1;
@@ -525,11 +526,12 @@ SharedPtr<Microphone> Audio::CreateMicrophone(const ea::string& name, bool forSp
                 SDL_zero(recordSpec);
 
                 int f = wantedFreq == 0 ? recordingFreq[forSpeechRecog][i] : wantedFreq;
+                bufferSize = Urho3D::Min(65535, (bufferSize == 0) ? f / 2 : bufferSize); // by default aim for 500ms, to prevent pause loss
 
                 recordSpec.freq = f;
                 recordSpec.format = AUDIO_S16;
                 recordSpec.channels = 1;
-                recordSpec.samples = f / 2; // aim for 500ms, to prevent pause loss? TODO: make this configurable?
+                recordSpec.samples = static_cast<Uint16>(bufferSize);
                 recordSpec.callback = SDL_audioRecordingCallback;
                 recordSpec.userdata = mic.Get();
 

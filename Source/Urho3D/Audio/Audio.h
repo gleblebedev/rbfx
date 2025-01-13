@@ -138,7 +138,8 @@ public:
     /// Returns a pretty-name list of all attached microphones.
     StringVector EnumerateMicrophones() const;
     /// Constructs a microphone from a pretty-name (found via EnumerateMicrophones()).
-    SharedPtr<Microphone> CreateMicrophone(const ea::string& name, bool forSpeechRecog, unsigned wantedFreq, unsigned silenceLevelLimit = 0);
+    SharedPtr<Microphone> CreateMicrophone(const ea::string& name, bool forSpeechRecog, unsigned wantedFreq,
+        unsigned silenceLevelLimit = 0, unsigned bufferSize = 0);
     /// Disables a microphone that has been lost.
     void CloseMicrophoneForLoss(unsigned which);
 

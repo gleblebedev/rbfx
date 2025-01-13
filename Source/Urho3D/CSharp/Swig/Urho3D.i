@@ -640,10 +640,10 @@ public:
 
 %interface_custom("%s", "I%s", Urho3D::RawTexture)
 
+%include "Urho3D/RenderAPI/RenderAPIDefs.h"
 %include "Urho3D/RenderAPI/RawBuffer.h"
 %include "Urho3D/RenderAPI/RawShader.h"
 %include "Urho3D/RenderAPI/RawTexture.h"
-%include "Urho3D/RenderAPI/RenderAPIDefs.h"
 
 // --------------------------------------- Graphics ---------------------------------------
 %ignore Urho3D::FrustumOctreeQuery::TestDrawables;

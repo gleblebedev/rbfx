@@ -149,9 +149,6 @@ void Microphone::Update(unsigned char* rawData, int rawDataLen)
     unsigned sz = buffer_.size();
     buffer_.resize(sz + rawDataLen / sizeof(int16_t));
 
-    if (dataCallback_)
-        dataCallback_(buffer_.data(), rawDataLen);
-
     auto buffPtr = buffer_.data();
     memcpy(buffPtr + sz, rawData, rawDataLen);
 
@@ -203,29 +200,18 @@ void Microphone::Unlink()
     linkedStream_.Reset();
 }
 
-void Microphone::SetDataCallback(DataCallbackFunc dataCallback)
-{
-    dataCallback_ = dataCallback;
-}
-
-Microphone::DataCallbackFunc WrapCSharpHandler(DataCallback callback, void* callbackHandle)
-{
-    const ea::shared_ptr<void> callbackHandlePtr(callbackHandle, [](void* handle)
-    {
-        if (handle)
-            Script::GetRuntimeApi()->FreeGCHandle(handle);
-    });
-
-    return [=](void* data, unsigned length) { callback(callbackHandlePtr.get(), data, length); };
-}
-
 extern "C"
 {
-    URHO3D_EXPORT_API void SWIGSTDCALL Urho3D_Microphone_SetDataCallback(
-        Microphone* receiver, DataCallback callback, void* callbackHandle)
+    URHO3D_EXPORT_API unsigned SWIGSTDCALL Urho3D_Microphone_CopyDataToSpan(
+        Microphone* receiver, short* destination, unsigned length)
     {
-        const auto callbackHandler = WrapCSharpHandler(callback, callbackHandle);
-        receiver->SetDataCallback(callbackHandler);
+        auto& data = receiver->GetData();
+        auto len = Urho3D::Min(length, data.size());
+        if (len > 0)
+        {
+            memcpy(destination, data.data(), len * sizeof(int16_t));
+        }
+        return len;
     }
 }
 

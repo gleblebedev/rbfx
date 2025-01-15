@@ -27,31 +27,18 @@ namespace Urho3DNet
 {
     public partial class Microphone
     {
-        private static readonly SetDataCallbackDelegate SetDataCallbackInstance = SetDataCallbackImpl;
+        [DllImport(global::Urho3DNet.Urho3DPINVOKE.DllImportModule, EntryPoint = "Urho3D_Microphone_CopyDataToSpan")]
+        private static extern uint Urho3D_Microphone_CopyDataToSpan(HandleRef receiver, IntPtr data, uint length);
 
-        [DllImport(global::Urho3DNet.Urho3DPINVOKE.DllImportModule, EntryPoint = "Urho3D_Microphone_SetDataCallback")]
-        private static extern void Urho3D_Microphone_SetDataCallback(HandleRef receiver, IntPtr callback, IntPtr callbackHandle);
-
-#if __IOS__
-        [global::ObjCRuntime.MonoNativeFunctionWrapper]
-#endif
-        private delegate void SetDataCallbackDelegate(IntPtr actionHandle, IntPtr data, uint length);
-
-#if __IOS__
-        [global::ObjCRuntime.MonoPInvokeCallback(typeof(SetDataCallbackDelegate))]
-#endif
-        private static void SetDataCallbackImpl(IntPtr actionHandle, IntPtr data, uint length)
+        public uint CopyData(Span<short> data)
         {
-            var eventHandler = (Action<IntPtr, uint>)GCHandle.FromIntPtr(actionHandle).Target;
-            eventHandler(data, length);
-        }
-
-        public void SetDataCallback(Action<IntPtr, uint> callback)
-        {
-            IntPtr callbackHandle = GCHandle.ToIntPtr(GCHandle.Alloc(callback));
-            IntPtr callbackPtr = Marshal.GetFunctionPointerForDelegate(SetDataCallbackInstance);
-
-            Urho3D_Microphone_SetDataCallback(swigCPtr, callbackPtr, callbackHandle);
+            unsafe
+            {
+                fixed (short* pointer = data)
+                {
+                    return Urho3D_Microphone_CopyDataToSpan(swigCPtr, (IntPtr)pointer, (uint)data.Length);
+                }
+            }
         }
     }
 }

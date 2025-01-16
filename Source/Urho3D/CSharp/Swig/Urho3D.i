@@ -638,6 +638,15 @@ public:
 %ignore Urho3D::RawTexture::GetHandles;
 %ignore Urho3D::RawTextureHandles;
 
+%csconstvalue("0") Urho3D::TextureFlag::None;
+%typemap(csattributes) Urho3D::TextureFlag "[global::System.Flags]";
+using TextureFlags = Urho3D::TextureFlag;
+%typemap(ctype) TextureFlags "size_t";
+%typemap(out) TextureFlags "$result = (size_t)$1.AsInteger();"
+
+using Diligent::TEXTURE_FORMAT = unsigned short;
+using Diligent::ITexture = void;
+
 %interface_custom("%s", "I%s", Urho3D::RawTexture)
 
 %include "Urho3D/RenderAPI/RenderAPIDefs.h"

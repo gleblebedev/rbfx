@@ -699,7 +699,7 @@ public:
 
             textures_[i] = MakeShared<Texture2D>(context);
             textures_[i]->CreateFromGLTexture(images_[i].image, TextureType::Texture2D,
-                isDepth ? TextureFlag::BindDepthStencil : TextureFlag::BindRenderTarget, format, arraySize_, msaaLevel);
+                isDepth ? TextureFlag::BindDepthStencil : TextureFlag::BindRenderTarget, format, arraySize_, msaaLevel, 0);
         }
     }
 };

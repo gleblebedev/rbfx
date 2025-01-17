@@ -594,8 +594,8 @@ bool RawTexture::CreateFromVulkanImage(uint64_t vkImage, const RawTextureParams&
     return false;
 }
 
-bool RawTexture::CreateFromGLTexture(
-    unsigned handle, TextureType type, TextureFlags flags, TextureFormat format, unsigned arraySize, int msaaLevel)
+bool RawTexture::CreateFromGLTexture(unsigned handle, TextureType type, TextureFlags flags, TextureFormat format,
+    unsigned arraySize, int msaaLevel, unsigned bindTarget)
 {
 #if GL_SUPPORTED || GLES_SUPPORTED
     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::OpenGL)
@@ -618,7 +618,7 @@ bool RawTexture::CreateFromGLTexture(
         auto deviceGL = static_cast<Diligent::IRenderDeviceGL*>(renderDevice_->GetRenderDevice());
         Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
         deviceGL->CreateTextureFromGLHandle(
-            handle, 0, textureDesc, Diligent::RESOURCE_STATE_UNKNOWN, &texture);
+            handle, bindTarget, textureDesc, Diligent::RESOURCE_STATE_UNKNOWN, &texture);
         if (!texture)
         {
             URHO3D_LOGERROR("Failed to create texture from existing GL texture handle");
@@ -1068,6 +1068,13 @@ unsigned long long RawTexture::CalculateMemoryUseGPU() const
         sliceMemory += GetMipLevelSizeInBytes(params_.size_, level, params_.format_);
 
     return params_.arraySize_ * sliceMemory;
+}
+
+unsigned long long RawTexture::GetNativeHandle() const
+{
+    if (handles_.texture_)
+        return handles_.texture_->GetNativeHandle();
+    return 0;
 }
 
 } // namespace Urho3D

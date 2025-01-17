@@ -138,7 +138,7 @@ public:
     bool CreateFromVulkanImage(uint64_t vkImage, const RawTextureParams& params);
     /// Create texture from raw OpenGL handle.
     bool CreateFromGLTexture(
-        unsigned handle, TextureType type, TextureFlags flags, TextureFormat format, unsigned arraySize, int msaaLevel);
+        unsigned handle, TextureType type, TextureFlags flags, TextureFormat format, unsigned arraySize, int msaaLevel, unsigned bindTarget);
 
     /// Set default sampler to be used for this texture.
     void SetSamplerStateDesc(const SamplerStateDesc& desc) { samplerDesc_ = desc; }
@@ -161,6 +161,9 @@ public:
 
     /// Evaluate approximate memory footprint of the texture on GPU.
     unsigned long long CalculateMemoryUseGPU() const;
+
+    /// Returns native texture handle specific to the underlying graphics API
+    unsigned long long GetNativeHandle() const;
 
     /// Implement DeviceObject.
     /// @{

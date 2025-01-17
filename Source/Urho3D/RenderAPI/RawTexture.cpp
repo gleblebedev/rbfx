@@ -595,7 +595,7 @@ bool RawTexture::CreateFromVulkanImage(uint64_t vkImage, const RawTextureParams&
 }
 
 bool RawTexture::CreateFromGLTexture(unsigned handle, TextureType type, TextureFlags flags, TextureFormat format,
-    unsigned arraySize, int msaaLevel, unsigned bindTarget)
+    unsigned arraySize, int msaaLevel, IntVector2 size, unsigned bindTarget)
 {
 #if GL_SUPPORTED || GLES_SUPPORTED
     if (renderDevice_ && renderDevice_->GetBackend() == RenderBackend::OpenGL)
@@ -605,6 +605,8 @@ bool RawTexture::CreateFromGLTexture(unsigned handle, TextureType type, TextureF
         textureDesc.Type = textureTypeToDimensions[type];
         textureDesc.Usage = Diligent::USAGE_DEFAULT;
         textureDesc.Format = format;
+        textureDesc.Width = size.x_;
+        textureDesc.Height = size.y_;
         if (type == TextureType::Texture2DArray)
             textureDesc.ArraySize = arraySize;
 

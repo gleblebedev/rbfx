@@ -699,7 +699,8 @@ public:
 
             textures_[i] = MakeShared<Texture2D>(context);
             textures_[i]->CreateFromGLTexture(images_[i].image, TextureType::Texture2D,
-                isDepth ? TextureFlag::BindDepthStencil : TextureFlag::BindRenderTarget, format, arraySize_, msaaLevel, 0);
+                isDepth ? TextureFlag::BindDepthStencil : TextureFlag::BindRenderTarget, format, arraySize_, msaaLevel,
+                IntVector2::ZERO, 0);
         }
     }
 };
@@ -871,8 +872,9 @@ ea::pair<SharedPtr<OpenXRBinding>, SharedPtr<OpenXRBinding>> CreateBinding(
     }
     else if (element.HasAttribute("subaction"))
     {
-        // User specified subaction path (originally for vive trackers), currently preferring fully specified paths in the manifest,
-        // but a case where that isn't workable isn't unlikely to pop in the future, so support it ahead of time.
+        // User specified subaction path (originally for vive trackers), currently preferring fully specified paths in
+        // the manifest, but a case where that isn't workable isn't unlikely to pop in the future, so support it ahead
+        // of time.
         xrStringToPath(instance, element.GetAttributeCString("subaction"), &customPath);
         createInfo.subactionPaths = &customPath;
     }
@@ -1415,8 +1417,7 @@ void OpenXR::InitializeActiveExtensions(RenderBackend backend)
         activeExtensions_, supportedExtensions_, XR_EXT_SAMSUNG_ODYSSEY_CONTROLLER_EXTENSION_NAME);
 
     // Trackers
-    ActivateOptionalExtension(
-        activeExtensions_, supportedExtensions_, XR_HTCX_VIVE_TRACKER_INTERACTION_EXTENSION_NAME);
+    ActivateOptionalExtension(activeExtensions_, supportedExtensions_, XR_HTCX_VIVE_TRACKER_INTERACTION_EXTENSION_NAME);
 
     for (const ea::string& extension : userExtensions_)
         ActivateOptionalExtension(activeExtensions_, supportedExtensions_, extension.c_str());
@@ -1439,8 +1440,8 @@ bool OpenXR::InitializeTweaks(RenderBackend backend)
     }
 #endif
 
-    // SteamVR currently is reporting depth modes (D32_FLOAT) that it doesn't actually support as frame depth attachments
-    // Expect to see something like "SteamVR / OpenXR : holographic" in system name
+    // SteamVR currently is reporting depth modes (D32_FLOAT) that it doesn't actually support as frame depth
+    // attachments Expect to see something like "SteamVR / OpenXR : holographic" in system name
     // TODO: in the future when it's somewhat known what sort of other strange oddities like this exist
     //       coalesce them into something like a json overrides rules file like the graphics tweaks stuff.
     if (systemName_.contains("steamvr", false))

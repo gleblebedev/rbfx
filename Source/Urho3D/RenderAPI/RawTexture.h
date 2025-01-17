@@ -137,8 +137,8 @@ public:
     /// Create texture from VkImage handle.
     bool CreateFromVulkanImage(uint64_t vkImage, const RawTextureParams& params);
     /// Create texture from raw OpenGL handle.
-    bool CreateFromGLTexture(
-        unsigned handle, TextureType type, TextureFlags flags, TextureFormat format, unsigned arraySize, int msaaLevel, unsigned bindTarget);
+    bool CreateFromGLTexture(unsigned handle, TextureType type, TextureFlags flags, TextureFormat format,
+        unsigned arraySize, int msaaLevel, IntVector2 size, unsigned bindTarget);
 
     /// Set default sampler to be used for this texture.
     void SetSamplerStateDesc(const SamplerStateDesc& desc) { samplerDesc_ = desc; }

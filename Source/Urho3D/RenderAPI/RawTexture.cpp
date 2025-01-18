@@ -610,6 +610,8 @@ bool RawTexture::CreateFromGLTexture(unsigned handle, TextureType type, TextureF
         if (type == TextureType::Texture2DArray)
             textureDesc.ArraySize = arraySize;
 
+        if (flags.Test(TextureFlag::BindShaderResource))
+            textureDesc.BindFlags |= Diligent::BIND_SHADER_RESOURCE;
         if (flags.Test(TextureFlag::BindRenderTarget))
             textureDesc.BindFlags |= Diligent::BIND_RENDER_TARGET;
         if (flags.Test(TextureFlag::BindDepthStencil))

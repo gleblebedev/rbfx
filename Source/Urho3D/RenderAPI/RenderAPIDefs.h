@@ -267,7 +267,7 @@ enum class TextureFlag
     None = 0,
     /// Texture can be used as possibly sampled shader resource.
     /// TODO: Every texture is a shader resource implicitly, consider changing this.
-    // BindShaderResource = 1 << 0,
+    BindShaderResource = 1 << 0,
 
     /// Texture can be used as render target.
     BindRenderTarget = 1 << 1,

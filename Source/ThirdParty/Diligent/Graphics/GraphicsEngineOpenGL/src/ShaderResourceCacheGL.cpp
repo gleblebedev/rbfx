@@ -159,7 +159,7 @@ void ShaderResourceCacheGL::BindResources(GLContextState&              GLState,
                                               // written by shaders prior to the barrier
                 GLState);
 
-            if (Tex.pSampler)
+            if (Tex.pSampler && pTextureGL->GetBindTarget() != 36197)
             {
                 GLState.BindSampler(binding, Tex.pSampler->GetHandle());
             }

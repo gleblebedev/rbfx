@@ -157,6 +157,8 @@ private:
     /// Handle resource reloading.
     void HandleResourceReloaded(StringHash eventType, VariantMap& eventData);
 
+    void HandleScroll(const IntVector2& pos, const IntVector2& delta);
+
     /// UI context name.
     ea::string name_;
     /// RmlUi context.

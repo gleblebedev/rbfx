@@ -215,7 +215,7 @@ namespace Urho3DNet
                             sourceBuilder.AppendLine("protected override void OnDataModelInitialized() {");
                             foreach (var p in rmlProperties)
                             {
-                                sourceBuilder.AppendLine($"BindDataModelProperty(\"{p}\", _ => _.Set({p}), _ => {{ /*Not implemented yet*/ }});");
+                                sourceBuilder.AppendLine($"BindDataModelProperty(\"{p}\", value => value.Set({p}), value => {{ {p} = value; }});");
                             }
                             foreach (var p in rmlEvents)
                             {

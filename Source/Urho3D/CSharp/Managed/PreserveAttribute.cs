@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+using System;
+
 namespace Urho3DNet
 {
     /// <summary>

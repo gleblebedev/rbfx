@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,6 +25,8 @@ namespace Urho3DNet
 
             INamedTypeSymbol? derivedFromAttribute = compilation.GetTypeByMetadataName("Urho3DNet.DerivedFromAttribute");
             INamedTypeSymbol? preserveAttribute = compilation.GetTypeByMetadataName("Urho3DNet.PreserveAttribute");
+            INamedTypeSymbol? rmlUIEventAttribute = compilation.GetTypeByMetadataName("Urho3DNet.RmlUIEventAttribute");
+            INamedTypeSymbol? rmlUIPropertyAttribute = compilation.GetTypeByMetadataName("Urho3DNet.RmlUIPropertyAttribute");
 
             var visitedClasses = new HashSet<string>();
 
@@ -37,7 +40,8 @@ namespace Urho3DNet
 
                 foreach (var classDeclaration in classDeclarations)
                 {
-                    var typeSymbolInfo = compilation.GetSemanticModel(classDeclaration.SyntaxTree).GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
+                    var semanticModel = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
+                    var typeSymbolInfo = semanticModel.GetDeclaredSymbol(classDeclaration) as ITypeSymbol;
 
                     if (typeSymbolInfo == null)
                         continue;
@@ -166,6 +170,62 @@ namespace Urho3DNet
                             sourceBuilder.AppendLine("    }");
                         }
 
+                        var rmlProperties = new List<string>();
+
+                        foreach (var field in classDeclaration.Members.OfType<FieldDeclarationSyntax>())
+                        {
+                            var variableDeclarator = field.Declaration.Variables.FirstOrDefault();
+                            if (variableDeclarator == null)
+                                continue;
+
+                            var fieldSymbol = semanticModel.GetDeclaredSymbol(variableDeclarator) as IFieldSymbol;
+                            if (fieldSymbol == null)
+                                continue;
+
+                            if (!fieldSymbol.GetAttributes().Any(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, rmlUIPropertyAttribute)))
+                                continue;
+
+                            {
+                                var propertyName = GetPropertyName(fieldSymbol.Name);
+                                rmlProperties.Add(propertyName);
+                                sourceBuilder.AppendLine($"public {fieldSymbol.Type.ToDisplayString()} {propertyName} {{");
+                                sourceBuilder.AppendLine($"get {{ return this.{fieldSymbol.Name}; }}");
+                                sourceBuilder.AppendLine($"set {{ if(this.{fieldSymbol.Name} != value) {{ this.{fieldSymbol.Name} = value; DirtyVariable(\"{ propertyName}\"); }} }}");
+                                sourceBuilder.AppendLine("}");
+                            }
+                        }
+
+
+                        var rmlEvents = new List<string>();
+
+                        foreach (var method in classDeclaration.Members.OfType<MethodDeclarationSyntax>())
+                        {
+                            var methodSymbol = semanticModel.GetDeclaredSymbol(method) as IMethodSymbol;
+                            if (methodSymbol == null)
+                                continue;
+
+                            if (!methodSymbol.GetAttributes().Any(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, rmlUIEventAttribute)))
+                                continue;
+
+                            rmlEvents.Add(methodSymbol.Name);
+                        }
+
+                        if (rmlProperties.Count > 0 || rmlEvents.Count > 0)
+                        {
+                            sourceBuilder.AppendLine("protected override void OnDataModelInitialized() {");
+                            foreach (var p in rmlProperties)
+                            {
+                                sourceBuilder.AppendLine($"BindDataModelProperty(\"{p}\", _ => _.Set({p}), _ => {{ /*Not implemented yet*/ }});");
+                            }
+                            foreach (var p in rmlEvents)
+                            {
+                                sourceBuilder.AppendLine($"BindDataModelEvent(\"{p}\", {p});");
+                            }
+                            sourceBuilder.AppendLine("InitializeDataModel();");
+                            sourceBuilder.AppendLine("}");
+                            sourceBuilder.AppendLine("partial void InitializeDataModel();");
+                        }
+
                         sourceBuilder.AppendLine("}");
 
                         foreach (var namedTypeSymbol in nestedInClasses)
@@ -183,6 +243,22 @@ namespace Urho3DNet
                     }
                 }
             }
+        }
+
+        private string GetPropertyName(string name)
+        {
+            var pname = name.Trim('_');
+            if (pname.Length > 0)
+            {
+                pname = pname.Substring(0, 1).ToUpper() + pname.Substring(1);
+            }
+            else
+            {
+                pname = name;
+            }
+            if (pname == name)
+                pname = pname + "Property";
+            return pname;
         }
 
         private static string SanitizeFileName(string fullClassName)

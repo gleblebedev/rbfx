@@ -29,7 +29,7 @@
     <TargetFrameworkVersion>v9.0</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
-    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION</DefineConstants>
+    <DefineConstants>$(DefineConstants);URHO3D_NETFX_LEGACY_VERSION;NETSTANDARD20</DefineConstants>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net8.0' ">

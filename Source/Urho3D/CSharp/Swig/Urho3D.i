@@ -858,6 +858,8 @@ using Diligent::ITexture = void;
 %include "Urho3D/Replica/NetworkObject.h"
 %include "Urho3D/Replica/StaticNetworkObject.h"
 %include "Urho3D/Replica/BehaviorNetworkObject.h"
+%include "Urho3D/Replica/BaseFeedbackBehavior.h"
+%template(PredictedKinematicControllerBase) Urho3D::BaseFeedbackBehavior<Urho3D::PredictedKinematicControllerFrame>;
 %include "Urho3D/Replica/ClientInputStatistics.h"
 %include "Urho3D/Replica/ClientReplica.h"
 %include "Urho3D/Replica/FilteredByDistance.h"

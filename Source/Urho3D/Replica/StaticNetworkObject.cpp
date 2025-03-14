@@ -42,6 +42,7 @@ void StaticNetworkObject::RegisterObject(Context* context)
     context->AddFactoryReflection<StaticNetworkObject>(Category_Network);
 
     URHO3D_ACCESSOR_ATTRIBUTE("Client Prefab", GetClientPrefabAttr, SetClientPrefabAttr, ResourceRef, ResourceRef(PrefabResource::GetTypeStatic()), AM_DEFAULT);
+    URHO3D_ATTRIBUTE("Is Origin For Distance Filtering", bool, isOriginForDistanceFiltering_, true, AM_DEFAULT);
 }
 
 void StaticNetworkObject::SetClientPrefab(PrefabResource* prefab)
@@ -63,9 +64,12 @@ void StaticNetworkObject::SetClientPrefab(PrefabResource* prefab)
     clientPrefab_ = prefab;
 }
 
-void StaticNetworkObject::InitializeOnServer()
+ea::optional<float> StaticNetworkObject::CalculateDistanceForFiltering(NetworkObject* otherNetworkObject)
 {
-    latestSentParentObject_ = GetParentNetworkId();
+    if (!isOriginForDistanceFiltering_)
+        return ea::nullopt;
+
+    return BaseClassName::CalculateDistanceForFiltering(otherNetworkObject);
 }
 
 void StaticNetworkObject::WriteSnapshot(NetworkFrame frame, Serializer& dest)
@@ -77,19 +81,6 @@ void StaticNetworkObject::WriteSnapshot(NetworkFrame frame, Serializer& dest)
     dest.WriteVector3(node_->GetWorldPosition());
     dest.WritePackedQuaternion(node_->GetWorldRotation());
     dest.WriteVector3(node_->GetSignedWorldScale());
-}
-
-bool StaticNetworkObject::PrepareReliableDelta(NetworkFrame frame)
-{
-    const auto parentObject = GetParentNetworkId();
-    const bool needUpdate = latestSentParentObject_ != parentObject;
-    latestSentParentObject_ = parentObject;
-    return needUpdate;
-}
-
-void StaticNetworkObject::WriteReliableDelta(NetworkFrame frame, Serializer& dest)
-{
-    dest.WriteUInt(static_cast<unsigned>(latestSentParentObject_));
 }
 
 void StaticNetworkObject::InitializeFromSnapshot(NetworkFrame frame, Deserializer& src, bool isOwned)
@@ -117,12 +108,6 @@ void StaticNetworkObject::InitializeFromSnapshot(NetworkFrame frame, Deserialize
         ? worldTransform
         : node_->GetParent()->GetWorldTransform().Inverse() * worldTransform;
     node_->SetTransformMatrix(localTransform);
-}
-
-void StaticNetworkObject::ReadReliableDelta(NetworkFrame frame, Deserializer& src)
-{
-    const auto parentObject = static_cast<NetworkId>(src.ReadUInt());
-    SetParentNetworkObject(parentObject);
 }
 
 ResourceRef StaticNetworkObject::GetClientPrefabAttr() const

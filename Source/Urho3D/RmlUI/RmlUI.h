@@ -73,6 +73,8 @@ public:
     Rml::ElementDocument* LoadDocument(const ea::string& path);
     /// Show or hide RmlUi debugger.
     void SetDebuggerVisible(bool visible);
+    /// Return whether RmlUi debugger is visible.
+    bool IsDebuggerVisible() const;
     /// Load a font resource for RmlUi to use.
     /// Set fallback parameter to true if font should be used as a fallback font for unsupported characters.
     bool LoadFont(const ea::string& resourceName, bool fallback = false);
@@ -234,3 +236,10 @@ void URHO3D_API RegisterVariantDefinition(Rml::DataTypeRegister* typeRegister);
 void URHO3D_API RegisterRmlUILibrary(Context* context);
 
 }
+
+/// Pin type IDs for built-in objects so they are the same across all binaries.
+/// @{
+extern template class URHO3D_API Rml::Family<Urho3D::Variant>;
+extern template class URHO3D_API Rml::Family<Urho3D::VariantVector>;
+extern template class URHO3D_API Rml::Family<Urho3D::VariantMap>;
+/// @}

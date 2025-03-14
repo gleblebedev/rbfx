@@ -74,6 +74,7 @@ void Foundation_StandardFileTypes(Context* context, Project* project)
                 && ctx.xmlFile_->GetRoot().HasAttribute("_id")))
         {
             desc.AddObjectType<Scene>();
+            desc.AddObjectType<SceneResource>();
         }
     });
 

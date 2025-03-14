@@ -280,6 +280,11 @@ void PluginManager::Reload()
     forceReload_ = true;
 }
 
+void PluginManager::Commit()
+{
+    Update(false);
+}
+
 void PluginManager::StartApplication()
 {
     // If StopApplication was called during this frame, it's okay to start again
@@ -310,6 +315,14 @@ void PluginManager::StopApplication()
     }
 
     stopPending_ = true;
+}
+
+void PluginManager::QuitApplication()
+{
+    if (quitApplication_)
+        quitApplication_();
+    else
+        GetSubsystem<Engine>()->Exit();
 }
 
 void PluginManager::SetPluginsLoaded(const StringVector& plugins)

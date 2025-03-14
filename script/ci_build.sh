@@ -13,7 +13,7 @@
 # ci_sdk_dir:      sdk installation directory
 
 ci_action=$1; shift;
-ci_cmake_params_user="$@"
+ci_build_type=$1; shift;
 
 # default values
 ci_compiler=${ci_compiler:-"default"}
@@ -50,18 +50,18 @@ declare -A android_types=(
     [rel]='assembleRelease'
 )
 
-generators_windows_mingw=('-G' 'MinGW Makefiles')
+generators_windows_mingw=('-G' 'Ninja Multi-Config')
 generators_windows=('-G' 'Visual Studio 17 2022')
 generators_uwp=('-G' 'Visual Studio 17 2022' '-DCMAKE_SYSTEM_NAME=WindowsStore' '-DCMAKE_SYSTEM_VERSION=10.0' '-DURHO3D_PACKAGING=ON')
-generators_linux=('-G' 'Ninja')
-generators_web=('-G' 'Ninja')
+generators_linux=('-G' 'Ninja Multi-Config')
+generators_web=('-G' 'Ninja Multi-Config')
 generators_macos=()
 generators_ios=()
 
 toolchains_ios=(
     '-DCMAKE_TOOLCHAIN_FILE=CMake/Toolchains/IOS.cmake'
     '-DPLATFORM=SIMULATOR64'
-    '-DDEPLOYMENT_TARGET=11'
+    '-DDEPLOYMENT_TARGET=12'
 )
 toolchains_web=(
     "-DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
@@ -92,16 +92,14 @@ quirks_web=(
     '-DURHO3D_PROFILING=OFF'
     '-DURHO3D_CSHARP=OFF'
     '-DCI_WEB_BUILD=ON'
-)
-quirks_web_dbg=(
-    '-DURHO3D_PLAYER=OFF'
+    '-DURHO3D_NO_EDITOR_PLAYER_EXE=ON'
 )
 quirks_dll=('-DURHO3D_CSHARP=ON')
 quirks_windows_msvc_x64=('-A' 'x64')
 quirks_windows_msvc_x86=('-A' 'Win32')
 quirks_uwp_msvc_arm=('-A' 'ARM')
 quirks_uwp_msvc_arm64=('-A' 'ARM64')
-quirks_clang=('-DTRACY_NO_PARALLEL_ALGORITHMS=ON')                  # Includes macos and ios
+quirks_clang=('-DNO_PARALLEL_STL=ON')                  # Tracy, includes macos and ios
 quirks_macos_x86=('-DCMAKE_OSX_ARCHITECTURES=i386')
 quirks_macos_x64=('-DCMAKE_OSX_ARCHITECTURES=x86_64')
 quirks_linux_x86=(
@@ -243,7 +241,6 @@ function action-generate() {
     v="quirks_${ci_platform}[@]";                           ci_cmake_params+=("${!v}")
 
     ci_cmake_params+=(
-        "-DCMAKE_BUILD_TYPE=${types[$ci_build_type]}"
         "-DCMAKE_INSTALL_PREFIX=$ci_sdk_dir"
         "-DURHO3D_NETFX=net$DOTNET_VERSION"
     )
@@ -263,7 +260,6 @@ function action-generate() {
         )
     fi
 
-    ci_cmake_params+=(${ci_cmake_params_user[@]})
     ci_cmake_params+=(-B $ci_build_dir -S "$ci_source_dir")
 
     echo "${ci_cmake_params[@]}"
@@ -311,15 +307,15 @@ function action-install() {
     fi
 
     # Create deploy directory on Web.
-    if [[ "$ci_platform" == "web" ]];
+    if [[ "$ci_platform" == "web" && "$ci_build_type" == "rel" ]];
     then
         mkdir $ci_sdk_dir/deploy
         cp -r \
-            $ci_sdk_dir/bin/Resources.js        \
-            $ci_sdk_dir/bin/Resources.js.data   \
-            $ci_sdk_dir/bin/Samples.js          \
-            $ci_sdk_dir/bin/Samples.wasm        \
-            $ci_sdk_dir/bin/Samples.html        \
+            $ci_sdk_dir/bin/${types[$ci_build_type]}/Resources.js        \
+            $ci_sdk_dir/bin/${types[$ci_build_type]}/Resources.js.data   \
+            $ci_sdk_dir/bin/${types[$ci_build_type]}/Samples.js          \
+            $ci_sdk_dir/bin/${types[$ci_build_type]}/Samples.wasm        \
+            $ci_sdk_dir/bin/${types[$ci_build_type]}/Samples.html        \
             $ci_sdk_dir/deploy
     fi
 }
@@ -332,7 +328,7 @@ function action-test() {
 function action-cstest() {
     cd "$ci_build_dir/bin/${types[$ci_build_type]}"
     # We don't want to fail C# tests if build was without C# support.
-    test_file = "Urho3DNet.Tests.dll"
+    test_file="Urho3DNet.Tests.dll"
     if test -f "$test_file"; then
         dotnet test $test_file
     fi

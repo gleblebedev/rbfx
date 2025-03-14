@@ -1,30 +1,14 @@
-//
-// Copyright (c) 2017-2020 the rbfx project.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
+// Copyright (c) 2017-2024 the rbfx project.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 #pragma once
 
-#include "../Scene/LogicComponent.h"
+#include "Urho3D/Scene/LogicComponent.h"
 
 #include <RmlUi/Core/DataModelHandle.h>
 
+#include <EASTL/optional.h>
 #include <EASTL/unordered_set.h>
 
 namespace Rml
@@ -104,7 +88,7 @@ public:
     bool BindDataModelEvent(const ea::string& name, EventFunc eventCallback);
 
 protected:
-    /// Data model facade
+    /// Data model facade.
     /// @{
     bool IsVariableDirty(const ea::string& variableName)
     {
@@ -125,8 +109,7 @@ protected:
     /// @}
 
     /// Wrap data event callback.
-    template <class T>
-    Rml::DataEventFunc WrapCallback(void(T::*callback)())
+    template <class T> Rml::DataEventFunc WrapCallback(void (T::*callback)())
     {
         auto self = static_cast<T*>(this);
         return [self, callback](Rml::DataModelHandle, Rml::Event&, const Rml::VariantList& args)
@@ -134,6 +117,16 @@ protected:
             const bool enabled = args.empty() || args[0].Get<bool>();
             if (enabled)
                 (self->*callback)();
+        };
+    }
+    template <class T> Rml::DataEventFunc WrapCallback(void (T::*callback)(const Rml::VariantList& args))
+    {
+        auto self = static_cast<T*>(this);
+        return [self, callback](Rml::DataModelHandle, Rml::Event&, const Rml::VariantList& args)
+        {
+            const bool enabled = args.empty() || args[0].Get<bool>();
+            if (enabled)
+                (self->*callback)(args);
         };
     }
 
@@ -151,12 +144,17 @@ protected:
 
     /// Get data model constructor. Only available in OnDataModelInitialized method.
     Rml::DataModelConstructor* GetDataModelConstructor() const { return modelConstructor_.get(); }
+    /// If current focus is invalid, focus on the first valid navigable element.
+    void RestoreFocus();
+    /// Schedule element focus by ID on next update. This is useful when focus-ability is not updated yet.
+    void ScheduleFocusById(const ea::string& elementId);
 
     /// Implement Component
     /// @{
     void OnSetEnabled() override;
     void OnNodeSet(Node* previousNode, Node* currentNode) override;
     /// @}
+
 private:
     /// Get data model constructor. Logs error if the constructor is not available.
     Rml::DataModelConstructor* ExpectDataModelConstructor() const;
@@ -177,10 +175,12 @@ private:
     void SetDocument(Rml::ElementDocument* document);
     void UpdateDocumentOpen();
     void UpdateConnectedCanvas();
+    void UpdatePendingFocus();
 
     void CreateDataModel();
     void RemoveDataModel();
 
+    void DoFocusById(Rml::DataModelHandle model, Rml::Event& event, const Rml::VariantList& args);
     /// Attributes
     /// @{
     ResourceRef resource_;
@@ -192,11 +192,12 @@ private:
 
     /// Currently open document. Null if document was closed.
     Rml::ElementDocument* document_{};
-    /// Component which holds RmlUI instance containing UI managed by this component. May be null if UI is rendered into default RmlUI subsystem.
+    /// Component which holds RmlUI instance containing UI managed by this component. May be null if UI is rendered into
+    /// default RmlUI subsystem.
     WeakPtr<RmlCanvasComponent> canvasComponent_;
 
     /// Type registry for the data model.
-    Rml::DataTypeRegister typeRegister_;
+    ea::optional<Rml::DataTypeRegister> typeRegister_;
     /// Data model for the document.
     Rml::DataModelHandle dataModel_;
     /// Name of the data model.
@@ -204,6 +205,11 @@ private:
 
     /// Data model constructor.
     ea::unique_ptr<Rml::DataModelConstructor> modelConstructor_;
+
+    /// Element id to be focused on next update.
+    ea::optional<ea::string> pendingFocusId_;
+    /// Whether to suppress next call to RestoreFocus().
+    bool suppressRestoreFocus_{};
 };
 
-}
+} // namespace Urho3D

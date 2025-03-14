@@ -31,7 +31,7 @@ macro (define_engine_source_files)
     endif ()
     foreach (path ${DEFINE_SRC_FILES_UNPARSED_ARGUMENTS})
         # Get header files
-        file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h)
+        file (${_action} _files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${path}/*.h ${path}/*.inl)
         list (REMOVE_ITEM _files Urho3D.h)
         list (APPEND HEADER_FILES ${_files})
         # Install them
@@ -188,8 +188,9 @@ set (PUBLIC_THIRD_PARTY_DEPENDENCIES
     Box2D
     WebP
     ImGui
+    ImGuizmo
     GLEW
-    nativefiledialog
+    nfd
     CLI11
     fmt
     spdlog
@@ -353,9 +354,8 @@ if (GNU OR Clang)
     target_compile_options(Urho3D PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-offsetof>)
 endif ()
 
-if (URHO3D_PROFILING)
-    target_link_libraries(Urho3D PUBLIC Tracy)
-endif ()
+# Profiling
+target_link_libraries(Urho3D PUBLIC TracyClient)
 
 if (WEB)
     target_link_libraries(Urho3D PUBLIC "-s WASM=$<BOOL:EMSCRIPTEN_WASM>")
@@ -373,7 +373,10 @@ if (WEB)
         math(EXPR EMSCRIPTEN_TOTAL_MEMORY_BYTES "${EMSCRIPTEN_TOTAL_MEMORY} * 1024 * 1024")
         target_link_libraries(Urho3D PUBLIC "-s INITIAL_MEMORY=${EMSCRIPTEN_TOTAL_MEMORY_BYTES}")
     endif ()
-    target_link_libraries(Urho3D PUBLIC "-s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s GL_ENABLE_GET_PROC_ADDRESS")
+    target_link_libraries(Urho3D PUBLIC "-s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2")
+    if (EMSCRIPTEN_VERSION VERSION_GREATER_EQUAL 3.1.51)
+        target_link_libraries(Urho3D PUBLIC -sGL_ENABLE_GET_PROC_ADDRESS=1)
+    endif ()
     # TODO: Try to remove FULL_ES3. We only need it for glMapBufferRange and glUnmapBuffer.
     target_link_libraries(Urho3D PUBLIC "-s FULL_ES3=1")
 endif ()
@@ -382,8 +385,8 @@ if (BUILD_SHARED_LIBS)
     target_compile_definitions(Urho3D
         PRIVATE -DURHO3D_EXPORTS=1 -DAL_EXPORTS=1 -DBOX2D_EXPORTS=1 -DCIVETWEB_DLL_EXPORTS=1 -DEASTL_EXPORTS=1
             -DEASTDC_EXPORTS=1 -DURHO3D_EXPORTS=1 -DFMT_LIB_EXPORT=1 -DGLEW_BUILD=1 -DIMGUI_EXPORTS=1
-            -DLZ4_DLL_EXPORT=1 -DNFD_EXPORTS=1 -DPUGIXML_EXPORTS=1 -DSDL_EXPORTS=1 -DTRACY_EXPORTS=1 -DRmlCore_EXPORTS=1
-            -DRmlDebugger_EXPORTS=1 -DGLSLANG_EXPORTING=1
+            -DLZ4_DLL_EXPORT=1 -DNFD_EXPORTS=1 -DPUGIXML_EXPORTS=1 -DSDL_EXPORTS=1 -DRmlCore_EXPORTS=1
+            -DRmlDebugger_EXPORTS=1 -DGLSLANG_EXPORTING=1 -DTRACY_EXPORTS=1
     )
 else ()
     target_compile_definitions (Urho3D PUBLIC -DURHO3D_STATIC)
@@ -576,6 +579,7 @@ install(TARGETS Urho3D
 if (URHO3D_MONOLITHIC_HEADER)
     # Generate include header with all engine headers
     list (REMOVE_ITEM HEADER_FILES Urho3D.h DebugNew.h Precompiled.h WindowsSupport.h Core/Main.h Core/PE.h)
+    list (FILTER HEADER_FILES EXCLUDE REGEX ".*\.inl$")
     string (REPLACE ";" ">\n#include <Urho3D/" HEADER_FILES "${HEADER_FILES}")
     set (HEADER_FILES "#include <Urho3D/${HEADER_FILES}>")
     configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Urho3DAll.h.in ${CMAKE_CURRENT_BINARY_DIR}/Urho3DAll.h @ONLY)
@@ -610,4 +614,4 @@ file (GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Urho3D.h CONTENT ${U
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/Urho3D.h DESTINATION ${DEST_INCLUDE_DIR})
 file(GLOB ROOT_HEADERS *.h)
 list(REMOVE_ITEM ROOT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/Urho3D.h)
-install (FILES ${ROOT_HEADERS} "LinkedPlugins.cpp.in" DESTINATION ${DEST_INCLUDE_DIR})
+install (FILES ${ROOT_HEADERS} "LinkedPlugins.cpp.in" "Resources.load.js.in" DESTINATION ${DEST_INCLUDE_DIR})

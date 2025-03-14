@@ -35,7 +35,7 @@
 #include <Urho3D/Resource/ResourceCache.h>
 #include <Urho3D/SystemUI/Widgets.h>
 
-#include <ImGuiNodeEditor/utilities/widgets.h>
+#include <ImGui/ImGuiNodeEditor/utilities/widgets.h>
 
 namespace ed = ax::NodeEditor;
 

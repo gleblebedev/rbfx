@@ -33,6 +33,8 @@ env:
   ci_sdk_dir: ${{ github.workspace }}/SDK
   ci_latest_release_url: https://uploads.github.com/repos/rbfx/rbfx/releases/129063815/assets{?name,label}
   ci_latest_release_id: 129063815
+  # etc
+  TRACY_NO_INVARIANT_CHECK: 1
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -119,7 +121,7 @@ jobs:
         shell: bash
         run: cmake --install '${{ env.ci_build_dir }}' --config Release
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: 'rbfx-${{ github.job }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
@@ -175,14 +177,14 @@ jobs:
         shell: bash
         run: cmake --install '${{ env.ci_build_dir }}' --config Release
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: 'rbfx-${{ github.job }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
   MacOS-Tools:
     if: github.event.pull_request.draft == false
-    runs-on: macos-12
+    runs-on: macos-13
     needs: [CheckSkipCI]
     env:
       BUILD_SHARED_LIBS: ON
@@ -224,7 +226,7 @@ jobs:
         shell: bash
         run: cmake --install '${{ env.ci_build_dir }}' --config Release
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: 'rbfx-${{ github.job }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
@@ -243,29 +245,24 @@ jobs:
         ci_lib_type:
           - dll
           - lib
-        ci_build_type:
-          - dbg
-          - rel
         ci_compiler:
           - msvc
           # TODO: Enable MinGW when the issue with crnlib is fixed
           # - mingw
         # MinGW debug builds require too much memory
-        exclude:
-          - ci_compiler: mingw
-            ci_build_type: dbg
+        #exclude:
+        #  - ci_compiler: mingw
+        #    ci_build_type: dbg
     env:
       ci_platform: windows
       ci_arch: ${{ matrix.ci_arch }}
       ci_lib_type: ${{ matrix.ci_lib_type }}
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_compiler: ${{ matrix.ci_compiler }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
                         )                                             &&
-                        (matrix.ci_build_type == 'rel')               &&
                         (matrix.ci_arch == 'x64')                     &&
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'msvc')
@@ -279,11 +276,10 @@ jobs:
       ci_release_bin: ${{
                         (matrix.ci_arch == 'x64')           &&
                         (matrix.ci_lib_type == 'dll')       &&
-                        (matrix.ci_build_type == 'rel')     &&
                         (github.repository == 'rbfx/rbfx')  &&
                         (github.ref == 'refs/heads/master')
                       }}
-      ci_itch: ${{ (matrix.ci_build_type == 'rel') && (github.ref == 'refs/heads/master') }}
+      ci_itch: ${{ (github.ref == 'refs/heads/master') }}
       BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
     steps:
@@ -293,16 +289,16 @@ jobs:
           fetch-depth: 1
 
       - name: Set up butler
-        if: ${{ env.ci_itch == 'true' }}
+        if: ${{ (env.ci_itch == 'true') && (vars.DISABLE_ITCH != 'true') }}
         uses: jdno/setup-butler@v1
 
       - name: Build Cache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
+            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_compiler }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -325,28 +321,48 @@ jobs:
         shell: bash
         run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - name: Test (Native)
+      - name: Test Debug (Native)
         if: matrix.ci_compiler == 'msvc'
         shell: bash
-        run: ${{ env.ci_build_script }} test
+        run: ${{ env.ci_build_script }} test dbg
 
-      - name: Test (Managed)
-        if: (matrix.ci_compiler == 'msvc') && (matrix.ci_lib_type == 'dll')
+      - name: Test Debug (Managed)
+        # TODO: Fix C# on x86, issue #733.
+        if: (matrix.ci_compiler == 'msvc') && (matrix.ci_lib_type == 'dll') && (matrix.ci_arch == 'x64')
         shell: bash
-        run: ${{ env.ci_build_script }} cstest
+        run: ${{ env.ci_build_script }} cstest dbg
 
-      - name: Install
+      - name: Install Debug
         shell: bash
-        run: ${{ env.ci_build_script }} install
+        run: ${{ env.ci_build_script }} install dbg
 
-      - uses: actions/upload-artifact@v3
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - name: Test Release (Native)
+        if: matrix.ci_compiler == 'msvc'
+        shell: bash
+        run: ${{ env.ci_build_script }} test rel
+
+      - name: Test Release (Managed)
+        # TODO: Fix C# on x86, issue #733.
+        if: (matrix.ci_compiler == 'msvc') && (matrix.ci_lib_type == 'dll') && (matrix.ci_arch == 'x64')
+        shell: bash
+        run: ${{ env.ci_build_script }} cstest rel
+
+      - name: Install Release
+        shell: bash
+        run: ${{ env.ci_build_script }} install rel
+
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
       - name: Zip SDK
@@ -365,7 +381,7 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ github.workspace }}/SDK.zip
-          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
@@ -384,12 +400,12 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ github.workspace }}/SDK-bin.zip
-          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
       - name: Publish to itch.io
-        if: ${{ env.ci_itch == 'true' }}
+        if: ${{ (env.ci_itch == 'true') && (vars.DISABLE_ITCH != 'true') }}
         shell: bash
         run: ${{ env.ci_build_script }} publish-to-itch
 
@@ -407,9 +423,6 @@ jobs:
         ci_lib_type:
           - dll
           - lib
-        ci_build_type:
-          - dbg
-          - rel
         ci_compiler:
           - msvc
 
@@ -417,14 +430,12 @@ jobs:
       ci_platform: uwp
       ci_arch: ${{ matrix.ci_arch }}
       ci_lib_type: ${{ matrix.ci_lib_type }}
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_compiler: ${{ matrix.ci_compiler }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
                         )                                             &&
-                        (matrix.ci_build_type == 'rel')               &&
                         (matrix.ci_arch == 'x64')                     &&
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'msvc')
@@ -441,11 +452,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
+            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: 'rbfx-Windows-Tools-${{ github.sha }}'
           path: host-sdk/
@@ -469,18 +480,26 @@ jobs:
         shell: bash
         run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - name: Install
+      - name: Install Debug
         shell: bash
-        run: ${{ env.ci_build_script }} install
+        run: ${{ env.ci_build_script }} install dbg
 
-      - uses: actions/upload-artifact@v3
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - name: Install Release
+        shell: bash
+        run: ${{ env.ci_build_script }} install rel
+
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
   Linux:
@@ -497,9 +516,6 @@ jobs:
         ci_lib_type:
           - dll
           - lib
-        ci_build_type:
-          - dbg
-          - rel
         ci_compiler:
           - gcc
           - clang
@@ -508,14 +524,12 @@ jobs:
       ci_platform: linux
       ci_arch: ${{ matrix.ci_arch }}
       ci_lib_type: ${{ matrix.ci_lib_type }}
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_compiler: ${{ matrix.ci_compiler }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
                         )                                             &&
-                        (matrix.ci_build_type == 'rel')               &&
                         (matrix.ci_arch == 'x64')                     &&
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'gcc')
@@ -529,11 +543,10 @@ jobs:
       ci_release_bin: ${{
                         (matrix.ci_arch == 'x64')           &&
                         (matrix.ci_lib_type == 'dll')       &&
-                        (matrix.ci_build_type == 'rel')     &&
                         (github.repository == 'rbfx/rbfx')  &&
                         (github.ref == 'refs/heads/master')
                       }}
-      ci_itch: ${{ (matrix.ci_build_type == 'rel') && (github.ref == 'refs/heads/master') }}
+      ci_itch: ${{ (github.ref == 'refs/heads/master') }}
       BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
     steps:
@@ -543,16 +556,16 @@ jobs:
           fetch-depth: 1
 
       - name: Set up butler
-        if: ${{ env.ci_itch == 'true' }}
+        if: ${{ (env.ci_itch == 'true') && (vars.DISABLE_ITCH != 'true') }}
         uses: jdno/setup-butler@v1
 
       - name: Build Cache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
+            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_compiler }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -573,22 +586,34 @@ jobs:
         shell: bash
         run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - name: Test (Native)
+      - name: Test Debug (Native)
         shell: bash
-        run: ${{ env.ci_build_script }} test
+        run: ${{ env.ci_build_script }} test dbg
 
-      - name: Install
+      - name: Install Debug
         shell: bash
-        run: ${{ env.ci_build_script }} install
+        run: ${{ env.ci_build_script }} install dbg
 
-      - uses: actions/upload-artifact@v3
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - name: Test Release (Native)
+        shell: bash
+        run: ${{ env.ci_build_script }} test rel
+
+      - name: Install Release
+        shell: bash
+        run: ${{ env.ci_build_script }} install rel
+
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
       - name: Zip SDK
@@ -607,7 +632,7 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ github.workspace }}/SDK.zip
-          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
@@ -627,18 +652,18 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ env.ci_sdk_dir }}-bin.zip
-          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
       - name: Publish to itch.io
-        if: ${{ env.ci_itch == 'true' }}
+        if: ${{ (env.ci_itch == 'true') && (vars.DISABLE_ITCH != 'true') }}
         shell: bash
         run: ${{ env.ci_build_script }} publish-to-itch
 
   MacOS:
     if: github.event.pull_request.draft == false
-    runs-on: macos-12
+    runs-on: macos-13
     needs: [CheckSkipCI]
 
     strategy:
@@ -650,9 +675,6 @@ jobs:
         ci_lib_type:
           - dll
           - lib
-        ci_build_type:
-          - dbg
-          - rel
         ci_compiler:
           - clang
 
@@ -660,14 +682,12 @@ jobs:
       ci_platform: macos
       ci_arch: ${{ matrix.ci_arch }}
       ci_lib_type: ${{ matrix.ci_lib_type }}
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_compiler: ${{ matrix.ci_compiler }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
                         )                                             &&
-                        (matrix.ci_build_type == 'rel')               &&
                         (matrix.ci_arch == 'x64')                     &&
                         (matrix.ci_lib_type == 'dll')                 &&
                         (matrix.ci_compiler == 'clang')
@@ -681,11 +701,10 @@ jobs:
       ci_release_bin: ${{
                         (matrix.ci_arch == 'x64')           &&
                         (matrix.ci_lib_type == 'dll')       &&
-                        (matrix.ci_build_type == 'rel')     &&
                         (github.repository == 'rbfx/rbfx')  &&
                         (github.ref == 'refs/heads/master')
                       }}
-      ci_itch: ${{ (matrix.ci_build_type == 'rel') && (github.ref == 'refs/heads/master') }}
+      ci_itch: ${{ (github.ref == 'refs/heads/master') }}
       BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
     steps:
@@ -695,16 +714,16 @@ jobs:
           fetch-depth: 1
 
       - name: Set up butler
-        if: ${{ env.ci_itch == 'true' }}
+        if: ${{ (env.ci_itch == 'true') && (vars.DISABLE_ITCH != 'true') }}
         uses: jdno/setup-butler@v1
 
       - name: Build Cache
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
+            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_compiler }}
 
       - name: Bash
         shell: bash
@@ -729,18 +748,26 @@ jobs:
         shell: bash
         run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - name: Install
+      - name: Install Debug
         shell: bash
-        run: ${{ env.ci_build_script }} install
+        run: ${{ env.ci_build_script }} install dbg
 
-      - uses: actions/upload-artifact@v3
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - name: Install Release
+        shell: bash
+        run: ${{ env.ci_build_script }} install rel
+
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
       - name: Zip SDK
@@ -759,7 +786,7 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ env.ci_sdk_dir }}.zip
-          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
@@ -779,12 +806,12 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ env.ci_sdk_dir }}-bin.zip
-          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
+          asset_name: 'rebelfork-bin-${{ github.job }}-${{ matrix.ci_compiler }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_arch }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
       - name: Publish to itch.io
-        if: ${{ env.ci_itch == 'true' }}
+        if: ${{ (env.ci_itch == 'true') && (vars.DISABLE_ITCH != 'true') }}
         shell: bash
         run: ${{ env.ci_build_script }} publish-to-itch
 
@@ -793,22 +820,13 @@ jobs:
     runs-on: ubuntu-20.04
     needs: [CheckSkipCI, Linux-Tools]
 
-    strategy:
-      fail-fast: false
-      matrix:
-        ci_build_type:
-          - dbg
-          - rel
-
     env:
       ci_platform: android
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
-                        )                                             &&
-                        (matrix.ci_build_type == 'rel')
+                        )
                     }}
       URHO3D_SDK: ${{ github.workspace }}/host-sdk
 
@@ -822,11 +840,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}
+            ${{ env.ccache_prefix }}-${{ github.job }}
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: 'rbfx-Linux-Tools-${{ github.sha }}'
           path: host-sdk/
@@ -850,19 +868,23 @@ jobs:
       #  shell: bash
       #  run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - uses: actions/upload-artifact@v3
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ matrix.ci_build_type }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ github.sha }}'
           path: '**/*.apk'
 
   iOS:
     if: github.event.pull_request.draft == false
-    runs-on: macos-12
+    runs-on: macos-13
     needs: [CheckSkipCI, MacOS-Tools]
 
     strategy:
@@ -871,20 +893,15 @@ jobs:
         ci_lib_type:
           # - dll           # TODO: Linker error failing to find SDL_main.
           - lib
-        ci_build_type:
-          - dbg
-          - rel
 
     env:
       ci_platform: ios
       ci_lib_type: ${{ matrix.ci_lib_type }}
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
-                        )                                             &&
-                        (matrix.ci_build_type == 'rel')
+                        )
                     }}
       URHO3D_SDK: ${{ github.workspace }}/host-sdk
 
@@ -898,11 +915,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
+            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: 'rbfx-MacOS-Tools-${{ github.sha }}'
           path: host-sdk/
@@ -930,14 +947,18 @@ jobs:
         shell: bash
         run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - uses: actions/upload-artifact@v3
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ env.ci_build_type }}-${{ env.ci_lib_type }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ env.ci_lib_type }}-${{ github.sha }}'
           path: '**/*.app'
 
   Web:
@@ -950,9 +971,6 @@ jobs:
       matrix:
         ci_lib_type:
           - lib
-        ci_build_type:
-          - dbg
-          - rel
         ci_emsdk_version:
           - latest
           #- 3.1.24  # Minimal supported
@@ -961,13 +979,11 @@ jobs:
       BINARYEN_CORES: 1
       ci_platform: web
       ci_lib_type: ${{ matrix.ci_lib_type }}
-      ci_build_type: ${{ matrix.ci_build_type }}
       ci_artifacts: ${{ (
                           github.ref == 'refs/heads/master'           ||
                           startsWith(github.ref, 'refs/tags/nuget/')  ||
                           startsWith(github.ref, 'refs/heads/nuget/')
-                        )                                             &&
-                        (matrix.ci_build_type == 'rel')
+                        )
                     }}
       ci_release_sdk: ${{
                         (github.repository == 'rbfx/rbfx')  &&
@@ -989,11 +1005,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
+            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: 'rbfx-Linux-Tools-${{ github.sha }}'
           path: host-sdk/
@@ -1011,16 +1027,24 @@ jobs:
         shell: bash
         run: ${{ env.ci_build_script }} generate
 
-      - name: Build
+      - name: Build Debug
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: ${{ env.ci_build_script }} build dbg
 
-      - name: Install
+      - name: Install Debug
         shell: bash
-        run: ${{ env.ci_build_script }} install
+        run: ${{ env.ci_build_script }} install dbg
+
+      - name: Build Release
+        shell: bash
+        run: ${{ env.ci_build_script }} build rel
+
+      - name: Install Release
+        shell: bash
+        run: ${{ env.ci_build_script }} install rel
 
       - name: Deploy
-        if: github.repository == 'rbfx/rbfx' && github.ref == 'refs/heads/master' && matrix.ci_build_type =='rel'
+        if: github.repository == 'rbfx/rbfx' && github.ref == 'refs/heads/master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           personal_token: ${{ secrets.RBFX_DOCS_DEPLOY_TOKEN }}
@@ -1030,10 +1054,10 @@ jobs:
           publish_dir: ${{ env.ci_sdk_dir }}/deploy
           publish_branch: master
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: env.ci_artifacts == 'true'
         with:
-          name: 'rbfx-${{ github.job }}-${{ env.ci_build_type }}-${{ env.ci_lib_type }}-${{ github.sha }}'
+          name: 'rbfx-${{ github.job }}-${{ env.ci_lib_type }}-${{ github.sha }}'
           path: ${{ env.ci_sdk_dir }}
 
       - name: Zip SDK
@@ -1052,7 +1076,7 @@ jobs:
           upload_url: ${{ env.ci_latest_release_url }}
           release_id: ${{ env.ci_latest_release_id }}
           asset_path: ${{ github.workspace }}/SDK.zip
-          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_build_type }}-${{ matrix.ci_lib_type }}-latest.zip'
+          asset_name: 'rebelfork-sdk-${{ github.job }}-${{ matrix.ci_lib_type }}-latest.zip'
           asset_content_type: application/zip
           max_releases: 1
 
@@ -1077,7 +1101,7 @@ jobs:
         id: vars
         run: echo "sha_short=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           path: source-code/packaging/nuget/
 

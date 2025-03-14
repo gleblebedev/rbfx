@@ -190,9 +190,9 @@ void DecalProjection::SetAutoRemoveMode(AutoRemoveMode mode)
     UpdateSubscriptions();
 }
 
-void DecalProjection::OnSceneSet(Scene* scene)
+void DecalProjection::OnSceneSet(Scene* previousScene, Scene* scene)
 {
-    BaseClassName::OnSceneSet(scene);
+    BaseClassName::OnSceneSet(previousScene, scene);
 
     UpdateSubscriptions(subscriptionFlags_ & SubscriptionMask::PreRender);
 }

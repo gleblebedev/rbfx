@@ -24,7 +24,7 @@
 
 #include "../../Core/UndoManager.h"
 
-#include <ImGuiNodeEditor/imgui_node_editor.h>
+#include <ImGui/ImGuiNodeEditor/imgui_node_editor.h>
 #include <EASTL/fixed_vector.h>
 
 namespace Urho3D

@@ -30,7 +30,7 @@
 #include <Urho3D/Resource/Graph.h>
 #include <Urho3D/SystemUI/Widgets.h>
 
-#include <ImGuiNodeEditor/imgui_node_editor.h>
+#include <ImGui/ImGuiNodeEditor/imgui_node_editor.h>
 #include <EASTL/fixed_vector.h>
 
 namespace Urho3D

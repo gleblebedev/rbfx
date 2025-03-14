@@ -494,6 +494,11 @@ void RmlUI::SetDebuggerVisible(bool visible)
     Rml::Debugger::SetVisible(visible);
 }
 
+bool RmlUI::IsDebuggerVisible() const
+{
+    return Rml::Debugger::IsVisible();
+}
+
 bool RmlUI::LoadFont(const ea::string& resourceName, bool fallback)
 {
     return Rml::LoadFontFace(resourceName, fallback);
@@ -1068,4 +1073,8 @@ void RegisterRmlUILibrary(Context* context)
     RmlSerializableInspector::RegisterObject(context);
 }
 
-}
+} // namespace Urho3D
+
+template class URHO3D_API Rml::Family<Urho3D::Variant>;
+template class URHO3D_API Rml::Family<Urho3D::VariantVector>;
+template class URHO3D_API Rml::Family<Urho3D::VariantMap>;

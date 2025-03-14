@@ -1,5 +1,3 @@
-%constant unsigned int PackageFragmentSize = Urho3D::PACKAGE_FRAGMENT_SIZE;
-%ignore Urho3D::PACKAGE_FRAGMENT_SIZE;
 %csconstvalue("1") Urho3D::Reliable;
 %csconstvalue("2") Urho3D::Ordered;
 %csconstvalue("0") Urho3D::UnreliableUnordered;

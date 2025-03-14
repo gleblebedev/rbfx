@@ -28,6 +28,7 @@
 #include "../Plugins/DynamicModule.h"
 #include "../Plugins/Plugin.h"
 
+#include <EASTL/functional.h>
 #include <EASTL/unordered_set.h>
 
 namespace Urho3D
@@ -88,6 +89,8 @@ class URHO3D_API PluginManager : public Object
     URHO3D_OBJECT(PluginManager, Object);
 
 public:
+    /// Quit application callback.
+    using QuitApplicationCallback = ea::function<void()>;
     /// Register plugin application class to be visible in all future instances of PluginManager.
     static void RegisterPluginApplication(const ea::string& name, PluginApplicationFactory factory);
 
@@ -97,11 +100,19 @@ public:
 
     /// Reload all dynamic modules.
     void Reload();
+    /// Commit updates to the list of loaded plugins and to application status.
+    /// This may be unsafe to call inside of the frame. Called automatically between frames.
+    void Commit();
 
     /// Start plugin application for all loaded plugins.
     void StartApplication();
     /// Stop plugin application for all loaded plugins.
     void StopApplication();
+    /// Quit application on user request.
+    /// Engine is shut down by default. External tooling like Editor may override this behavior.
+    void QuitApplication();
+    /// Set callback for QuitApplication().
+    void SetQuitApplicationCallback(const QuitApplicationCallback& callback) { quitApplication_ = callback; }
     /// Return whether the application is started now.
     bool IsStarted() const { return pluginStack_ && pluginStack_->IsStarted(); }
 
@@ -175,6 +186,7 @@ private:
     ea::string implicitPlugin_;
     unsigned revision_{};
     SharedPtr<PluginStack> pluginStack_;
+    QuitApplicationCallback quitApplication_;
 
     SerializedPlugins restoreBuffer_;
     bool wasStarted_{};

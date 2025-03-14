@@ -25,7 +25,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/VSSolution.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/CCache.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/UrhoOptions.cmake)
 
-if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../Urho3D_GeneratedConfig.cmake)
+if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../Urho3D.cmake)
     set (URHO3D_IS_SDK ON)
     set (URHO3D_SDK_PATH ${CMAKE_CURRENT_LIST_DIR}/../../../)
     get_filename_component(URHO3D_SDK_PATH "${URHO3D_SDK_PATH}" REALPATH)
@@ -79,7 +79,7 @@ if (CMAKE_GENERATOR STREQUAL "Xcode")
     else ()
         set (URHO3D_CSHARP_BIND_CONFIG "Release")
     endif ()
-elseif (GENERATOR_IS_MULTI_CONFIG)
+elseif (MULTI_CONFIG_PROJECT)
     set (URHO3D_CSHARP_BIND_CONFIG $<CONFIG>)
 elseif (CMAKE_BUILD_TYPE)
     set (URHO3D_CSHARP_BIND_CONFIG ${CMAKE_BUILD_TYPE})
@@ -90,7 +90,6 @@ endif ()
 message(STATUS "URHO3D_CSHARP_BIND_CONFIG = ${URHO3D_CSHARP_BIND_CONFIG}")
 
 if (EMSCRIPTEN)
-    set (WEB ON)
     set (EMPACKAGER python ${EMSCRIPTEN_ROOT_PATH}/tools/file_packager.py CACHE PATH "file_packager.py")
     set (EMCC_WITH_SOURCE_MAPS_FLAG -gsource-map --source-map-base=. -fdebug-compilation-dir='.' -gseparate-dwarf)
 endif ()
@@ -106,10 +105,6 @@ endif ()
 # Generate CMake.props which will be included in .csproj files. This function should be called after all targets are
 # added to the project, because it depends on target properties.
 function (rbfx_configure_cmake_props)
-    if (NOT URHO3D_CSHARP)
-        return ()
-    endif ()
-
     if (NOT PROJECT_IS_TOP_LEVEL)
         return ()
     endif ()
@@ -129,6 +124,7 @@ function (rbfx_configure_cmake_props)
         CMAKE_GENERATOR
         CMAKE_RUNTIME_OUTPUT_DIRECTORY
         CMAKE_CONFIGURATION_TYPES
+        URHO3D_CSHARP
         URHO3D_CSHARP_PROPS_FILE
         URHO3D_PLATFORM
         URHO3D_IS_SDK
@@ -147,8 +143,15 @@ function (rbfx_configure_cmake_props)
             if (NOT "${${var}}" MATCHES "^.+/ThirdParty/.+$")
                 string(REPLACE "." "_" var_name "${var}")
                 set(var_value "${${var}}")
-                if (NOT "${var_value}" MATCHES "/$")
-                    set(var_value "${var_value}/")
+                if ("${var_value}" MATCHES "/")
+                    # Paths end with /
+                    if (NOT "${var_value}" MATCHES "/$")
+                        set(var_value "${var_value}/")
+                    endif ()
+                elseif ("${var_value}" MATCHES "1|ON|YES|TRUE|Y|on|yes|true|y|On|Yes|True")
+                    set(var_value "ON")
+                elseif ("${var_value}" MATCHES "0|OFF|NO|FALSE|Y|off|no|false|n|Off|No|False")
+                    set(var_value "OFF")
                 endif ()
                 file(APPEND "${PROPS_OUT}" "    <${var_name}>${var_value}</${var_name}>\n")
             endif ()
@@ -418,7 +421,7 @@ function (csharp_bind_target)
     string(REGEX REPLACE "[^;]+\\$<COMPILE_LANGUAGE:[^;]+;" "" GENERATOR_OPTIONS "${GENERATOR_OPTIONS}")    # COMPILE_LANGUAGE creates ambiguity, remove.
     list(REMOVE_DUPLICATES GENERATOR_OPTIONS)
     string(REPLACE ";" "\n" GENERATOR_OPTIONS "${GENERATOR_OPTIONS}")
-    file(GENERATE OUTPUT "GeneratorOptions_${BIND_TARGET}_$<CONFIG>.txt" CONTENT "${GENERATOR_OPTIONS}" CONDITION $<COMPILE_LANGUAGE:CXX>)
+    file(GENERATE OUTPUT "GeneratorOptions_${BIND_TARGET}_${URHO3D_CSHARP_BIND_CONFIG}.txt" CONTENT "${GENERATOR_OPTIONS}" CONDITION $<COMPILE_LANGUAGE:CXX>)
 
     # Swig generator command
     add_custom_command(OUTPUT ${BIND_OUT_FILE}
@@ -558,7 +561,14 @@ function (web_link_resources TARGET RESOURCES)
     if (NOT WEB)
         return ()
     endif ()
-    file (WRITE "${CMAKE_CURRENT_BINARY_DIR}/${RESOURCES}.load.js" "var Module;if(typeof Module==='undefined')Module=eval('(function(){try{return Module||{}}catch(e){return{}}})()');var s=document.createElement('script');s.src='${RESOURCES}';document.body.appendChild(s);Module['preRun'].push(function(){Module['addRunDependency']('${RESOURCES}.loader')});s.onload=function(){if (Module.finishedDataFileDownloads < Module.expectedDataFileDownloads) setTimeout(s.onload, 100); else Module['removeRunDependency']('${RESOURCES}.loader')};")
+
+    if (URHO3D_IS_SDK)
+        set (TEMPLATE_DIR ${URHO3D_SDK_PATH}/include/Urho3D)
+    else ()
+        set (TEMPLATE_DIR ${rbfx_SOURCE_DIR}/Source/Urho3D)
+    endif ()
+
+    configure_file (${TEMPLATE_DIR}/Resources.load.js.in ${CMAKE_CURRENT_BINARY_DIR}/${RESOURCES}.load.js @ONLY)
     target_link_libraries(${TARGET} PRIVATE "--pre-js ${CMAKE_CURRENT_BINARY_DIR}/${RESOURCES}.load.js")
     add_dependencies(${TARGET} ${RESOURCES})
 endfunction ()

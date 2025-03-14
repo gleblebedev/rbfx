@@ -101,9 +101,9 @@ public:
     /// Return current velocity callback.
     const CrowdAgentVelocityCallback& GetVelocityCallback() const { return velocityCallback_; }
     /// Set height callback.
-    void SetHeightCallback(const CrowdAgentHeightCallback& callback) { heightCallback_ = callback; }
+    void SetPositionCallback(const CrowdAgentPositionCallback& callback) { positionCallback_ = callback; }
     /// Return current height callback.
-    const CrowdAgentHeightCallback& GetHeightCallback() const { return heightCallback_; }
+    const CrowdAgentPositionCallback& GetPositionCallback() const { return positionCallback_; }
 
     /// Submit a new target position request for this agent.
     /// @property
@@ -230,7 +230,7 @@ protected:
     /// Handle node being assigned.
     void OnNodeSet(Node* previousNode, Node* currentNode) override;
     /// Handle node being assigned.
-    void OnSceneSet(Scene* scene) override;
+    void OnSceneSet(Scene* previousScene, Scene* scene) override;
     /// \todo Handle node transform being dirtied.
     void OnMarkedDirty(Node* node) override;
     /// Get internal Detour crowd agent.
@@ -252,7 +252,7 @@ private:
     /// Velocity callback.
     CrowdAgentVelocityCallback velocityCallback_;
     /// Height callback.
-    CrowdAgentHeightCallback heightCallback_;
+    CrowdAgentPositionCallback positionCallback_;
     /// Crowd manager reference to this agent.
     int agentCrowdId_;
     /// Requested target position.

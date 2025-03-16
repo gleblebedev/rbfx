@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -27,6 +28,7 @@ namespace Urho3DNet
             INamedTypeSymbol? preserveAttribute = compilation.GetTypeByMetadataName("Urho3DNet.PreserveAttribute");
             INamedTypeSymbol? rmlUIEventAttribute = compilation.GetTypeByMetadataName("Urho3DNet.RmlUIEventAttribute");
             INamedTypeSymbol? rmlUIPropertyAttribute = compilation.GetTypeByMetadataName("Urho3DNet.RmlUIPropertyAttribute");
+            INamedTypeSymbol? variantListType = compilation.GetTypeByMetadataName("Urho3DNet.VariantList");
 
             var visitedClasses = new HashSet<string>();
 
@@ -196,7 +198,7 @@ namespace Urho3DNet
                         }
 
 
-                        var rmlEvents = new List<string>();
+                        var rmlEvents = new List<RmlUIEventInfo>();
 
                         foreach (var method in classDeclaration.Members.OfType<MethodDeclarationSyntax>())
                         {
@@ -207,7 +209,11 @@ namespace Urho3DNet
                             if (!methodSymbol.GetAttributes().Any(attr => SymbolEqualityComparer.Default.Equals(attr.AttributeClass, rmlUIEventAttribute)))
                                 continue;
 
-                            rmlEvents.Add(methodSymbol.Name);
+                            rmlEvents.Add(new RmlUIEventInfo {
+                                EventName = methodSymbol.Name,
+                                Parameters = methodSymbol.Parameters,
+                                NeedsAdapter = methodSymbol.Parameters.Length != 1 || !SymbolEqualityComparer.Default.Equals(methodSymbol.Parameters[0].Type, variantListType)
+                            });
                         }
 
                         if (rmlProperties.Count > 0 || rmlEvents.Count > 0)
@@ -219,14 +225,33 @@ namespace Urho3DNet
                             }
                             foreach (var p in rmlEvents)
                             {
-                                sourceBuilder.AppendLine($"BindDataModelEvent(\"{p}\", {p});");
+                                var handlerName = p.NeedsAdapter ? $"Handle{p.EventName}Event" : p.EventName;
+                                sourceBuilder.AppendLine($"BindDataModelEvent(\"{p.EventName}\", {handlerName});");
                             }
                             sourceBuilder.AppendLine("InitializeDataModel();");
                             sourceBuilder.AppendLine("}");
                             sourceBuilder.AppendLine("partial void InitializeDataModel();");
                         }
 
+                        foreach (var ev in rmlEvents.Where(_ => _.NeedsAdapter))
+                        {
+                            sourceBuilder.AppendLine($"private void Handle{ev.EventName}Event(Urho3DNet.VariantList args) {{");
+                            sourceBuilder.Append($"  {ev.EventName}(");
+                            for (int index = 0; index < ev.Parameters.Length; index++)
+                            {
+                                IParameterSymbol? parameter = ev.Parameters[index];
+                                if (index != 0)
+                                    sourceBuilder.Append(", ");
+
+                                sourceBuilder.Append($"(args.Count>{index})?({parameter.Type.ToDisplayString()})args[{index}]:default({parameter.Type.ToDisplayString()})");
+                            }
+                            sourceBuilder.AppendLine(");");
+                            sourceBuilder.AppendLine("}");
+                        }
+
                         sourceBuilder.AppendLine("}");
+
+                       
 
                         foreach (var namedTypeSymbol in nestedInClasses)
                         {
@@ -359,6 +384,16 @@ namespace Urho3DNet
         {
             // No initialization required for this one
         }
+
+        struct RmlUIEventInfo
+        {
+            public string EventName { get; set; }
+
+            public bool NeedsAdapter { get; set; }
+
+            public ImmutableArray<IParameterSymbol> Parameters { get; internal set; }
+        }
+
     }
 
 }

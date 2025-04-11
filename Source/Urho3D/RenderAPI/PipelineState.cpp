@@ -195,12 +195,30 @@ void InitializeLayoutElements(ea::vector<Diligent::LayoutElement>& result,
 }
 
 #if GL_SUPPORTED || GLES_SUPPORTED
-    #define CHECK_ERROR_AND_RETURN(message) \
-        if (glGetError() != GL_NO_ERROR) \
-        { \
-            URHO3D_ASSERTLOG(false, message); \
-            return; \
+
+namespace
+{
+    void ConsumeUnhandledOpenGLErrors()
+    {
+        for (;;)
+        {
+            GLenum glLastErrorCode = glGetError();
+            if (glLastErrorCode == GL_NO_ERROR)
+                return;
+            URHO3D_LOGWARNING("OpenGL Error {}", glLastErrorCode);
         }
+    }
+}
+
+    #define CHECK_ERROR_AND_RETURN(message) \
+    { \
+        GLenum glLastErrorCode = glGetError(); \
+        if (glLastErrorCode != GL_NO_ERROR) \
+        { \
+            URHO3D_ASSERTLOG(false, "{} with OpenGL Error {}", message, glLastErrorCode); \
+            return; \
+        } \
+    }
 
 ea::pair<VertexShaderAttributeVector, StringVector> GetGLVertexAttributes(GLuint programObject)
 {
@@ -569,6 +587,8 @@ void PipelineState::CreateGPU(const GraphicsPipelineStateDesc& desc)
     else
     {
 #if GL_SUPPORTED || GLES_SUPPORTED
+        ConsumeUnhandledOpenGLErrors();
+
         // On OpenGL we should create temporary program and reflect vertex inputs.
         // If separable shader programs are not supported, we should also reflect everything else.
         TemporaryGLProgram glProgram{shaderHandles, hasSeparableShaderPrograms};
@@ -727,6 +747,8 @@ void PipelineState::CreateGPU(const ComputePipelineStateDesc& desc)
     else
     {
 #if GL_SUPPORTED || GLES_SUPPORTED
+        ConsumeUnhandledOpenGLErrors();
+
         TemporaryGLProgram glProgram{shaderHandles, hasSeparableShaderPrograms};
         reflection_ = MakeShared<ShaderProgramReflection>(glProgram.GetHandle());
 #endif

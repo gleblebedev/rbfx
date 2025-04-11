@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -67,9 +68,16 @@ namespace Urho3DNet
                     {
                         // Exclude system libraries and UWP HiddenScope assembly.
                         var assemblyName = assembly.GetName().Name;
-                        if (!assemblyName.StartsWith("System.") && assemblyName != "HiddenScope")
+                        if (!assemblyName.StartsWith("System.") && !assemblyName.StartsWith("Microsoft.Maui.") && assemblyName != "HiddenScope")
                         {
-                            RegisterFactories(assembly);
+                            try
+                            {
+                                RegisterFactories(assembly);
+                            }
+                            catch (System.IO.FileNotFoundException ex)
+                            {
+                                Trace.WriteLine(ex.FileName);
+                            }
                         }
                     }
                 });

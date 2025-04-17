@@ -490,6 +490,8 @@ TextureFormat SelectDefaultDepthFormat(Diligent::IRenderDevice* device, bool nee
 }
 
 #if GL_SUPPORTED || GLES_SUPPORTED
+GLuint defaultFbo{};
+
 class ProxySwapChainGL : public Diligent::SwapChainBase<Diligent::ISwapChainGL>
 {
 public:
@@ -546,7 +548,7 @@ private:
         // Get default framebuffer for iOS platforms
         const PlatformId platform = GetPlatform();
         if (platform == PlatformId::iOS || platform == PlatformId::tvOS)
-            glGetIntegerv(GL_FRAMEBUFFER_BINDING, reinterpret_cast<GLint*>(&defaultFBO_));
+            defaultFBO_ = defaultFbo;
 
         // Get swap chain parameters
         int width{};
@@ -839,6 +841,12 @@ void RenderDevice::InitializeWindow()
         if (!glContext_)
             throw RuntimeException("Could not create OpenGL context: {}", SDL_GetError());
 
+#if GL_SUPPORTED || GLES_SUPPORTED
+        const PlatformId platform = GetPlatform();
+        if (platform == PlatformId::iOS || platform == PlatformId::tvOS)
+            glGetIntegerv(GL_FRAMEBUFFER_BINDING, reinterpret_cast<GLint*>(&defaultFbo));
+#endif
+    
         int effectiveMultiSample{};
         if (SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &effectiveMultiSample) == 0)
             windowSettings_.multiSample_ = ea::max(1, effectiveMultiSample);

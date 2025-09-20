@@ -201,6 +201,7 @@ bool Graphics::SetScreenMode(const WindowSettings& windowSettings)
 void Graphics::Close()
 {
     context_->RemoveSubsystem<RenderDevice>();
+    window_ = nullptr;
     renderDevice_ = nullptr;
 }
 
